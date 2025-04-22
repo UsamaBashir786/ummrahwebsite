@@ -54,7 +54,7 @@ session_start();
           <!-- Transport Card 1 -->
           <div class="transport-card">
             <div class="transport-info">
-              <img src="path/to/bus-image.jpg" alt="Bus">
+              <img src="assets/img/hero.jpg" alt="Bus">
               <div class="transport-details">
                 <h5>Luxury Bus - Jeddah to Mecca</h5>
                 <p>Capacity: 40 passengers | Air Conditioned</p>
@@ -69,7 +69,7 @@ session_start();
           <!-- Transport Card 2 -->
           <div class="transport-card">
             <div class="transport-info">
-              <img src="path/to/private-car-image.jpg" alt="Private Car">
+              <img src="assets/img/hero.jpg" alt="Private Car">
               <div class="transport-details">
                 <h5>Private Car - Madinah to Mecca</h5>
                 <p>Capacity: 4 passengers | Sedan</p>
@@ -84,7 +84,7 @@ session_start();
           <!-- Transport Card 3 -->
           <div class="transport-card">
             <div class="transport-info">
-              <img src="path/to/taxi-image.jpg" alt="Taxi">
+              <img src="assets/img/hero.jpg" alt="Taxi">
               <div class="transport-details">
                 <h5>Taxi - Jeddah to Madinah</h5>
                 <p>Capacity: 4 passengers | Standard Taxi</p>

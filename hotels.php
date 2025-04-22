@@ -50,7 +50,7 @@ session_start();
         <div class="col-lg-4 col-md-6 mb-4">
           <div class="hotel-card">
             <div class="hotel-image">
-              <img src="path/to/hotel-image1.jpg" alt="Hotel 1">
+              <img src="assets/img/hero.jpg" alt="Hotel 1">
             </div>
             <div class="hotel-body">
               <h5 class="hotel-title">The Lenox</h5>
@@ -69,7 +69,7 @@ session_start();
         <div class="col-lg-4 col-md-6 mb-4">
           <div class="hotel-card">
             <div class="hotel-image">
-              <img src="path/to/hotel-image2.jpg" alt="Hotel 2">
+              <img src="assets/img/hero.jpg" alt="Hotel 2">
             </div>
             <div class="hotel-body">
               <h5 class="hotel-title">Madinah Oasis</h5>
@@ -88,7 +88,7 @@ session_start();
         <div class="col-lg-4 col-md-6 mb-4">
           <div class="hotel-card">
             <div class="hotel-image">
-              <img src="path/to/hotel-image3.jpg" alt="Hotel 3">
+              <img src="assets/img/hero.jpg" alt="Hotel 3">
             </div>
             <div class="hotel-body">
               <h5 class="hotel-title">Kaaba View Hotel</h5>

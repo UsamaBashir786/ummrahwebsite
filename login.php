@@ -55,6 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
   <?php include 'includes/css-links.php'; ?>
   <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    body{
+      margin-top: 100px !important;
+    }
+  </style>
 </head>
 
 <body>

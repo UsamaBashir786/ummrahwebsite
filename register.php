@@ -136,6 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       text-align: center;
       margin-top: 15px;
     }
+    body{
+      margin-top: 100px !important;
+    }
   </style>
 </head>
 

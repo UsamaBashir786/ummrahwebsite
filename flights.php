@@ -98,7 +98,7 @@ session_start();
           <!-- Flight Card 1 -->
           <div class="flight-card">
             <div class="flight-info">
-              <img src="path/to/airline-logo1.png" alt="Airline Logo">
+              <img src="assets/img/hero.jpg" alt="Airline Logo">
               <div class="flight-details">
                 <h5>PIA - Karachi to Jeddah</h5>
                 <p>Departure: 10:00 AM | Duration: 4h 30m</p>
@@ -114,7 +114,7 @@ session_start();
           <!-- Flight Card 2 -->
           <div class="flight-card">
             <div class="flight-info">
-              <img src="path/to/airline-logo2.png" alt="Airline Logo">
+              <img src="assets/img/hero.jpg" alt="Airline Logo">
               <div class="flight-details">
                 <h5>Saudia - Lahore to Madinah</h5>
                 <p>Departure: 2:00 PM | Duration: 5h 10m</p>
@@ -130,7 +130,7 @@ session_start();
           <!-- Flight Card 3 -->
           <div class="flight-card">
             <div class="flight-info">
-              <img src="path/to/airline-logo3.png" alt="Airline Logo">
+              <img src="assets/img/hero.jpg" alt="Airline Logo">
               <div class="flight-details">
                 <h5>Emirates - Islamabad to Jeddah</h5>
                 <p>Departure: 8:00 PM | Duration: 6h 00m</p>
