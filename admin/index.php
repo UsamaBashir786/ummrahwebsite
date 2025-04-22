@@ -1,4 +1,5 @@
 <?php
+require_once '../config/db.php';
 // Start admin session
 session_name('admin_session');
 session_start();

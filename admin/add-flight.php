@@ -1,4 +1,5 @@
 <?php
+require_once '../config/db.php';
 // Start admin session
 session_name('admin_session');
 session_start();
@@ -9,39 +10,269 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
   exit;
 }
 
-// Initialize variables and error handling
+// Initialize variables
 $errors = [];
 $success = '';
+$debug_log = [];
 
+// Function to log debug messages
+function log_debug($message)
+{
+  global $debug_log;
+  $debug_log[] = $message;
+}
+
+// Process form when submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-  // Sanitize and retrieve form inputs
-  $airline_name = mysqli_real_escape_string($conn, $_POST['airline_name']);
-  $flight_number = mysqli_real_escape_string($conn, $_POST['flight_number']);
-  $departure_city = mysqli_real_escape_string($conn, $_POST['departure_city']);
-  $arrival_city = mysqli_real_escape_string($conn, $_POST['arrival_city']);
-  $departure_date = mysqli_real_escape_string($conn, $_POST['departure_date']);
-  $departure_time = mysqli_real_escape_string($conn, $_POST['departure_time']);
-  $flight_duration = mysqli_real_escape_string($conn, $_POST['flight_duration']);
-  $distance = mysqli_real_escape_string($conn, $_POST['distance']);
-  $economy_price = mysqli_real_escape_string($conn, $_POST['economy_price']);
-  $business_price = mysqli_real_escape_string($conn, $_POST['business_price']);
-  $first_class_price = mysqli_real_escape_string($conn, $_POST['first_class_price']);
-  $economy_seats = mysqli_real_escape_string($conn, $_POST['economy_seats']);
-  $business_seats = mysqli_real_escape_string($conn, $_POST['business_seats']);
-  $first_class_seats = mysqli_real_escape_string($conn, $_POST['first_class_seats']);
-  $flight_notes = mysqli_real_escape_string($conn, $_POST['flight_notes']);
+  try {
+    // Sanitize and validate inputs
+    $airline_name = mysqli_real_escape_string($conn, trim($_POST['airline_name']));
+    $flight_number = mysqli_real_escape_string($conn, trim($_POST['flight_number']));
+    $departure_city = mysqli_real_escape_string($conn, trim($_POST['departure_city']));
+    $arrival_city = mysqli_real_escape_string($conn, trim($_POST['arrival_city']));
+    $departure_date = $_POST['departure_date'];
+    $departure_time = $_POST['departure_time'];
+    $flight_duration = floatval($_POST['flight_duration']);
+    $distance = intval($_POST['distance']);
+    $has_return = isset($_POST['has_return']) && $_POST['has_return'] == '1' ? 1 : 0;
+    $flight_notes = mysqli_real_escape_string($conn, trim($_POST['flight_notes']));
 
-  // Insert into database
-  $query = "INSERT INTO flights (airline_name, flight_number, departure_city, arrival_city, departure_date, departure_time, flight_duration, distance, economy_price, business_price, first_class_price, economy_seats, business_seats, first_class_seats, flight_notes, created_at) 
-            VALUES ('$airline_name', '$flight_number', '$departure_city', '$arrival_city', '$departure_date', '$departure_time', '$flight_duration', '$distance', '$economy_price', '$business_price', '$first_class_price', '$economy_seats', '$business_seats', '$first_class_seats', '$flight_notes', NOW())";
+    // Pricing and seats
+    $economy_price = floatval($_POST['economy_price']);
+    $business_price = floatval($_POST['business_price']);
+    $first_class_price = floatval($_POST['first_class_price']);
+    $economy_seats = intval($_POST['economy_seats']);
+    $business_seats = intval($_POST['business_seats']);
+    $first_class_seats = intval($_POST['first_class_seats']);
 
-  if ($conn->query($query)) {
-    $success = "Flight details have been successfully added.";
-  } else {
-    $errors[] = "Failed to save flight details: " . $conn->error;
+    log_debug("Received inputs: airline_name=$airline_name, flight_number=$flight_number, departure_city=$departure_city, arrival_city=$arrival_city");
+
+    // Validate required fields
+    if (empty($airline_name)) $errors[] = "Airline name is required";
+    if (empty($flight_number) || !preg_match('/^[A-Z0-9-]{2,9}$/', $flight_number))
+      $errors[] = "Valid flight number is required (2-9 characters)";
+    if (empty($departure_city)) $errors[] = "Departure city is required";
+    if (empty($arrival_city)) $errors[] = "Arrival city is required";
+    if (empty($departure_date) || !strtotime($departure_date))
+      $errors[] = "Valid departure date is required";
+    if (empty($departure_time) || !preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $departure_time))
+      $errors[] = "Valid departure time is required (HH:MM)";
+    if ($flight_duration <= 0 || $flight_duration > 8)
+      $errors[] = "Flight duration must be between 0 and 8 hours";
+    if ($distance <= 0 || $distance > 20000)
+      $errors[] = "Distance must be between 0 and 20,000 km";
+    if ($economy_price <= 0) $errors[] = "Valid economy price is required";
+    if ($business_price <= 0) $errors[] = "Valid business price is required";
+    if ($first_class_price <= 0) $errors[] = "Valid first class price is required";
+    if ($economy_seats < 100 || $economy_seats > 500)
+      $errors[] = "Economy seats must be between 100 and 500";
+    if ($business_seats < 10 || $business_seats > 100)
+      $errors[] = "Business seats must be between 10 and 100";
+    if ($first_class_seats < 5 || $first_class_seats > 50)
+      $errors[] = "First class seats must be between 5 and 50";
+
+    // Validate outbound stops if present
+    $has_stops = isset($_POST['has_stops']) && $_POST['has_stops'] == '1';
+    $stop_cities = isset($_POST['stop_city']) ? $_POST['stop_city'] : [];
+    $stop_durations = isset($_POST['stop_duration']) ? $_POST['stop_duration'] : [];
+
+    if ($has_stops && !empty($stop_cities)) {
+      foreach ($stop_cities as $index => $stop_city) {
+        $stop_city = mysqli_real_escape_string($conn, trim($stop_city));
+        $stop_duration = floatval($stop_durations[$index]);
+
+        if (empty($stop_city))
+          $errors[] = "Stop city is required for stop #" . ($index + 1);
+        if ($stop_duration <= 0 || $stop_duration > 24)
+          $errors[] = "Stop duration must be between 0 and 24 hours for stop #" . ($index + 1);
+      }
+    }
+
+    // Validate return flight if round trip
+    $return_airline = $return_flight_number = $return_date = $return_time = $return_flight_duration = null;
+    if ($has_return) {
+      $return_airline = mysqli_real_escape_string($conn, trim($_POST['return_airline']));
+      $return_flight_number = mysqli_real_escape_string($conn, trim($_POST['return_flight_number']));
+      $return_date = $_POST['return_date'];
+      $return_time = $_POST['return_time'];
+      $return_flight_duration = floatval($_POST['return_flight_duration']);
+
+      if ($return_airline === 'same') {
+        $return_airline = $airline_name;
+      }
+
+      if (empty($return_airline)) $errors[] = "Return airline is required";
+      if (empty($return_flight_number) || !preg_match('/^[A-Z0-9-]{2,7}$/', $return_flight_number))
+        $errors[] = "Valid return flight number is required (2-7 characters)";
+      if (empty($return_date) || !strtotime($return_date))
+        $errors[] = "Valid return date is required";
+      if (strtotime($return_date) < strtotime($departure_date))
+        $errors[] = "Return date must be after departure date";
+      if (empty($return_time) || !preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $return_time))
+        $errors[] = "Valid return time is required (HH:MM)";
+      if ($return_flight_duration <= 0 || $return_flight_duration > 8)
+        $errors[] = "Return flight duration must be between 0 and 8 hours";
+
+      // Validate return stops if present
+      $has_return_stops = isset($_POST['has_return_stops']) && $_POST['has_return_stops'] == '1';
+      $return_stop_cities = isset($_POST['return_stop_city']) ? $_POST['return_stop_city'] : [];
+      $return_stop_durations = isset($_POST['return_stop_duration']) ? $_POST['return_stop_duration'] : [];
+
+      if ($has_return_stops && !empty($return_stop_cities)) {
+        foreach ($return_stop_cities as $index => $stop_city) {
+          $stop_city = mysqli_real_escape_string($conn, trim($stop_city));
+          $stop_duration = floatval($return_stop_durations[$index]);
+
+          if (empty($stop_city))
+            $errors[] = "Return stop city is required for stop #" . ($index + 1);
+          if ($stop_duration <= 0 || $stop_duration > 24)
+            $errors[] = "Return stop duration must be between 0 and 24 hours for stop #" . ($index + 1);
+        }
+      }
+    }
+
+    // If no errors, insert data
+    if (empty($errors)) {
+      // Insert main flight details
+      $query = "INSERT INTO flights (
+                airline_name, flight_number, departure_city, arrival_city, 
+                departure_date, departure_time, flight_duration, distance,
+                is_round_trip, return_airline, return_flight_number,
+                return_date, return_time, return_flight_duration, flight_notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+      $stmt = $conn->prepare($query);
+      if (!$stmt) {
+        throw new Exception("Prepare failed: " . $conn->error);
+      }
+
+      $stmt->bind_param(
+        'ssssssdisssssds',
+        $airline_name,
+        $flight_number,
+        $departure_city,
+        $arrival_city,
+        $departure_date,
+        $departure_time,
+        $flight_duration,
+        $distance,
+        $has_return,
+        $return_airline,
+        $return_flight_number,
+        $return_date,
+        $return_time,
+        $return_flight_duration,
+        $flight_notes
+      );
+
+      if (!$stmt->execute()) {
+        throw new Exception("Flight insert failed: " . $stmt->error);
+      }
+
+      $flight_id = $conn->insert_id;
+      log_debug("Flight inserted with ID: $flight_id");
+
+      // Insert outbound stops
+      if ($has_stops && !empty($stop_cities)) {
+        $stop_query = "INSERT INTO flight_stops (flight_id, stop_city, stop_duration, is_return_stop) VALUES (?, ?, ?, 0)";
+        $stop_stmt = $conn->prepare($stop_query);
+        if (!$stop_stmt) {
+          throw new Exception("Stop prepare failed: " . $conn->error);
+        }
+
+        foreach ($stop_cities as $index => $stop_city) {
+          $stop_city = mysqli_real_escape_string($conn, trim($stop_city));
+          $stop_duration = floatval($stop_durations[$index]);
+          $stop_stmt->bind_param('isd', $flight_id, $stop_city, $stop_duration);
+
+          if (!$stop_stmt->execute()) {
+            throw new Exception("Stop insert failed: " . $stop_stmt->error);
+          }
+          log_debug("Inserted stop: $stop_city, duration: $stop_duration");
+        }
+        $stop_stmt->close();
+      }
+
+      // Insert return stops
+      if ($has_return && $has_return_stops && !empty($return_stop_cities)) {
+        $return_stop_query = "INSERT INTO flight_stops (flight_id, stop_city, stop_duration, is_return_stop) VALUES (?, ?, ?, 1)";
+        $return_stop_stmt = $conn->prepare($return_stop_query);
+        if (!$return_stop_stmt) {
+          throw new Exception("Return stop prepare failed: " . $conn->error);
+        }
+
+        foreach ($return_stop_cities as $index => $stop_city) {
+          $stop_city = mysqli_real_escape_string($conn, trim($stop_city));
+          $stop_duration = floatval($return_stop_durations[$index]);
+          $return_stop_stmt->bind_param('isd', $flight_id, $stop_city, $stop_duration);
+
+          if (!$return_stop_stmt->execute()) {
+            throw new Exception("Return stop insert failed: " . $return_stop_stmt->error);
+          }
+          log_debug("Inserted return stop: $stop_city, duration: $stop_duration");
+        }
+        $return_stop_stmt->close();
+      }
+
+      // Insert pricing and seats
+      $pricing_query = "INSERT INTO flight_pricing (
+                flight_id, economy_price, business_price, first_class_price,
+                economy_seats, business_seats, first_class_seats
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+      $pricing_stmt = $conn->prepare($pricing_query);
+      if (!$pricing_stmt) {
+        throw new Exception("Pricing prepare failed: " . $conn->error);
+      }
+
+      $pricing_stmt->bind_param(
+        'idddiii',
+        $flight_id,
+        $economy_price,
+        $business_price,
+        $first_class_price,
+        $economy_seats,
+        $business_seats,
+        $first_class_seats
+      );
+
+      if (!$pricing_stmt->execute()) {
+        throw new Exception("Pricing insert failed: " . $pricing_stmt->error);
+      }
+      log_debug("Inserted pricing: economy=$economy_price, business=$business_price, first_class=$first_class_price");
+      $pricing_stmt->close();
+
+      // Verify insertion
+      $verify_query = "SELECT id FROM flights WHERE id = ?";
+      $verify_stmt = $conn->prepare($verify_query);
+      $verify_stmt->bind_param('i', $flight_id);
+      $verify_stmt->execute();
+      $result = $verify_stmt->get_result();
+
+      if ($result->num_rows === 0) {
+        throw new Exception("Flight not found after insertion");
+      }
+
+      $success = "Flight added successfully!";
+      log_debug("Flight addition successful, redirecting...");
+
+      // Write debug log to file
+      file_put_contents('../logs/flight_add.log', date('Y-m-d H:i:s') . " - " . implode("\n", $debug_log) . "\n", FILE_APPEND);
+
+      // Redirect after success
+      header("refresh:2;url=flights.php");
+    } else {
+      log_debug("Validation errors: " . implode(", ", $errors));
+      file_put_contents('../logs/flight_add.log', date('Y-m-d H:i:s') . " - Validation errors: " . implode(", ", $errors) . "\n", FILE_APPEND);
+    }
+  } catch (Exception $e) {
+    $errors[] = "Error: " . $e->getMessage();
+    log_debug("Exception: " . $e->getMessage());
+    file_put_contents('../logs/flight_add.log', date('Y-m-d H:i:s') . " - Exception: " . $e->getMessage() . "\n", FILE_APPEND);
   }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -63,7 +294,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <div class="container-fluid">
     <div class="row">
       <?php include 'includes/sidebar.php'; ?>
-      <!-- Main Content -->
       <!-- Main Content -->
       <main class="main-content col-md-9">
         <!-- Navbar -->
@@ -87,6 +317,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="container-fluid">
           <div class="card shadow-sm">
             <div class="card-body p-4">
+              <?php if (!empty($errors)): ?>
+                <div class="alert alert-danger">
+                  <?php foreach ($errors as $error): ?>
+                    <p><?php echo htmlspecialchars($error); ?></p>
+                  <?php endforeach; ?>
+                </div>
+              <?php endif; ?>
+
+              <?php if ($success): ?>
+                <div class="alert alert-success">
+                  <p><?php echo htmlspecialchars($success); ?></p>
+                </div>
+              <?php endif; ?>
+
               <div class="mb-4">
                 <h2 class="card-title text-primary">
                   <i class="fas fa-plane-departure me-2"></i>Add New Flight
@@ -94,7 +338,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <p class="text-muted">Enter flight details for Umrah journey</p>
               </div>
 
-              <form action="#" method="POST" class="needs-validation" id="flightForm" novalidate>
+              <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>" method="POST" class="needs-validation" id="flightForm" novalidate>
                 <!-- Outbound Flight Section Title -->
                 <div class="section-heading mb-4">
                   <h3 class="text-primary">
@@ -108,7 +352,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label for="airline_name" class="form-label">Airline Name <span class="text-danger">*</span></label>
                     <select name="airline_name" id="airline_name" class="form-select" required>
                       <option value="">Select Airline</option>
-
                       <!-- Pakistani Airlines -->
                       <optgroup label="Pakistani Airlines">
                         <option value="PIA">Pakistan International Airlines (PIA)</option>
@@ -117,7 +360,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="AirSial">AirSial</option>
                         <option value="FlyJinnah">Fly Jinnah</option>
                       </optgroup>
-
                       <!-- Middle Eastern Airlines -->
                       <optgroup label="Middle Eastern Airlines">
                         <option value="Emirates">Emirates</option>
@@ -130,7 +372,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="GulfAir">Gulf Air</option>
                         <option value="KuwaitAirways">Kuwait Airways</option>
                       </optgroup>
-
                       <!-- Asian Airlines -->
                       <optgroup label="Asian Airlines">
                         <option value="Thai">Thai Airways</option>
@@ -140,7 +381,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="ChinaSouthern">China Southern</option>
                         <option value="Turkish">Turkish Airlines</option>
                       </optgroup>
-
                       <!-- European & American Airlines -->
                       <optgroup label="European & American Airlines">
                         <option value="British">British Airways</option>
@@ -149,7 +389,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="KLM">KLM Royal Dutch Airlines</option>
                         <option value="Virgin">Virgin Atlantic</option>
                       </optgroup>
-
                       <!-- Budget Airlines -->
                       <optgroup label="Budget Airlines">
                         <option value="AirArabia">Air Arabia</option>
@@ -183,7 +422,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                       <option value="Hyderabad">Hyderabad</option>
                       <option value="Peshawar">Peshawar</option>
                       <option value="Quetta">Quetta</option>
-
                       <!-- Punjab Cities -->
                       <optgroup label="Punjab">
                         <option value="Gujranwala">Gujranwala</option>
@@ -197,7 +435,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="Sahiwal">Sahiwal</option>
                         <option value="Sheikhupura">Sheikhupura</option>
                       </optgroup>
-
                       <!-- Sindh Cities -->
                       <optgroup label="Sindh">
                         <option value="Sukkur">Sukkur</option>
@@ -207,7 +444,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="Thatta">Thatta</option>
                         <option value="Jacobabad">Jacobabad</option>
                       </optgroup>
-
                       <!-- KPK Cities -->
                       <optgroup label="Khyber Pakhtunkhwa">
                         <option value="Mardan">Mardan</option>
@@ -217,7 +453,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="Charsadda">Charsadda</option>
                         <option value="Mansehra">Mansehra</option>
                       </optgroup>
-
                       <!-- Balochistan Cities -->
                       <optgroup label="Balochistan">
                         <option value="Gwadar">Gwadar</option>
@@ -225,7 +460,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="Chaman">Chaman</option>
                         <option value="Zhob">Zhob</option>
                       </optgroup>
-
                       <!-- AJK & Gilgit-Baltistan -->
                       <optgroup label="Azad Kashmir & Gilgit-Baltistan">
                         <option value="Muzaffarabad">Muzaffarabad</option>
@@ -344,10 +578,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                           <label for="return_airline" class="form-label">Return Airline <span class="text-danger">*</span></label>
                           <select name="return_airline" id="return_airline" class="form-select return-required">
                             <option value="">Select Airline</option>
-
                             <!-- Special Option -->
                             <option value="same">Same as Outbound</option>
-
                             <!-- Pakistani Airlines -->
                             <optgroup label="Pakistani Airlines">
                               <option value="PIA">Pakistan International Airlines (PIA)</option>
@@ -356,7 +588,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                               <option value="AirSial">AirSial</option>
                               <option value="FlyJinnah">Fly Jinnah</option>
                             </optgroup>
-
                             <!-- Middle Eastern Airlines -->
                             <optgroup label="Middle Eastern Airlines">
                               <option value="Emirates">Emirates</option>
@@ -367,7 +598,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                               <option value="Flydubai">Flydubai</option>
                               <option value="OmanAir">Oman Air</option>
                             </optgroup>
-
                             <!-- Asian Airlines -->
                             <optgroup label="Asian Airlines">
                               <option value="Thai">Thai Airways</option>
@@ -375,14 +605,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                               <option value="Turkish">Turkish Airlines</option>
                               <option value="Malaysia">Malaysia Airlines</option>
                             </optgroup>
-
                             <!-- European & American Airlines -->
                             <optgroup label="European & American Airlines">
                               <option value="British">British Airways</option>
                               <option value="Lufthansa">Lufthansa</option>
                               <option value="AirFrance">Air France</option>
                             </optgroup>
-
                             <!-- Budget Airlines -->
                             <optgroup label="Budget Airlines">
                               <option value="AirArabia">Air Arabia</option>
@@ -537,7 +765,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
   <!-- SweetAlert2 for notifications -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
   <script src="assets/js/add-flight.js"></script>
 </body>
 

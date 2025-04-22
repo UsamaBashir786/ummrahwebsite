@@ -4,7 +4,7 @@
 $host = 'localhost';
 $username = 'root';
 $password = ''; // No password
-$database = 'ummrah_v1';
+$database = 'latestummrah';
 
 // Create connection
 $conn = new mysqli($host, $username, $password, $database);
