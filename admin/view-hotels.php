@@ -323,7 +323,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
         </div>
         <div>
           <h3 class="text-gray-500 text-sm font-medium">Average Price</h3>
-          <p class="text-2xl font-bold text-gray-800">PKR<?php echo round($stats['avg_price']); ?></p>
+          <p class="text-2xl font-bold text-gray-800">PKR<?php echo !is_null($stats['avg_price']) ? number_format(round($stats['avg_price'])) : 0; ?></p>
         </div>
       </div>
 

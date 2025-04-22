@@ -88,6 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $roomStmt->close();
     }
 
+
+
     // Handle image uploads
     if (isset($_FILES['hotel_images']) && !empty($_FILES['hotel_images']['name'][0])) {
       $upload_dir = '../uploads/hotels/';
@@ -106,6 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $allowed_types = ['image/jpeg', 'image/png'];
       $max_size = 10 * 1024 * 1024; // 10MB
       $uploaded_images = [];
+      $first_image_path = ''; // Track the first image for setting as primary
 
       // Process each uploaded image
       for ($i = 0; $i < count($_FILES['hotel_images']['name']); $i++) {
@@ -131,21 +134,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $file_ext = pathinfo($file_name, PATHINFO_EXTENSION);
         $new_filename = uniqid('hotel_') . '.' . $file_ext;
         $destination = $hotel_dir . $new_filename;
+        $relative_path = 'uploads/hotels/' . $hotel_id . '/' . $new_filename;
 
         // Move uploaded file
         if (move_uploaded_file($file_tmp, $destination)) {
           $uploaded_images[] = $new_filename;
 
+          // Set first image as primary
+          $is_primary = ($i === 0) ? 1 : 0;
+
+          // Save first image path if this is the first one
+          if ($i === 0) {
+            $first_image_path = $relative_path;
+          }
+
           // Insert image record into database
-          $imgSql = "INSERT INTO hotel_images (hotel_id, image_path) VALUES (?, ?)";
-          $relative_path = 'uploads/hotels/' . $hotel_id . '/' . $new_filename;
+          $imgSql = "INSERT INTO hotel_images (hotel_id, image_path, is_primary) VALUES (?, ?, ?)";
 
           $imgStmt = $conn->prepare($imgSql);
           if (!$imgStmt) {
             throw new Exception("Database error: " . $conn->error);
           }
 
-          $imgStmt->bind_param("is", $hotel_id, $relative_path);
+          $imgStmt->bind_param("isi", $hotel_id, $relative_path, $is_primary);
 
           if (!$imgStmt->execute()) {
             throw new Exception("Error saving image: " . $imgStmt->error);
@@ -156,8 +167,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           throw new Exception("Failed to upload {$file_name}");
         }
       }
-    }
 
+      // Log the upload summary
+      error_log("Hotel $hotel_id: Uploaded " . count($uploaded_images) . " images. Primary image: " . $first_image_path);
+    }
     // Commit transaction
     $conn->commit();
 
