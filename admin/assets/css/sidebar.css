@@ -1,0 +1,143 @@
+/* Sidebar styling */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100vh;
+  background-color: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 999;
+  transition: all 0.3s;
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.sidebar .nav-link {
+  padding: 0.75rem 1.25rem;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s;
+}
+
+.sidebar .nav-link:hover {
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+.sidebar .nav-link.active {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.sidebar .nav-link i {
+  margin-right: 0.75rem;
+  width: 20px;
+  text-align: center;
+}
+
+.sidebar-heading {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  font-weight: 600;
+  color: #6c757d;
+}
+
+/* Main content area */
+.main-content {
+  margin-left: 250px;
+  padding: 20px;
+  transition: all 0.3s;
+}
+
+/* Navbar styles */
+.top-navbar {
+  background-color: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+/* Stats cards */
+.stat-card {
+  border-radius: 0.5rem;
+  border: none;
+  transition: all 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.stat-card .card-body {
+  position: relative;
+  padding: 1.5rem;
+}
+
+.stat-card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+/* Sub dropdown menu */
+.sidebar .submenu {
+  padding-left: 2.75rem;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.sidebar .submenu.show {
+  max-height: 500px;
+}
+
+.sidebar .menu-dropdown .nav-link {
+  position: relative;
+}
+
+.sidebar .menu-dropdown .dropdown-toggle::after {
+  position: absolute;
+  right: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Mobile responsive */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 998;
+  display: none;
+}
+
+/* Collapsed sidebar styling */
+@media (max-width: 991.98px) {
+  .sidebar {
+    margin-left: -250px;
+  }
+
+  .sidebar.show {
+    margin-left: 0;
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  .sidebar-overlay.show {
+    display: block;
+  }
+}

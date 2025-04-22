@@ -30,7 +30,7 @@
           <div class="collapse submenu" id="flights-dropdown">
             <ul class="nav flex-column">
               <li class="nav-item">
-                <a href="flight.php" class="nav-link">
+                <a href="add-flight.php" class="nav-link">
                   <i class="fas fa-plus-circle"></i> Add Flight
                 </a>
               </li>
