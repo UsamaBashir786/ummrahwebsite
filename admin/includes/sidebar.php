@@ -97,7 +97,7 @@
           <i class="fas fa-chevron-down"></i>
         </button>
         <div class="hidden space-y-2 pl-6 mt-2" id="transportation-dropdown">
-          <a href="add-transportations.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+          <a href="add-transportation.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
             <i class="fas fa-plus-circle"></i> Add Transportation
           </a>
           <a href="transportation.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
