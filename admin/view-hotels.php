@@ -11,6 +11,21 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
   exit;
 }
 
+// Check if delete parameter is present but empty or invalid
+if (isset($_GET['delete']) && (empty($_GET['delete']) || !is_numeric($_GET['delete']))) {
+  // Redirect to the same page without the delete parameter
+  $redirect_url = 'view-hotels.php';
+  if (!empty($_GET)) {
+    $params = $_GET;
+    unset($params['delete']); // Remove the delete parameter
+    if (!empty($params)) {
+      $redirect_url .= '?' . http_build_query($params);
+    }
+  }
+  header("Location: $redirect_url");
+  exit;
+}
+
 // Initialize variables
 $hotels = [];
 $total_hotels = 0;
@@ -39,7 +54,10 @@ if (isset($_GET['delete']) && !empty($_GET['delete'])) {
     $check_result = $check_stmt->get_result();
 
     if ($check_result->num_rows === 0) {
-      throw new Exception("Hotel not found.");
+      // Silently redirect back to view-hotels without an error message
+      $conn->rollback();
+      header('Location: view-hotels.php');
+      exit;
     }
 
     // Get image paths to delete files
@@ -84,7 +102,9 @@ if (isset($_GET['delete']) && !empty($_GET['delete'])) {
   } catch (Exception $e) {
     // Rollback on error
     $conn->rollback();
-    $message = "Error: " . $e->getMessage();
+    // Log the error but don't display the exact message to users
+    error_log("Error deleting hotel: " . $e->getMessage());
+    $message = "An error occurred while processing your request.";
     $message_type = "error";
   }
 }
@@ -289,7 +309,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
         <p class="text-gray-600">View and manage all hotel listings</p>
       </div>
       <div class="mt-4 md:mt-0">
-        <a href="add-hotel.php" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <a href="add-hotels.php" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
           <i class="fas fa-plus mr-2"></i> Add New Hotel
         </a>
       </div>
@@ -444,7 +464,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
         </div>
         <h3 class="text-xl font-bold text-gray-800 mb-2">No Hotels Found</h3>
         <p class="text-gray-600 mb-4">There are no hotels matching your search criteria.</p>
-        <a href="add-hotel.php" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <a href="add-hotels.php" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
           <i class="fas fa-plus mr-2"></i> Add New Hotel
         </a>
       </div>
