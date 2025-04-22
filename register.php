@@ -70,9 +70,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                   VALUES ('$fullName', '$email', '$hashedPassword', '$dob', '$profileImage', NOW())";
 
     if ($conn->query($query)) {
-      $success = "Registration successful! You can now login.";
-      // Clear form fields
-      $fullName = $email = $password = $dob = '';
+      // Set session variables
+      $_SESSION['user_id'] = $conn->insert_id;
+      $_SESSION['user_email'] = $email;
+      $_SESSION['user_fullname'] = $fullName;
+      $_SESSION['logged_in'] = true;
+
+      // Redirect to index.php
+      header("Location: index.php");
+      exit();
     } else {
       $errors[] = "Registration failed: " . $conn->error;
     }
@@ -103,6 +109,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       color: green;
       margin-bottom: 10px;
     }
+
+    .register-container {
+      max-width: 500px;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-register {
+      background-color: #4e73df;
+      color: white;
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+
+    .btn-register:hover {
+      background-color: #2e59d9;
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 15px;
+    }
   </style>
 </head>
 
@@ -111,19 +144,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <?php include 'includes/navbar.php'; ?>
 
   <div class="register-container my-5 m-auto">
-    <h2>Register with UmrahFlights</h2>
+    <h2 class="text-center mb-4">Register with UmrahFlights</h2>
 
     <?php if (!empty($errors)): ?>
-      <div class="error">
+      <div class="alert alert-danger">
         <?php foreach ($errors as $error): ?>
-          <p><?php echo $error; ?></p>
+          <p class="mb-1"><?php echo $error; ?></p>
         <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-
-    <?php if ($success): ?>
-      <div class="success">
-        <p><?php echo $success; ?></p>
       </div>
     <?php endif; ?>
 
@@ -131,12 +158,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       <div class="mb-3">
         <label for="fullName" class="form-label">Full Name</label>
         <input type="text" class="form-control" id="fullName" name="fullName"
-          placeholder="Enter your full name" value="<?php echo isset($fullName) ? $fullName : ''; ?>" required>
+          placeholder="Enter your full name" value="<?php echo isset($fullName) ? htmlspecialchars($fullName) : ''; ?>" required>
       </div>
       <div class="mb-3">
         <label for="email" class="form-label">Email Address</label>
         <input type="email" class="form-control" id="email" name="email"
-          placeholder="Enter your email" value="<?php echo isset($email) ? $email : ''; ?>" required>
+          placeholder="Enter your email" value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>" required>
       </div>
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
@@ -146,13 +173,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       <div class="mb-3">
         <label for="dob" class="form-label">Date of Birth</label>
         <input type="date" class="form-control" id="dob" name="dob"
-          value="<?php echo isset($dob) ? $dob : ''; ?>" required>
+          value="<?php echo isset($dob) ? htmlspecialchars($dob) : ''; ?>" required>
       </div>
       <div class="mb-3">
         <label for="profileImage" class="form-label">Profile Image</label>
         <input type="file" class="form-control" id="profileImage" name="profileImage" accept="image/*">
       </div>
-      <button type="submit" class="btn-register">Register</button>
+      <button type="submit" class="btn btn-primary btn-register">Register</button>
       <div class="login-link">
         <p>Already have an account? <a href="login.php">Login here</a></p>
       </div>

@@ -167,8 +167,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="container-fluid">
     <div class="row">
       <!-- Main Content -->
-      <div class="col-md-3"></div>
-      <main class="col-md-8 px-0">
+      <div class="col-md-"></div>
+      <main class="col-md-12 px-0">
         <!-- Navbar -->
         <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
           <div class="container-fluid">

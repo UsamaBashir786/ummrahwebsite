@@ -1,152 +1,185 @@
-  <!-- Sidebar Overlay -->
-  <div class="sidebar-overlay"></div>
+<style>
+  a {
+    text-decoration: none;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-  <!-- Sidebar -->
-  <nav class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="d-flex align-items-center">
-        <i class="fas fa-plane-departure text-primary fs-4 me-2"></i>
-        <h5 class="mb-0">UmrahFlights</h5>
-      </div>
+<!-- Sidebar Overlay -->
+<div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" id="sidebar-overlay"></div>
+
+<!-- Sidebar -->
+<nav style="    height: 100vh;
+    position: fixed;
+    overflow-y: scroll;" class=" fixed top-0 left-0 w-64 h-full bg-white shadow-lg transform -translate-x-full transition-transform duration-300 z-50" id="sidebar">
+  <div class="flex items-center justify-between p-4 bg-blue-500 text-white">
+    <div class="flex items-center space-x-2">
+      <i class="fas fa-plane-departure text-xl"></i>
+      <h5 class="font-bold text-lg">UmrahFlights</h5>
     </div>
+    <button class="text-white text-2xl focus:outline-none" id="sidebar-close">
+      &times;
+    </button>
+  </div>
 
-    <div class="pt-2">
-      <div class="sidebar-heading">Dashboard</div>
-      <ul class="nav flex-column">
-        <li class="nav-item">
-          <a href="index.php" class="nav-link active">
-            <i class="fas fa-tachometer-alt"></i> Dashboard
-          </a>
-        </li>
-      </ul>
+  <div class="px-4 py-6">
+    <div class="text-gray-500 text-sm font-semibold uppercase">Dashboard</div>
+    <ul class="space-y-2 mt-2">
+      <li>
+        <a href="index.php" class="flex items-center space-x-3 text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+          <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
+        </a>
+      </li>
+    </ul>
 
-      <div class="sidebar-heading mt-3">Management</div>
-      <ul class="nav flex-column">
-        <!-- Flights Dropdown -->
-        <li class="nav-item menu-dropdown">
-          <a href="#flights-dropdown" class="nav-link dropdown-toggle" data-bs-toggle="collapse">
-            <i class="fas fa-plane"></i> Flights
+    <div class="text-gray-500 text-sm font-semibold uppercase mt-6">Management</div>
+    <ul class="space-y-2 mt-2">
+      <!-- Flights Dropdown -->
+      <li>
+        <button class="flex items-center justify-between w-full text-gray-700 hover:bg-blue-100 rounded-lg p-2" data-target="#flights-dropdown">
+          <span class="flex items-center space-x-3">
+            <i class="fas fa-plane"></i> <span>Flights</span>
+          </span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="hidden space-y-2 pl-6 mt-2" id="flights-dropdown">
+          <a href="add-flight.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-plus-circle"></i> Add Flight
           </a>
-          <div class="collapse submenu" id="flights-dropdown">
-            <ul class="nav flex-column">
-              <li class="nav-item">
-                <a href="add-flight.php" class="nav-link">
-                  <i class="fas fa-plus-circle"></i> Add Flight
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="view-flights.php" class="nav-link">
-                  <i class="fas fa-list"></i> View Flights
-                </a>
-              </li>
-            </ul>
-          </div>
-        </li>
+          <a href="view-flights.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-list"></i> View Flights
+          </a>
+        </div>
+      </li>
 
-        <!-- Hotels Dropdown -->
-        <li class="nav-item menu-dropdown">
-          <a href="#hotels-dropdown" class="nav-link dropdown-toggle" data-bs-toggle="collapse">
-            <i class="fas fa-hotel"></i> Hotels
+      <!-- Hotels Dropdown -->
+      <li>
+        <button class="flex items-center justify-between w-full text-gray-700 hover:bg-blue-100 rounded-lg p-2" data-target="#hotels-dropdown">
+          <span class="flex items-center space-x-3">
+            <i class="fas fa-hotel"></i> <span>Hotels</span>
+          </span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="hidden space-y-2 pl-6 mt-2" id="hotels-dropdown">
+          <a href="add-hotel.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-plus-circle"></i> Add Hotel
           </a>
-          <div class="collapse submenu" id="hotels-dropdown">
-            <ul class="nav flex-column">
-              <li class="nav-item">
-                <a href="add-hotel.php" class="nav-link">
-                  <i class="fas fa-plus-circle"></i> Add Hotel
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="hotels.php" class="nav-link">
-                  <i class="fas fa-list"></i> View Hotels
-                </a>
-              </li>
-            </ul>
-          </div>
-        </li>
+          <a href="hotels.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-list"></i> View Hotels
+          </a>
+        </div>
+      </li>
 
-        <!-- Packages Dropdown -->
-        <li class="nav-item menu-dropdown">
-          <a href="#packages-dropdown" class="nav-link dropdown-toggle" data-bs-toggle="collapse">
-            <i class="fas fa-box"></i> Packages
+      <!-- Packages Dropdown -->
+      <li>
+        <button class="flex items-center justify-between w-full text-gray-700 hover:bg-blue-100 rounded-lg p-2" data-target="#packages-dropdown">
+          <span class="flex items-center space-x-3">
+            <i class="fas fa-box"></i> <span>Packages</span>
+          </span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="hidden space-y-2 pl-6 mt-2" id="packages-dropdown">
+          <a href="add-package.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-plus-circle"></i> Add Package
           </a>
-          <div class="collapse submenu" id="packages-dropdown">
-            <ul class="nav flex-column">
-              <li class="nav-item">
-                <a href="add-package.php" class="nav-link">
-                  <i class="fas fa-plus-circle"></i> Add Package
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="packages.php" class="nav-link">
-                  <i class="fas fa-list"></i> View Packages
-                </a>
-              </li>
-            </ul>
-          </div>
-        </li>
+          <a href="packages.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-list"></i> View Packages
+          </a>
+        </div>
+      </li>
 
-        <!-- Transportation Dropdown -->
-        <li class="nav-item menu-dropdown">
-          <a href="#transportation-dropdown" class="nav-link dropdown-toggle" data-bs-toggle="collapse">
-            <i class="fas fa-bus"></i> Transportation
+      <!-- Transportation Dropdown -->
+      <li>
+        <button class="flex items-center justify-between w-full text-gray-700 hover:bg-blue-100 rounded-lg p-2" data-target="#transportation-dropdown">
+          <span class="flex items-center space-x-3">
+            <i class="fas fa-bus"></i> <span>Transportation</span>
+          </span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="hidden space-y-2 pl-6 mt-2" id="transportation-dropdown">
+          <a href="add-transport.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-plus-circle"></i> Add Transportation
           </a>
-          <div class="collapse submenu" id="transportation-dropdown">
-            <ul class="nav flex-column">
-              <li class="nav-item">
-                <a href="add-transport.php" class="nav-link">
-                  <i class="fas fa-plus-circle"></i> Add Transportation
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="transportation.php" class="nav-link">
-                  <i class="fas fa-list"></i> View Transportation
-                </a>
-              </li>
-            </ul>
-          </div>
-        </li>
+          <a href="transportation.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-list"></i> View Transportation
+          </a>
+        </div>
+      </li>
 
-        <!-- Assignments Dropdown -->
-        <li class="nav-item menu-dropdown">
-          <a href="#assignments-dropdown" class="nav-link dropdown-toggle" data-bs-toggle="collapse">
-            <i class="fas fa-link"></i> Assignments
+      <!-- Assignments Dropdown -->
+      <li>
+        <button class="flex items-center justify-between w-full text-gray-700 hover:bg-blue-100 rounded-lg p-2" data-target="#assignments-dropdown">
+          <span class="flex items-center space-x-3">
+            <i class="fas fa-link"></i> <span>Assignments</span>
+          </span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+        <div class="hidden space-y-2 pl-6 mt-2" id="assignments-dropdown">
+          <a href="assign-hotels.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-hotel"></i> Assign Hotels
           </a>
-          <div class="collapse submenu" id="assignments-dropdown">
-            <ul class="nav flex-column">
-              <li class="nav-item">
-                <a href="assign-hotels.php" class="nav-link">
-                  <i class="fas fa-hotel"></i> Assign Hotels
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="assign-transport.php" class="nav-link">
-                  <i class="fas fa-bus"></i> Assign Transportation
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="assign-flights.php" class="nav-link">
-                  <i class="fas fa-plane"></i> Assign Flights
-                </a>
-              </li>
-            </ul>
-          </div>
-        </li>
+          <a href="assign-transport.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-bus"></i> Assign Transportation
+          </a>
+          <a href="assign-flights.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-plane"></i> Assign Flights
+          </a>
+        </div>
+      </li>
 
-        <!-- Users -->
-        <li class="nav-item">
-          <a href="all-users.php" class="nav-link">
-            <i class="fas fa-users"></i> Users
-          </a>
-        </li>
-      </ul>
+      <!-- Users -->
+      <li>
+        <a href="all-users.php" class="flex items-center space-x-3 text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+          <i class="fas fa-users"></i> <span>Users</span>
+        </a>
+      </li>
+    </ul>
 
-      <div class="sidebar-heading mt-3">Settings</div>
-      <ul class="nav flex-column">
-        <li class="nav-item">
-          <a href="../logout.php" class="nav-link text-danger">
-            <i class="fas fa-sign-out-alt"></i> Logout
-          </a>
-        </li>
-      </ul>
-    </div>
-  </nav>
+    <div class="text-gray-500 text-sm font-semibold uppercase mt-6">Settings</div>
+    <ul class="space-y-2 mt-2">
+      <li>
+        <a href="../logout.php" class="flex items-center space-x-3 text-red-500 hover:bg-red-100 rounded-lg p-2">
+          <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Sidebar Toggle Button -->
+<button class="fixed top-4 left-4 z-50 p-2 bg-blue-500 text-white rounded-lg shadow-lg focus:outline-none" id="sidebar-toggle">
+  <i class="fas fa-bars"></i>
+</button>
+
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+  const sidebarClose = document.getElementById('sidebar-close');
+  const dropdownButtons = document.querySelectorAll('[data-target]');
+
+  // Open Sidebar
+  sidebarToggle.addEventListener('click', () => {
+    sidebar.classList.remove('-translate-x-full');
+    sidebarOverlay.classList.remove('hidden');
+  });
+
+  // Close Sidebar
+  sidebarClose.addEventListener('click', () => {
+    sidebar.classList.add('-translate-x-full');
+    sidebarOverlay.classList.add('hidden');
+  });
+
+  sidebarOverlay.addEventListener('click', () => {
+    sidebar.classList.add('-translate-x-full');
+    sidebarOverlay.classList.add('hidden');
+  });
+
+  // Dropdown Toggle
+  dropdownButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const target = document.querySelector(button.getAttribute('data-target'));
+      target.classList.toggle('hidden');
+    });
+  });
+</script>
