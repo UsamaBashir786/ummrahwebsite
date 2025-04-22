@@ -1,3 +1,44 @@
+<?php
+// Start admin session with custom name
+session_name('admin_session');
+session_start();
+
+// Redirect if already logged in
+if (isset($_SESSION['admin_loggedin']) && $_SESSION['admin_loggedin'] === true) {
+  header('Location: index.php');
+  exit;
+}
+
+// Predefined admin credentials
+$admin_email = 'admin@admin.com';
+$admin_password = 'admin123'; // In real app, store hashed password
+
+// Process login if form submitted
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+  $email = trim($_POST['email']);
+  $password = trim($_POST['password']);
+
+  // Validate credentials
+  if ($email === $admin_email && $password === $admin_password) {
+    // Regenerate session ID for security
+    session_regenerate_id(true);
+
+    // Set admin session variables
+    $_SESSION['admin_loggedin'] = true;
+    $_SESSION['admin_email'] = $email;
+    $_SESSION['admin_last_login'] = time();
+
+    // Redirect to dashboard
+    header('Location: index.php');
+    exit;
+  } else {
+    // Invalid credentials
+    header('Location: admin-login.php?error=invalid');
+    exit;
+  }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -10,7 +51,7 @@
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <!-- Custom CSS -->
-   <link rel="stylesheet" href="assets/css/login.css">
+  <link rel="stylesheet" href="assets/css/login.css">
 </head>
 
 <body>
@@ -29,8 +70,6 @@
           $error = $_GET['error'];
           if ($error == 'invalid') {
             echo 'Invalid email or password. Please try again.';
-          } elseif ($error == 'empty') {
-            echo 'Please fill in all fields.';
           } else {
             echo 'An error occurred. Please try again.';
           }
@@ -39,7 +78,7 @@
         </div>
       <?php endif; ?>
 
-      <form action="auth.php" method="post">
+      <form method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>">
         <div class="form-floating mb-3">
           <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" required>
           <label for="email">Email address</label>
@@ -50,7 +89,7 @@
         </div>
         <div class="d-flex justify-content-between mb-4">
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="" id="rememberMe" name="remember">
+            <input class="form-check-input" type="checkbox" value="1" id="rememberMe" name="remember">
             <label class="form-check-label" for="rememberMe">
               Remember me
             </label>

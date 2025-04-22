@@ -1,3 +1,47 @@
+<?php
+// Start admin session
+session_name('admin_session');
+session_start();
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true) {
+  header('Location: login.php');
+  exit;
+}
+
+// Initialize variables and error handling
+$errors = [];
+$success = '';
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+  // Sanitize and retrieve form inputs
+  $airline_name = mysqli_real_escape_string($conn, $_POST['airline_name']);
+  $flight_number = mysqli_real_escape_string($conn, $_POST['flight_number']);
+  $departure_city = mysqli_real_escape_string($conn, $_POST['departure_city']);
+  $arrival_city = mysqli_real_escape_string($conn, $_POST['arrival_city']);
+  $departure_date = mysqli_real_escape_string($conn, $_POST['departure_date']);
+  $departure_time = mysqli_real_escape_string($conn, $_POST['departure_time']);
+  $flight_duration = mysqli_real_escape_string($conn, $_POST['flight_duration']);
+  $distance = mysqli_real_escape_string($conn, $_POST['distance']);
+  $economy_price = mysqli_real_escape_string($conn, $_POST['economy_price']);
+  $business_price = mysqli_real_escape_string($conn, $_POST['business_price']);
+  $first_class_price = mysqli_real_escape_string($conn, $_POST['first_class_price']);
+  $economy_seats = mysqli_real_escape_string($conn, $_POST['economy_seats']);
+  $business_seats = mysqli_real_escape_string($conn, $_POST['business_seats']);
+  $first_class_seats = mysqli_real_escape_string($conn, $_POST['first_class_seats']);
+  $flight_notes = mysqli_real_escape_string($conn, $_POST['flight_notes']);
+
+  // Insert into database
+  $query = "INSERT INTO flights (airline_name, flight_number, departure_city, arrival_city, departure_date, departure_time, flight_duration, distance, economy_price, business_price, first_class_price, economy_seats, business_seats, first_class_seats, flight_notes, created_at) 
+            VALUES ('$airline_name', '$flight_number', '$departure_city', '$arrival_city', '$departure_date', '$departure_time', '$flight_duration', '$distance', '$economy_price', '$business_price', '$first_class_price', '$economy_seats', '$business_seats', '$first_class_seats', '$flight_notes', NOW())";
+
+  if ($conn->query($query)) {
+    $success = "Flight details have been successfully added.";
+  } else {
+    $errors[] = "Failed to save flight details: " . $conn->error;
+  }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 

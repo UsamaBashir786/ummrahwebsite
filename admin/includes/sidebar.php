@@ -134,7 +134,7 @@
 
         <!-- Users -->
         <li class="nav-item">
-          <a href="users.php" class="nav-link">
+          <a href="all-users.php" class="nav-link">
             <i class="fas fa-users"></i> Users
           </a>
         </li>
