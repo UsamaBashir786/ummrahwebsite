@@ -35,7 +35,7 @@
                 </a>
               </li>
               <li class="nav-item">
-                <a href="flights.php" class="nav-link">
+                <a href="view-flights.php" class="nav-link">
                   <i class="fas fa-list"></i> View Flights
                 </a>
               </li>
