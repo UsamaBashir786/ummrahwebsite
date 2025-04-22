@@ -9,7 +9,9 @@ session_start();
   <?php include 'includes/css-links.php' ?>
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
-
+body{
+  margin-top: 100px;
+}
   </style>
 </head>
 
