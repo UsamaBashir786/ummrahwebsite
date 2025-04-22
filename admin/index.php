@@ -28,7 +28,7 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
 <body>
   <?php include 'includes/sidebar.php'; ?>
   <!-- Main Content -->
-  <div class="main-content col-md-12">
+  <div class="mt-10 main-content col-md-12">
     <!-- Top Navbar -->
     <nav class="navbar navbar-expand-lg top-navbar mb-4">
       <div class="container-fluid">
