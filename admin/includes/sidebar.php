@@ -61,10 +61,10 @@
           <i class="fas fa-chevron-down"></i>
         </button>
         <div class="hidden space-y-2 pl-6 mt-2" id="hotels-dropdown">
-          <a href="add-hotel.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+          <a href="add-hotels.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
             <i class="fas fa-plus-circle"></i> Add Hotel
           </a>
-          <a href="hotels.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+          <a href="view-hotels.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
             <i class="fas fa-list"></i> View Hotels
           </a>
         </div>

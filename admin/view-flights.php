@@ -163,6 +163,7 @@ if (!empty($filter)) {
     </div>
 
     <!-- Stats section -->
+    <?php include 'includes/sums-flight.php'; ?>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
       <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200 shadow-sm">
         <div class="flex items-center">
