@@ -129,7 +129,7 @@
 
       <!-- Users -->
       <li>
-        <a href="all-users.php" class="flex items-center space-x-3 text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+        <a href="users.php" class="flex items-center space-x-3 text-gray-700 hover:bg-blue-100 rounded-lg p-2">
           <i class="fas fa-users"></i> <span>Users</span>
         </a>
       </li>
