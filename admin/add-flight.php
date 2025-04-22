@@ -1,5 +1,6 @@
 <?php
 require_once '../config/db.php';
+
 // Start admin session
 session_name('admin_session');
 session_start();
@@ -10,269 +11,141 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
   exit;
 }
 
-// Initialize variables
-$errors = [];
-$success = '';
-$debug_log = [];
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  // Ensure $conn is the MySQLi connection from db.php
+  global $conn;
 
-// Function to log debug messages
-function log_debug($message)
-{
-  global $debug_log;
-  $debug_log[] = $message;
-}
+  // Prepare data for outbound flight
+  $airline_name = $_POST['airline_name'] ?? '';
+  $flight_number = $_POST['flight_number'] ?? '';
+  $departure_city = $_POST['departure_city'] ?? '';
+  $arrival_city = $_POST['arrival_city'] ?? '';
+  $has_stops = isset($_POST['has_stops']) && $_POST['has_stops'] == 1 ? 1 : 0;
+  $departure_date = $_POST['departure_date'] ?? '';
+  $departure_time = $_POST['departure_time'] ?? '';
+  $flight_duration = floatval($_POST['flight_duration'] ?? 0);
+  $distance = intval($_POST['distance'] ?? 0);
 
-// Process form when submitted
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-  try {
-    // Sanitize and validate inputs
-    $airline_name = mysqli_real_escape_string($conn, trim($_POST['airline_name']));
-    $flight_number = mysqli_real_escape_string($conn, trim($_POST['flight_number']));
-    $departure_city = mysqli_real_escape_string($conn, trim($_POST['departure_city']));
-    $arrival_city = mysqli_real_escape_string($conn, trim($_POST['arrival_city']));
-    $departure_date = $_POST['departure_date'];
-    $departure_time = $_POST['departure_time'];
-    $flight_duration = floatval($_POST['flight_duration']);
-    $distance = intval($_POST['distance']);
-    $has_return = isset($_POST['has_return']) && $_POST['has_return'] == '1' ? 1 : 0;
-    $flight_notes = mysqli_real_escape_string($conn, trim($_POST['flight_notes']));
-
-    // Pricing and seats
-    $economy_price = floatval($_POST['economy_price']);
-    $business_price = floatval($_POST['business_price']);
-    $first_class_price = floatval($_POST['first_class_price']);
-    $economy_seats = intval($_POST['economy_seats']);
-    $business_seats = intval($_POST['business_seats']);
-    $first_class_seats = intval($_POST['first_class_seats']);
-
-    log_debug("Received inputs: airline_name=$airline_name, flight_number=$flight_number, departure_city=$departure_city, arrival_city=$arrival_city");
-
-    // Validate required fields
-    if (empty($airline_name)) $errors[] = "Airline name is required";
-    if (empty($flight_number) || !preg_match('/^[A-Z0-9-]{2,9}$/', $flight_number))
-      $errors[] = "Valid flight number is required (2-9 characters)";
-    if (empty($departure_city)) $errors[] = "Departure city is required";
-    if (empty($arrival_city)) $errors[] = "Arrival city is required";
-    if (empty($departure_date) || !strtotime($departure_date))
-      $errors[] = "Valid departure date is required";
-    if (empty($departure_time) || !preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $departure_time))
-      $errors[] = "Valid departure time is required (HH:MM)";
-    if ($flight_duration <= 0 || $flight_duration > 8)
-      $errors[] = "Flight duration must be between 0 and 8 hours";
-    if ($distance <= 0 || $distance > 20000)
-      $errors[] = "Distance must be between 0 and 20,000 km";
-    if ($economy_price <= 0) $errors[] = "Valid economy price is required";
-    if ($business_price <= 0) $errors[] = "Valid business price is required";
-    if ($first_class_price <= 0) $errors[] = "Valid first class price is required";
-    if ($economy_seats < 100 || $economy_seats > 500)
-      $errors[] = "Economy seats must be between 100 and 500";
-    if ($business_seats < 10 || $business_seats > 100)
-      $errors[] = "Business seats must be between 10 and 100";
-    if ($first_class_seats < 5 || $first_class_seats > 50)
-      $errors[] = "First class seats must be between 5 and 50";
-
-    // Validate outbound stops if present
-    $has_stops = isset($_POST['has_stops']) && $_POST['has_stops'] == '1';
-    $stop_cities = isset($_POST['stop_city']) ? $_POST['stop_city'] : [];
-    $stop_durations = isset($_POST['stop_duration']) ? $_POST['stop_duration'] : [];
-
-    if ($has_stops && !empty($stop_cities)) {
-      foreach ($stop_cities as $index => $stop_city) {
-        $stop_city = mysqli_real_escape_string($conn, trim($stop_city));
-        $stop_duration = floatval($stop_durations[$index]);
-
-        if (empty($stop_city))
-          $errors[] = "Stop city is required for stop #" . ($index + 1);
-        if ($stop_duration <= 0 || $stop_duration > 24)
-          $errors[] = "Stop duration must be between 0 and 24 hours for stop #" . ($index + 1);
+  // Process stops
+  $stops = [];
+  if ($has_stops && !empty($_POST['stop_city']) && !empty($_POST['stop_duration'])) {
+    foreach ($_POST['stop_city'] as $index => $city) {
+      if (!empty($city) && isset($_POST['stop_duration'][$index])) {
+        $stops[] = [
+          'city' => $city,
+          'duration' => floatval($_POST['stop_duration'][$index])
+        ];
       }
     }
-
-    // Validate return flight if round trip
-    $return_airline = $return_flight_number = $return_date = $return_time = $return_flight_duration = null;
-    if ($has_return) {
-      $return_airline = mysqli_real_escape_string($conn, trim($_POST['return_airline']));
-      $return_flight_number = mysqli_real_escape_string($conn, trim($_POST['return_flight_number']));
-      $return_date = $_POST['return_date'];
-      $return_time = $_POST['return_time'];
-      $return_flight_duration = floatval($_POST['return_flight_duration']);
-
-      if ($return_airline === 'same') {
-        $return_airline = $airline_name;
-      }
-
-      if (empty($return_airline)) $errors[] = "Return airline is required";
-      if (empty($return_flight_number) || !preg_match('/^[A-Z0-9-]{2,7}$/', $return_flight_number))
-        $errors[] = "Valid return flight number is required (2-7 characters)";
-      if (empty($return_date) || !strtotime($return_date))
-        $errors[] = "Valid return date is required";
-      if (strtotime($return_date) < strtotime($departure_date))
-        $errors[] = "Return date must be after departure date";
-      if (empty($return_time) || !preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $return_time))
-        $errors[] = "Valid return time is required (HH:MM)";
-      if ($return_flight_duration <= 0 || $return_flight_duration > 8)
-        $errors[] = "Return flight duration must be between 0 and 8 hours";
-
-      // Validate return stops if present
-      $has_return_stops = isset($_POST['has_return_stops']) && $_POST['has_return_stops'] == '1';
-      $return_stop_cities = isset($_POST['return_stop_city']) ? $_POST['return_stop_city'] : [];
-      $return_stop_durations = isset($_POST['return_stop_duration']) ? $_POST['return_stop_duration'] : [];
-
-      if ($has_return_stops && !empty($return_stop_cities)) {
-        foreach ($return_stop_cities as $index => $stop_city) {
-          $stop_city = mysqli_real_escape_string($conn, trim($stop_city));
-          $stop_duration = floatval($return_stop_durations[$index]);
-
-          if (empty($stop_city))
-            $errors[] = "Return stop city is required for stop #" . ($index + 1);
-          if ($stop_duration <= 0 || $stop_duration > 24)
-            $errors[] = "Return stop duration must be between 0 and 24 hours for stop #" . ($index + 1);
-        }
-      }
-    }
-
-    // If no errors, insert data
-    if (empty($errors)) {
-      // Insert main flight details
-      $query = "INSERT INTO flights (
-                airline_name, flight_number, departure_city, arrival_city, 
-                departure_date, departure_time, flight_duration, distance,
-                is_round_trip, return_airline, return_flight_number,
-                return_date, return_time, return_flight_duration, flight_notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-      $stmt = $conn->prepare($query);
-      if (!$stmt) {
-        throw new Exception("Prepare failed: " . $conn->error);
-      }
-
-      $stmt->bind_param(
-        'ssssssdisssssds',
-        $airline_name,
-        $flight_number,
-        $departure_city,
-        $arrival_city,
-        $departure_date,
-        $departure_time,
-        $flight_duration,
-        $distance,
-        $has_return,
-        $return_airline,
-        $return_flight_number,
-        $return_date,
-        $return_time,
-        $return_flight_duration,
-        $flight_notes
-      );
-
-      if (!$stmt->execute()) {
-        throw new Exception("Flight insert failed: " . $stmt->error);
-      }
-
-      $flight_id = $conn->insert_id;
-      log_debug("Flight inserted with ID: $flight_id");
-
-      // Insert outbound stops
-      if ($has_stops && !empty($stop_cities)) {
-        $stop_query = "INSERT INTO flight_stops (flight_id, stop_city, stop_duration, is_return_stop) VALUES (?, ?, ?, 0)";
-        $stop_stmt = $conn->prepare($stop_query);
-        if (!$stop_stmt) {
-          throw new Exception("Stop prepare failed: " . $conn->error);
-        }
-
-        foreach ($stop_cities as $index => $stop_city) {
-          $stop_city = mysqli_real_escape_string($conn, trim($stop_city));
-          $stop_duration = floatval($stop_durations[$index]);
-          $stop_stmt->bind_param('isd', $flight_id, $stop_city, $stop_duration);
-
-          if (!$stop_stmt->execute()) {
-            throw new Exception("Stop insert failed: " . $stop_stmt->error);
-          }
-          log_debug("Inserted stop: $stop_city, duration: $stop_duration");
-        }
-        $stop_stmt->close();
-      }
-
-      // Insert return stops
-      if ($has_return && $has_return_stops && !empty($return_stop_cities)) {
-        $return_stop_query = "INSERT INTO flight_stops (flight_id, stop_city, stop_duration, is_return_stop) VALUES (?, ?, ?, 1)";
-        $return_stop_stmt = $conn->prepare($return_stop_query);
-        if (!$return_stop_stmt) {
-          throw new Exception("Return stop prepare failed: " . $conn->error);
-        }
-
-        foreach ($return_stop_cities as $index => $stop_city) {
-          $stop_city = mysqli_real_escape_string($conn, trim($stop_city));
-          $stop_duration = floatval($return_stop_durations[$index]);
-          $return_stop_stmt->bind_param('isd', $flight_id, $stop_city, $stop_duration);
-
-          if (!$return_stop_stmt->execute()) {
-            throw new Exception("Return stop insert failed: " . $return_stop_stmt->error);
-          }
-          log_debug("Inserted return stop: $stop_city, duration: $stop_duration");
-        }
-        $return_stop_stmt->close();
-      }
-
-      // Insert pricing and seats
-      $pricing_query = "INSERT INTO flight_pricing (
-                flight_id, economy_price, business_price, first_class_price,
-                economy_seats, business_seats, first_class_seats
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)";
-
-      $pricing_stmt = $conn->prepare($pricing_query);
-      if (!$pricing_stmt) {
-        throw new Exception("Pricing prepare failed: " . $conn->error);
-      }
-
-      $pricing_stmt->bind_param(
-        'idddiii',
-        $flight_id,
-        $economy_price,
-        $business_price,
-        $first_class_price,
-        $economy_seats,
-        $business_seats,
-        $first_class_seats
-      );
-
-      if (!$pricing_stmt->execute()) {
-        throw new Exception("Pricing insert failed: " . $pricing_stmt->error);
-      }
-      log_debug("Inserted pricing: economy=$economy_price, business=$business_price, first_class=$first_class_price");
-      $pricing_stmt->close();
-
-      // Verify insertion
-      $verify_query = "SELECT id FROM flights WHERE id = ?";
-      $verify_stmt = $conn->prepare($verify_query);
-      $verify_stmt->bind_param('i', $flight_id);
-      $verify_stmt->execute();
-      $result = $verify_stmt->get_result();
-
-      if ($result->num_rows === 0) {
-        throw new Exception("Flight not found after insertion");
-      }
-
-      $success = "Flight added successfully!";
-      log_debug("Flight addition successful, redirecting...");
-
-      // Write debug log to file
-      file_put_contents('../logs/flight_add.log', date('Y-m-d H:i:s') . " - " . implode("\n", $debug_log) . "\n", FILE_APPEND);
-
-      // Redirect after success
-      header("refresh:2;url=flights.php");
-    } else {
-      log_debug("Validation errors: " . implode(", ", $errors));
-      file_put_contents('../logs/flight_add.log', date('Y-m-d H:i:s') . " - Validation errors: " . implode(", ", $errors) . "\n", FILE_APPEND);
-    }
-  } catch (Exception $e) {
-    $errors[] = "Error: " . $e->getMessage();
-    log_debug("Exception: " . $e->getMessage());
-    file_put_contents('../logs/flight_add.log', date('Y-m-d H:i:s') . " - Exception: " . $e->getMessage() . "\n", FILE_APPEND);
   }
+  $stops_json = json_encode($stops);
+
+  // Prepare data for return flight
+  $has_return = isset($_POST['has_return']) && $_POST['has_return'] == 1 ? 1 : 0;
+  $return_airline = $has_return ? ($_POST['return_airline'] === 'same' ? $airline_name : ($_POST['return_airline'] ?? '')) : null;
+  $return_flight_number = $has_return ? ($_POST['return_flight_number'] ?? '') : null;
+  $return_date = $has_return ? ($_POST['return_date'] ?? '') : null;
+  $return_time = $has_return ? ($_POST['return_time'] ?? '') : null;
+  $return_flight_duration = $has_return ? floatval($_POST['return_flight_duration'] ?? 0) : null;
+  $has_return_stops = $has_return && isset($_POST['has_return_stops']) && $_POST['has_return_stops'] == 1 ? 1 : 0;
+
+  // Process return stops
+  $return_stops = [];
+  if ($has_return && $has_return_stops && !empty($_POST['return_stop_city']) && !empty($_POST['return_stop_duration'])) {
+    foreach ($_POST['return_stop_city'] as $index => $city) {
+      if (!empty($city) && isset($_POST['return_stop_duration'][$index])) {
+        $return_stops[] = [
+          'city' => $city,
+          'duration' => floatval($_POST['return_stop_duration'][$index])
+        ];
+      }
+    }
+  }
+  $return_stops_json = json_encode($return_stops);
+
+  // Pricing and seats
+  $economy_price = intval($_POST['economy_price'] ?? 0);
+  $business_price = intval($_POST['business_price'] ?? 0);
+  $first_class_price = intval($_POST['first_class_price'] ?? 0);
+  $economy_seats = intval($_POST['economy_seats'] ?? 0);
+  $business_seats = intval($_POST['business_seats'] ?? 0);
+  $first_class_seats = intval($_POST['first_class_seats'] ?? 0);
+  $flight_notes = $_POST['flight_notes'] ?? null;
+
+  // Prepare and execute MySQLi query
+  $sql = "INSERT INTO flights (
+        airline_name, flight_number, departure_city, arrival_city, has_stops, stops,
+        departure_date, departure_time, flight_duration, distance,
+        has_return, return_airline, return_flight_number, return_date, return_time,
+        return_flight_duration, has_return_stops, return_stops,
+        economy_price, business_price, first_class_price,
+        economy_seats, business_seats, first_class_seats, flight_notes
+    ) VALUES (
+        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?,
+        ?, ?, ?, ?
+    )";
+
+  $stmt = $conn->prepare($sql);
+  if ($stmt === false) {
+    echo "<script>alert('Error preparing query: " . addslashes($conn->error) . "');</script>";
+    exit;
+  }
+
+  // Handle NULL values explicitly
+  $return_airline = $return_airline ?? null;
+  $return_flight_number = $return_flight_number ?? null;
+  $return_date = $return_date ?? null;
+  $return_time = $return_time ?? null;
+  $return_flight_duration = $return_flight_duration ?? null;
+  $flight_notes = $flight_notes ?? null;
+
+  // Correct the type definition string to match the number of variables
+  $stmt->bind_param(
+    "ssssisssdiissssdissiiiiss", // Adjusted type string to include the missing placeholder
+    $airline_name,              // s
+    $flight_number,             // s
+    $departure_city,            // s
+    $arrival_city,              // s
+    $has_stops,                 // i
+    $stops_json,                // s
+    $departure_date,            // s
+    $departure_time,            // s
+    $flight_duration,           // d
+    $distance,                  // i
+    $has_return,                // i
+    $return_airline,            // s
+    $return_flight_number,      // s
+    $return_date,               // s
+    $return_time,               // s
+    $return_flight_duration,    // d
+    $has_return_stops,          // i
+    $return_stops_json,         // s
+    $economy_price,             // i
+    $business_price,            // i
+    $first_class_price,         // i
+    $economy_seats,             // i
+    $business_seats,            // i
+    $first_class_seats,         // i
+    $flight_notes               // s
+  );
+  // Execute the statement
+  if ($stmt->execute()) {
+    echo "<script>
+            alert('Flight added successfully!');
+            window.location.href = 'view-flights.php';
+        </script>";
+  } else {
+    echo "<script>alert('Error adding flight: " . addslashes($stmt->error) . "');</script>";
+  }
+
+  $stmt->close();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -293,20 +166,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <?php include 'includes/sidebar.php'; ?>
   <div class="container-fluid">
     <div class="row">
-      <?php include 'includes/sidebar.php'; ?>
       <!-- Main Content -->
-      <main class="main-content col-md-9">
+      <div class="col-md-3"></div>
+      <main class="col-md-8 px-0">
         <!-- Navbar -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
           <div class="container-fluid">
-            <button id="sidebarToggle" class="btn d-lg-none me-2">
-              <i class="fas fa-bars"></i>
-            </button>
             <h1 class="navbar-brand mb-0 d-flex align-items-center">
               <i class="text-primary fas fa-plane me-2"></i> Add New Flight
             </h1>
             <div class="d-flex align-items-center">
-              <button onclick="history.back()" class="btn btn-outline-secondary btn-sm">
+              <button onclick="history.back()" class="btn btn-outline-secondary btn-sm me-2">
                 <i class="fas fa-arrow-left me-1"></i> Back
               </button>
             </div>
@@ -314,23 +184,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </nav>
 
         <!-- Form Container -->
-        <div class="container-fluid">
+        <div class="container py-4">
           <div class="card shadow-sm">
             <div class="card-body p-4">
-              <?php if (!empty($errors)): ?>
-                <div class="alert alert-danger">
-                  <?php foreach ($errors as $error): ?>
-                    <p><?php echo htmlspecialchars($error); ?></p>
-                  <?php endforeach; ?>
-                </div>
-              <?php endif; ?>
-
-              <?php if ($success): ?>
-                <div class="alert alert-success">
-                  <p><?php echo htmlspecialchars($success); ?></p>
-                </div>
-              <?php endif; ?>
-
               <div class="mb-4">
                 <h2 class="card-title text-primary">
                   <i class="fas fa-plane-departure me-2"></i>Add New Flight
@@ -338,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <p class="text-muted">Enter flight details for Umrah journey</p>
               </div>
 
-              <form action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>" method="POST" class="needs-validation" id="flightForm" novalidate>
+              <form action="" method="POST" id="flightForm">
                 <!-- Outbound Flight Section Title -->
                 <div class="section-heading mb-4">
                   <h3 class="text-primary">
@@ -396,18 +252,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="SpiceJet">SpiceJet</option>
                       </optgroup>
                     </select>
-                    <div class="error-feedback" id="airline_name-error"></div>
                   </div>
                   <div class="col-md-6">
                     <label for="flight_number" class="form-label">Flight Number <span class="text-danger">*</span></label>
                     <input type="text" name="flight_number" id="flight_number" class="form-control" placeholder="e.g., PK-309" required maxlength="9">
-                    <div class="error-feedback" id="flight_number-error"></div>
                   </div>
                 </div>
 
                 <!-- Route Information -->
                 <div class="row mb-4">
-                  <!-- cities -->
                   <div class="col-md-6 mb-3 mb-md-0">
                     <label for="departure_city" class="form-label">Departure City <span class="text-danger">*</span></label>
                     <select name="departure_city" id="departure_city" class="form-select" required>
@@ -468,9 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="Skardu">Skardu</option>
                       </optgroup>
                     </select>
-                    <div class="error-feedback" id="departure_city-error"></div>
                   </div>
-                  <!-- Arrival City -->
                   <div class="col-md-6">
                     <label for="arrival_city" class="form-label">Arrival City <span class="text-danger">*</span></label>
                     <select name="arrival_city" id="arrival_city" class="form-select" required>
@@ -478,7 +329,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                       <option value="Jeddah">Jeddah</option>
                       <option value="Medina">Medina</option>
                     </select>
-                    <div class="error-feedback" id="arrival_city-error"></div>
                   </div>
                 </div>
 
@@ -489,29 +339,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                       <h4 class="mb-0">Flight Stops</h4>
                       <div class="ms-4">
                         <div class="form-check form-check-inline">
-                          <input class="form-check-input" type="radio" name="has_stops" id="directFlight" value="0" checked onchange="toggleStopsSection(false)">
+                          <input class="form-check-input" type="radio" name="has_stops" id="directFlight" value="0" checked>
                           <label class="form-check-label" for="directFlight">Direct Flight</label>
                         </div>
                         <div class="form-check form-check-inline">
-                          <input class="form-check-input" type="radio" name="has_stops" id="hasStops" value="1" onchange="toggleStopsSection(true)">
+                          <input class="form-check-input" type="radio" name="has_stops" id="hasStops" value="1">
                           <label class="form-check-label" for="hasStops">Has Stops</label>
                         </div>
                       </div>
                     </div>
 
                     <div id="stops-container" class="d-none">
-                      <!-- Initial stop row -->
                       <div class="stop-row row mb-3">
                         <div class="col-md-6 mb-3 mb-md-0">
-                          <label class="form-label">Stop City <span class="text-danger">*</span></label>
-                          <input type="text" name="stop_city[]" class="form-control stop-city" maxlength="12" placeholder="e.g., Dubai">
+                          <label class="form-label">Stop City</label>
+                          <input type="text" name="stop_city[]" class="form-control" maxlength="12" placeholder="e.g., Dubai">
                         </div>
                         <div class="col-md-6">
-                          <label class="form-label">Stop Duration (hours) <span class="text-danger">*</span></label>
-                          <input type="text" name="stop_duration[]" class="form-control stop-duration-input" placeholder="e.g., 4">
+                          <label class="form-label">Stop Duration (hours)</label>
+                          <input type="text" name="stop_duration[]" class="form-control" placeholder="e.g., 4">
                         </div>
                       </div>
-
                       <div class="text-end">
                         <button type="button" id="add-stop" class="btn btn-primary">
                           <i class="fas fa-plus me-2"></i>Add Another Stop
@@ -525,27 +373,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <div class="row mb-4">
                   <div class="col-md-4 mb-3 mb-md-0">
                     <label for="departure_date" class="form-label">Departure Date <span class="text-danger">*</span></label>
-                    <input type="date" name="departure_date" id="departure_date" class="form-control" min="1940-01-01" required onkeydown="return false;">
-                    <div class="error-feedback" id="departure_date-error"></div>
+                    <input type="date" name="departure_date" id="departure_date" class="form-control" required>
                   </div>
                   <div class="col-md-4 mb-3 mb-md-0">
                     <label for="departure_time" class="form-label">Departure Time <span class="text-danger">*</span></label>
-                    <input type="text" name="departure_time" id="departure_time" class="form-control" placeholder="HH:MM (24-hour format)" pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]" required>
-                    <small class="text-muted">Enter time in 24-hour format (00:00 to 23:59)</small>
-                    <div class="error-feedback" id="departure_time-error"></div>
+                    <input type="text" name="departure_time" id="departure_time" class="form-control" placeholder="HH:MM (24-hour format)" required>
                   </div>
                   <div class="col-md-4">
                     <label for="flight_duration" class="form-label">Flight Duration (hours) <span class="text-danger">*</span></label>
-                    <input type="number" name="flight_duration" id="flight_duration" class="form-control" placeholder="e.g., 5.5" step="0.1" min="0" max="8" required>
-                    <div class="error-feedback" id="flight_duration-error"></div>
+                    <input type="number" name="flight_duration" id="flight_duration" class="form-control" placeholder="e.g., 5.5" step="0.1" required>
                   </div>
                 </div>
 
                 <!-- Distance Field -->
                 <div class="mb-4">
                   <label for="distance" class="form-label">Distance (km) <span class="text-danger">*</span></label>
-                  <input type="number" name="distance" id="distance" class="form-control" placeholder="e.g., 3500" step="1" min="0" max="20000" required>
-                  <div class="error-feedback" id="distance-error"></div>
+                  <input type="number" name="distance" id="distance" class="form-control" placeholder="e.g., 3500" step="1" required>
                 </div>
 
                 <!-- Return Flight Section -->
@@ -557,14 +400,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                   </div>
 
                   <div class="d-flex align-items-center mb-3">
-                    <h4 class="mb-0">Journey Type</h4>
+                    <header>
+                      <h4 class="mb-0">Journey Type</h4>
+                    </header>
                     <div class="ms-4">
                       <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="has_return" id="oneWayFlight" value="0" checked onchange="toggleReturnSection(false)">
+                        <input class="form-check-input" type="radio" name="has_return" id="oneWayFlight" value="0" checked>
                         <label class="form-check-label" for="oneWayFlight">One-way Flight</label>
                       </div>
                       <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="has_return" id="roundTrip" value="1" onchange="toggleReturnSection(true)">
+                        <input class="form-check-input" type="radio" name="has_return" id="roundTrip" value="1">
                         <label class="form-check-label" for="roundTrip">Round Trip</label>
                       </div>
                     </div>
@@ -572,13 +417,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                   <div id="return-container" class="card bg-light mb-4 d-none">
                     <div class="card-body">
-                      <!-- Return Flight Details -->
                       <div class="row mb-4">
                         <div class="col-md-6 mb-3 mb-md-0">
-                          <label for="return_airline" class="form-label">Return Airline <span class="text-danger">*</span></label>
-                          <select name="return_airline" id="return_airline" class="form-select return-required">
+                          <label for="return_airline" class="form-label">Return Airline</label>
+                          <select name="return_airline" id="return_airline" class="form-select">
                             <option value="">Select Airline</option>
-                            <!-- Special Option -->
                             <option value="same">Same as Outbound</option>
                             <!-- Pakistani Airlines -->
                             <optgroup label="Pakistani Airlines">
@@ -617,62 +460,54 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                               <option value="Indigo">IndiGo</option>
                             </optgroup>
                           </select>
-                          <div class="error-feedback" id="return_airline-error"></div>
                         </div>
                         <div class="col-md-6">
-                          <label for="return_flight_number" class="form-label">Return Flight Number <span class="text-danger">*</span></label>
-                          <input type="text" name="return_flight_number" id="return_flight_number" class="form-control return-required" placeholder="e.g., PK-310" maxlength="7">
-                          <div class="error-feedback" id="return_flight_number-error"></div>
+                          <label for="return_flight_number" class="form-label">Return Flight Number</label>
+                          <input type="text" name="return_flight_number" id="return_flight_number" class="form-control" placeholder="e.g., PK-310" maxlength="7">
                         </div>
                       </div>
 
                       <div class="row mb-4">
                         <div class="col-md-4 mb-3 mb-md-0">
-                          <label for="return_date" class="form-label">Return Date <span class="text-danger">*</span></label>
-                          <input type="date" name="return_date" id="return_date" class="form-control return-required">
-                          <div class="error-feedback" id="return_date-error"></div>
+                          <label for="return_date" class="form-label">Return Date</label>
+                          <input type="date" name="return_date" id="return_date" class="form-control">
                         </div>
                         <div class="col-md-4 mb-3 mb-md-0">
-                          <label for="return_time" class="form-label">Return Time <span class="text-danger">*</span></label>
-                          <input type="text" name="return_time" id="return_time" class="form-control return-required" placeholder="HH:MM (24-hour format)">
-                          <div class="error-feedback" id="return_time-error"></div>
+                          <label for="return_time" class="form-label">Return Time</label>
+                          <input type="text" name="return_time" id="return_time" class="form-control" placeholder="HH:MM (24-hour format)">
                         </div>
                         <div class="col-md-4">
-                          <label for="return_flight_duration" class="form-label">Return Flight Duration (hours) <span class="text-danger">*</span></label>
-                          <input type="text" name="return_flight_duration" id="return_flight_duration" class="form-control return-required return-duration-input" placeholder="e.g., 5.5">
-                          <div class="error-feedback" id="return_flight_duration-error"></div>
+                          <label for="return_flight_duration" class="form-label">Return Flight Duration (hours)</label>
+                          <input type="text" name="return_flight_duration" id="return_flight_duration" class="form-control" placeholder="e.g., 5.5">
                         </div>
                       </div>
 
-                      <!-- Return Flight Stops -->
                       <div class="mt-4">
                         <div class="d-flex align-items-center mb-3">
                           <h5 class="mb-0">Return Flight Stops</h5>
                           <div class="ms-4">
                             <div class="form-check form-check-inline">
-                              <input class="form-check-input" type="radio" name="has_return_stops" id="directReturnFlight" value="0" checked onchange="toggleReturnStopsSection(false)">
+                              <input class="form-check-input" type="radio" name="has_return_stops" id="directReturnFlight" value="0" checked>
                               <label class="form-check-label" for="directReturnFlight">Direct Return Flight</label>
                             </div>
                             <div class="form-check form-check-inline">
-                              <input class="form-check-input" type="radio" name="has_return_stops" id="hasReturnStops" value="1" onchange="toggleReturnStopsSection(true)">
+                              <input class="form-check-input" type="radio" name="has_return_stops" id="hasReturnStops" value="1">
                               <label class="form-check-label" for="hasReturnStops">Has Stops</label>
                             </div>
                           </div>
                         </div>
 
                         <div id="return-stops-container" class="d-none">
-                          <!-- Initial return stop row -->
                           <div class="return-stop-row row mb-3">
                             <div class="col-md-6 mb-3 mb-md-0">
-                              <label class="form-label">Return Stop City <span class="text-danger">*</span></label>
-                              <input type="text" name="return_stop_city[]" class="form-control return-stop-city" placeholder="e.g., Dubai" maxlength="12">
+                              <label class="form-label">Return Stop City</label>
+                              <input type="text" name="return_stop_city[]" class="form-control" placeholder="e.g., Dubai" maxlength="12">
                             </div>
                             <div class="col-md-6">
-                              <label class="form-label">Return Stop Duration (hours) <span class="text-danger">*</span></label>
-                              <input type="text" name="return_stop_duration[]" class="form-control return-stop-duration" placeholder="e.g., 2">
+                              <label class="form-label">Return Stop Duration (hours)</label>
+                              <input type="text" name="return_stop_duration[]" class="form-control" placeholder="e.g., 2">
                             </div>
                           </div>
-
                           <div class="text-end">
                             <button type="button" id="add-return-stop" class="btn btn-primary">
                               <i class="fas fa-plus me-2"></i>Add Another Return Stop
@@ -695,18 +530,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                   <div class="row mb-4">
                     <div class="col-md-4 mb-3 mb-md-0">
                       <label for="economy_price" class="form-label">Economy Price (PKR) <span class="text-danger">*</span></label>
-                      <input type="number" name="economy_price" id="economy_price" class="form-control economy-price" placeholder="242,250" required>
-                      <div class="error-feedback" id="economy_price-error"></div>
+                      <input type="number" name="economy_price" id="economy_price" class="form-control" placeholder="242,250" required>
                     </div>
                     <div class="col-md-4 mb-3 mb-md-0">
                       <label for="business_price" class="form-label">Business Price (PKR) <span class="text-danger">*</span></label>
-                      <input type="number" name="business_price" id="business_price" class="form-control business-price" placeholder="427,500" required>
-                      <div class="error-feedback" id="business_price-error"></div>
+                      <input type="number" name="business_price" id="business_price" class="form-control" placeholder="427,500" required>
                     </div>
                     <div class="col-md-4">
                       <label for="first_class_price" class="form-label">First Class Price (PKR) <span class="text-danger">*</span></label>
-                      <input type="number" name="first_class_price" id="first_class_price" class="form-control first-class-price" placeholder="712,500" required>
-                      <div class="error-feedback" id="first_class_price-error"></div>
+                      <input type="number" name="first_class_price" id="first_class_price" class="form-control" placeholder="712,500" required>
                     </div>
                   </div>
                 </div>
@@ -722,18 +554,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                   <div class="row mb-4">
                     <div class="col-md-4 mb-3 mb-md-0">
                       <label for="economy_seats" class="form-label">Economy Seats <span class="text-danger">*</span></label>
-                      <input type="number" name="economy_seats" id="economy_seats" class="form-control" placeholder="200" min="100" max="500" required>
-                      <div class="error-feedback" id="economy_seats-error"></div>
+                      <input type="number" name="economy_seats" id="economy_seats" class="form-control" placeholder="200" required>
                     </div>
                     <div class="col-md-4 mb-3 mb-md-0">
                       <label for="business_seats" class="form-label">Business Seats <span class="text-danger">*</span></label>
-                      <input type="number" name="business_seats" id="business_seats" class="form-control" placeholder="30" min="10" max="100" required>
-                      <div class="error-feedback" id="business_seats-error"></div>
+                      <input type="number" name="business_seats" id="business_seats" class="form-control" placeholder="30" required>
                     </div>
                     <div class="col-md-4">
                       <label for="first_class_seats" class="form-label">First Class Seats <span class="text-danger">*</span></label>
-                      <input type="number" name="first_class_seats" id="first_class_seats" class="form-control" placeholder="10" min="5" max="50" required>
-                      <div class="error-feedback" id="first_class_seats-error"></div>
+                      <input type="number" name="first_class_seats" id="first_class_seats" class="form-control" placeholder="10" required>
                     </div>
                   </div>
                 </div>
@@ -763,9 +592,56 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
   <!-- Bootstrap Bundle with Popper -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- SweetAlert2 for notifications -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="assets/js/add-flight.js"></script>
+  <!-- Simple script for toggling sections and adding stops -->
+  <script>
+    // Toggle stops section
+    function toggleStopsSection(show) {
+      document.getElementById('stops-container').classList.toggle('d-none', !show);
+    }
+
+    // Toggle return section
+    function toggleReturnSection(show) {
+      document.getElementById('return-container').classList.toggle('d-none', !show);
+    }
+
+    // Toggle return stops section
+    function toggleReturnStopsSection(show) {
+      document.getElementById('return-stops-container').classList.toggle('d-none', !show);
+    }
+
+    // Add stop row
+    document.getElementById('add-stop').addEventListener('click', function() {
+      const stopRow = document.querySelector('.stop-row').cloneNode(true);
+      stopRow.querySelectorAll('input').forEach(input => input.value = '');
+      this.closest('.text-end').before(stopRow);
+    });
+
+    // Add return stop row
+    document.getElementById('add-return-stop').addEventListener('click', function() {
+      const returnStopRow = document.querySelector('.return-stop-row').cloneNode(true);
+      returnStopRow.querySelectorAll('input').forEach(input => input.value = '');
+      this.closest('.text-end').before(returnStopRow);
+    });
+
+    // Bind radio buttons
+    document.querySelectorAll('input[name="has_stops"]').forEach(input => {
+      input.addEventListener('change', function() {
+        toggleStopsSection(this.value == '1');
+      });
+    });
+
+    document.querySelectorAll('input[name="has_return"]').forEach(input => {
+      input.addEventListener('change', function() {
+        toggleReturnSection(this.value == '1');
+      });
+    });
+
+    document.querySelectorAll('input[name="has_return_stops"]').forEach(input => {
+      input.addEventListener('change', function() {
+        toggleReturnStopsSection(this.value == '1');
+      });
+    });
+  </script>
 </body>
 
 </html>

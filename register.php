@@ -5,45 +5,76 @@ require_once 'config/db.php';
 
 // Initialize variables
 $errors = [];
+$success = '';
 
 // Process form when submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   // Sanitize and validate inputs
+  $fullName = mysqli_real_escape_string($conn, trim($_POST['fullName']));
   $email = mysqli_real_escape_string($conn, trim($_POST['email']));
   $password = mysqli_real_escape_string($conn, trim($_POST['password']));
+  $dob = mysqli_real_escape_string($conn, $_POST['dob']);
 
   // Validate inputs
+  if (empty($fullName)) {
+    $errors[] = "Full name is required";
+  }
+
   if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $errors[] = "Valid email is required";
   }
 
-  if (empty($password)) {
-    $errors[] = "Password is required";
+  if (empty($password) || strlen($password) < 6) {
+    $errors[] = "Password must be at least 6 characters";
   }
 
-  if (empty($errors)) {
-    // Check if email exists and fetch user data
-    $query = "SELECT id, full_name, email, password FROM users WHERE email = '$email'";
-    $result = $conn->query($query);
+  if (empty($dob)) {
+    $errors[] = "Date of birth is required";
+  }
 
-    if ($result->num_rows > 0) {
-      $user = $result->fetch_assoc();
+  // Check if email already exists
+  $checkEmail = $conn->query("SELECT id FROM users WHERE email = '$email'");
+  if ($checkEmail->num_rows > 0) {
+    $errors[] = "Email already registered";
+  }
 
-      // Verify password
-      if (password_verify($password, $user['password'])) {
-        // Set session variables
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['full_name'] = $user['full_name'];
-        $_SESSION['email'] = $user['email'];
+  // Handle file upload
+  $profileImage = '';
+  if (isset($_FILES['profileImage']) && $_FILES['profileImage']['error'] == 0) {
+    $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+    $ext = pathinfo($_FILES['profileImage']['name'], PATHINFO_EXTENSION);
 
-        // Redirect to dashboard or protected page
-        header("Location: index.php");
-        exit;
+    if (in_array(strtolower($ext), $allowed)) {
+      $uploadDir = 'assets/uploads/profile_images/';
+      if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+      }
+
+      $filename = uniqid() . '.' . $ext;
+      $destination = $uploadDir . $filename;
+
+      if (move_uploaded_file($_FILES['profileImage']['tmp_name'], $destination)) {
+        $profileImage = $destination;
       } else {
-        $errors[] = "Invalid email or password";
+        $errors[] = "Failed to upload profile image";
       }
     } else {
-      $errors[] = "No account found with this email";
+      $errors[] = "Invalid file type. Only JPG, JPEG, PNG, GIF allowed";
+    }
+  }
+
+  // If no errors, insert into database
+  if (empty($errors)) {
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+    $query = "INSERT INTO users (full_name, email, password, dob, profile_image, created_at) 
+                  VALUES ('$fullName', '$email', '$hashedPassword', '$dob', '$profileImage', NOW())";
+
+    if ($conn->query($query)) {
+      $success = "Registration successful! You can now login.";
+      // Clear form fields
+      $fullName = $email = $password = $dob = '';
+    } else {
+      $errors[] = "Registration failed: " . $conn->error;
     }
   }
 }
@@ -53,15 +84,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html lang="en">
 
 <head>
-  <?php include 'includes/css-links.php'; ?>
+  <?php include 'includes/css-links.php' ?>
   <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    body {
+      background-color: #f8f9fa;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+    }
+
+    .error {
+      color: red;
+      margin-bottom: 10px;
+    }
+
+    .success {
+      color: green;
+      margin-bottom: 10px;
+    }
+  </style>
 </head>
 
 <body>
+  <!-- Navbar -->
   <?php include 'includes/navbar.php'; ?>
 
-  <div class="login-container my-5 m-auto">
-    <h2>Login</h2>
+  <div class="register-container my-5 m-auto">
+    <h2>Register with UmrahFlights</h2>
 
     <?php if (!empty($errors)): ?>
       <div class="error">
@@ -71,23 +121,46 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       </div>
     <?php endif; ?>
 
-    <form method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>">
+    <?php if ($success): ?>
+      <div class="success">
+        <p><?php echo $success; ?></p>
+      </div>
+    <?php endif; ?>
+
+    <form method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label for="fullName" class="form-label">Full Name</label>
+        <input type="text" class="form-control" id="fullName" name="fullName"
+          placeholder="Enter your full name" value="<?php echo isset($fullName) ? $fullName : ''; ?>" required>
+      </div>
       <div class="mb-3">
         <label for="email" class="form-label">Email Address</label>
-        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+        <input type="email" class="form-control" id="email" name="email"
+          placeholder="Enter your email" value="<?php echo isset($email) ? $email : ''; ?>" required>
       </div>
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+        <input type="password" class="form-control" id="password" name="password"
+          placeholder="Enter your password" required>
       </div>
-      <button type="submit" class="btn-login">Login</button>
-      <div class="register-link">
-        <p>Don't have an account? <a href="register.php">Register here</a></p>
+      <div class="mb-3">
+        <label for="dob" class="form-label">Date of Birth</label>
+        <input type="date" class="form-control" id="dob" name="dob"
+          value="<?php echo isset($dob) ? $dob : ''; ?>" required>
+      </div>
+      <div class="mb-3">
+        <label for="profileImage" class="form-label">Profile Image</label>
+        <input type="file" class="form-control" id="profileImage" name="profileImage" accept="image/*">
+      </div>
+      <button type="submit" class="btn-register">Register</button>
+      <div class="login-link">
+        <p>Already have an account? <a href="login.php">Login here</a></p>
       </div>
     </form>
   </div>
 
-  <?php include 'includes/js-links.php'; ?>
+  <!-- Footer -->
+  <?php include 'includes/js-links.php' ?>
 </body>
 
 </html>
