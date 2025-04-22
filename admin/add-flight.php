@@ -167,11 +167,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="container-fluid">
     <div class="row">
       <!-- Main Content -->
-      <div class="col-md-"></div>
-      <main class="col-md-12 px-0">
+      <div class="mt-10"></div>
+      <main class="mt-15 col-md-12 px-0">
         <!-- Navbar -->
         <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
-          <div class="container-fluid">
+          <div class="container">
             <h1 class="navbar-brand mb-0 d-flex align-items-center">
               <i class="text-primary fas fa-plane me-2"></i> Add New Flight
             </h1>

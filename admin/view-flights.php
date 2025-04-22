@@ -139,7 +139,7 @@ if (!empty($filter)) {
 <body class="bg-gray-50 text-gray-800">
   <?php include 'includes/sidebar.php'; ?>
 
-  <div class="ml-64 min-h-screen p-6">
+  <div class="mt-10 min-h-screen p-6">
     <!-- Header section -->
     <div class="flex justify-between items-center mb-6">
       <div>

@@ -299,7 +299,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
   <?php include 'includes/sidebar.php'; ?>
 
   <!-- Main Content -->
-  <div class="ml-64 p-6">
+  <div class="mt-10  p-6">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
       <div>

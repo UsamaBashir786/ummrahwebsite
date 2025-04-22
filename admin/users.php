@@ -12,11 +12,33 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
 $success_message = '';
 $error_message = '';
 
+// Define upload directory and allowed file types
+$upload_dir = 'uploads/';
+$allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+$max_file_size = 5 * 1024 * 1024; // 5MB
+
+// Ensure upload directory exists
+if (!is_dir($upload_dir)) {
+  mkdir($upload_dir, 0755, true);
+}
+
 // Handle Delete Requests
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_user'])) {
   $user_id = (int)$_POST['user_id'];
-  // Prevent deleting the current admin (assuming admin is a user in the table)
+  // Prevent deleting the current admin (assuming admin_id is stored in session)
   if ($user_id !== (int)$_SESSION['admin_id']) {
+    // Get current profile image to delete it
+    $stmt = $conn->prepare("SELECT profile_image FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($user = $result->fetch_assoc()) {
+      if ($user['profile_image'] && file_exists($user['profile_image'])) {
+        unlink($user['profile_image']);
+      }
+    }
+    $stmt->close();
+
     $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
     $stmt->bind_param("i", $user_id);
     if ($stmt->execute()) {
@@ -36,16 +58,62 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['edit_user'])) {
   $full_name = $conn->real_escape_string($_POST['full_name']);
   $email = $conn->real_escape_string($_POST['email']);
   $dob = $conn->real_escape_string($_POST['dob']);
-  $profile_image = !empty($_POST['profile_image']) ? $conn->real_escape_string($_POST['profile_image']) : null;
+  $profile_image = null;
 
-  $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, dob = ?, profile_image = ? WHERE id = ?");
-  $stmt->bind_param("ssssi", $full_name, $email, $dob, $profile_image, $user_id);
-  if ($stmt->execute()) {
-    $success_message = "User updated successfully!";
+  // Handle file upload
+  if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+    $file = $_FILES['profile_image'];
+    if ($file['error'] === UPLOAD_ERR_OK) {
+      if (in_array($file['type'], $allowed_types) && $file['size'] <= $max_file_size) {
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = uniqid('user_') . '.' . $ext;
+        $destination = $upload_dir . $filename;
+
+        // Delete old image if exists
+        $stmt = $conn->prepare("SELECT profile_image FROM users WHERE id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($user = $result->fetch_assoc()) {
+          if ($user['profile_image'] && file_exists($user['profile_image'])) {
+            unlink($user['profile_image']);
+          }
+        }
+        $stmt->close();
+
+        if (move_uploaded_file($file['tmp_name'], $destination)) {
+          $profile_image = $destination;
+        } else {
+          $error_message = "Error uploading image.";
+        }
+      } else {
+        $error_message = "Invalid file type or size. Allowed: JPG, PNG, GIF, max 5MB.";
+      }
+    } else {
+      $error_message = "Error uploading image: " . $file['error'];
+    }
   } else {
-    $error_message = "Error updating user: " . $conn->error;
+    // Keep existing image if no new file is uploaded
+    $stmt = $conn->prepare("SELECT profile_image FROM users WHERE id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($user = $result->fetch_assoc()) {
+      $profile_image = $user['profile_image'];
+    }
+    $stmt->close();
   }
-  $stmt->close();
+
+  if (!$error_message) {
+    $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, dob = ?, profile_image = ? WHERE id = ?");
+    $stmt->bind_param("ssssi", $full_name, $email, $dob, $profile_image, $user_id);
+    if ($stmt->execute()) {
+      $success_message = "User updated successfully!";
+    } else {
+      $error_message = "Error updating user: " . $conn->error;
+    }
+    $stmt->close();
+  }
 }
 
 // Fetch Statistics
@@ -162,7 +230,7 @@ $stmt->close();
 
 <body class="bg-gray-100 font-sans">
   <?php include 'includes/sidebar.php'; ?>
-  <main class="ml-0 md:ml-64 p-6 min-h-screen" role="main" aria-label="Main content">
+  <main class="mt-10 p-6 min-h-screen" role="main" aria-label="Main content">
     <nav class="flex items-center justify-between bg-white shadow-md p-4 rounded-lg mb-6">
       <div class="flex items-center">
         <button id="sidebarToggle" class="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle sidebar">
@@ -276,7 +344,7 @@ $stmt->close();
                   <td class="p-3"><?php echo htmlspecialchars($user['email']); ?></td>
                   <td class="p-3 text-center"><?php echo htmlspecialchars($user['dob']); ?></td>
                   <td class="p-3 text-center">
-                    <?php if ($user['profile_image']): ?>
+                    <?php if ($user['profile_image'] && file_exists($user['profile_image'])): ?>
                       <img src="<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile" class="w-8 h-8 rounded-full mx-auto">
                     <?php else: ?>
                       <span class="text-gray-500">None</span>
@@ -304,8 +372,11 @@ $stmt->close();
                     <div class="text-red-500 text-xs error-msg-dob hidden">Invalid date</div>
                   </td>
                   <td class="p-3">
-                    <input type="text" name="profile_image" value="<?php echo htmlspecialchars($user['profile_image'] ?? ''); ?>" class="input-field w-full text-center" placeholder="Image URL">
-                    <div class="text-red-500 text-xs error-msg-image hidden">Invalid URL</div>
+                    <input type="file" name="profile_image" accept=".jpg,.jpeg,.png,.gif" class="input-field w-full">
+                    <div class="text-red-500 text-xs error-msg-image hidden">Invalid file type or size (max 5MB)</div>
+                    <?php if ($user['profile_image'] && file_exists($user['profile_image'])): ?>
+                      <p class="text-sm text-gray-500 mt-1">Current: <a href="<?php echo htmlspecialchars($user['profile_image']); ?>" target="_blank">View Image</a></p>
+                    <?php endif; ?>
                   </td>
                   <td class="p-3 text-center"><?php echo date('Y-m-d', strtotime($user['created_at'])); ?></td>
                   <td class="p-3 text-center">
@@ -376,9 +447,14 @@ $stmt->close();
 
       function validateImage(input) {
         const errorMsg = input.closest('td').querySelector('.error-msg-image');
-        if (input.value && !/^https?:\/\/.*\.(jpg|jpeg|png|gif)$/.test(input.value)) {
-          errorMsg.classList.remove('hidden');
-          return false;
+        if (input.files.length > 0) {
+          const file = input.files[0];
+          const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+          const maxSize = 5 * 1024 * 1024; // 5MB
+          if (!allowedTypes.includes(file.type) || file.size > maxSize) {
+            errorMsg.classList.remove('hidden');
+            return false;
+          }
         }
         errorMsg.classList.add('hidden');
         return true;
@@ -398,7 +474,7 @@ $stmt->close();
       });
 
       document.querySelectorAll('input[name="profile_image"]').forEach(input => {
-        input.addEventListener('input', () => validateImage(input));
+        input.addEventListener('change', () => validateImage(input));
       });
 
       // Edit Button Handler
@@ -448,7 +524,9 @@ $stmt->close();
           formData.append('full_name', fullNameInput.value);
           formData.append('email', emailInput.value);
           formData.append('dob', dobInput.value);
-          formData.append('profile_image', profileImageInput.value);
+          if (profileImageInput.files.length > 0) {
+            formData.append('profile_image', profileImageInput.files[0]);
+          }
 
           fetch('', {
               method: 'POST',
