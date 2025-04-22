@@ -1,8 +1,12 @@
+<?php
+require_once 'config/db.php';
+session_start();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <?php include 'includes/css-links.php'?>
+  <?php include 'includes/css-links.php' ?>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
@@ -10,7 +14,7 @@
   <!-- Navbar -->
   <?php include 'includes/navbar.php'; ?>
   <!-- Hero Section -->
-   <br><br><br>
+  <br><br><br>
   <section class="hero-section">
     <div class="hero-content">
       <h1>Experience the Sacred Journey of Umrah</h1>

@@ -1,3 +1,10 @@
+<?php
+// Ensure session is started
+if (session_status() == PHP_SESSION_NONE) {
+  session_start();
+}
+?>
+
 <nav class="navbar navbar-expand-lg fixed-top">
   <div class="container-fluid">
     <a class="navbar-brand" href="#">
@@ -28,12 +35,21 @@
             <li><a class="dropdown-item" href="hotels.php">Hotels</a></li>
           </ul>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="login.php">Login</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="register.php">Register</a>
-        </li>
+        <?php if (isset($_SESSION['user_id'])): ?>
+          <li class="nav-item">
+            <a class="nav-link" href="user/index.php">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="logout.php">Logout</a>
+          </li>
+        <?php else: ?>
+          <li class="nav-item">
+            <a class="nav-link" href="login.php">Login</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="register.php">Register</a>
+          </li>
+        <?php endif; ?>
       </ul>
     </div>
   </div>
