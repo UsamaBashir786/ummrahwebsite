@@ -38,15 +38,15 @@
       <div class="col-lg-3 col-md-6 mb-4">
         <h5>Contact Us</h5>
         <div class="contact-info">
-          <img src="path/to/location-icon.png" alt="Location Icon">
+          <!-- <img src="path/to/location-icon.png" alt="Location Icon"> -->
           <p>123 Business Avenue, Karachi, Pakistan</p>
         </div>
         <div class="contact-info">
-          <img src="path/to/phone-icon.png" alt="Phone Icon">
+          <!-- <img src="path/to/phone-icon.png" alt="Phone Icon"> -->
           <a href="tel:+923001234567">+92 300 1234567</a>
         </div>
         <div class="contact-info">
-          <img src="path/to/email-icon.png" alt="Email Icon">
+          <!-- <img src="path/to/email-icon.png" alt="Email Icon"> -->
           <a href="mailto:info@umrahflights.com">info@umrahflights.com</a>
         </div>
       </div>

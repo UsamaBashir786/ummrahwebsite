@@ -34,7 +34,7 @@ session_start();
         <div class="col-lg-4 col-md-6 mb-4">
           <div class="package-card">
             <div class="position-relative">
-              <img src="path/to/image1.jpg" alt="Budget Umrah Bliss">
+              <img src="assets/img/hero.jpg" alt="Budget Umrah Bliss">
               <span class="limited-offer">Limited Offer</span>
             </div>
             <div class="card-body">
@@ -42,10 +42,10 @@ session_start();
               <div class="package-title">Budget Umrah Bliss</div>
               <div class="package-location">Lahore - Jeddah</div>
               <ul class="package-features">
-                <li><img src="path/to/icon1.png" alt="icon">Document Guide</li>
-                <li><img src="path/to/icon2.png" alt="icon">Economy Class Flight</li>
-                <li><img src="path/to/icon3.png" alt="icon">Local Meals</li>
-                <li><img src="path/to/icon4.png" alt="icon">Visa Included</li>
+                <!-- <li><img src="path/to/icon1.png" alt="icon">Document Guide</li> -->
+                <!-- <li><img src="path/to/icon2.png" alt="icon">Economy Class Flight</li> -->
+                <!-- <li><img src="path/to/icon3.png" alt="icon">Local Meals</li> -->
+                <!-- <li><img src="path/to/icon4.png" alt="icon">Visa Included</li> -->
               </ul>
               <a href="#" class="learn-more-btn">Learn More</a>
             </div>
@@ -55,7 +55,7 @@ session_start();
         <div class="col-lg-4 col-md-6 mb-4">
           <div class="package-card">
             <div class="position-relative">
-              <img src="path/to/image2.jpg" alt="Premium Spiritual Retreat">
+              <img src="assets/img/hero.jpg" alt="Premium Spiritual Retreat">
               <span class="limited-offer">Limited Offer</span>
             </div>
             <div class="card-body">
@@ -63,10 +63,10 @@ session_start();
               <div class="package-title">Premium Spiritual Retreat</div>
               <div class="package-location">Islamabad - Madinah</div>
               <ul class="package-features">
-                <li><img src="path/to/icon1.png" alt="icon">Document Guide</li>
-                <li><img src="path/to/icon2.png" alt="icon">Business Class Flight</li>
-                <li><img src="path/to/icon3.png" alt="icon">Local Meals</li>
-                <li><img src="path/to/icon4.png" alt="icon">Visa Included</li>
+                <!-- <li><img src="path/to/icon1.png" alt="icon">Document Guide</li> -->
+                <!-- <li><img src="path/to/icon2.png" alt="icon">Business Class Flight</li> -->
+                <!-- <li><img src="path/to/icon3.png" alt="icon">Local Meals</li> -->
+                <!-- <li><img src="path/to/icon4.png" alt="icon">Visa Included</li> -->
               </ul>
               <a href="#" class="learn-more-btn">Learn More</a>
             </div>
@@ -76,7 +76,7 @@ session_start();
         <div class="col-lg-4 col-md-6 mb-4">
           <div class="package-card">
             <div class="position-relative">
-              <img src="path/to/image3.jpg" alt="Executive Umrah Experience">
+              <img src="assets/img/hero.jpg" alt="Executive Umrah Experience">
               <span class="limited-offer">Limited Offer</span>
             </div>
             <div class="card-body">
@@ -84,10 +84,10 @@ session_start();
               <div class="package-title">Executive Umrah Experience</div>
               <div class="package-location">Karachi - Jeddah</div>
               <ul class="package-features">
-                <li><img src="path/to/icon1.png" alt="icon">Document Guide</li>
+                <!-- <li><img src="path/to/icon1.png" alt="icon">Document Guide</li>
                 <li><img src="path/to/icon2.png" alt="icon">First Class Flight</li>
                 <li><img src="path/to/icon3.png" alt="icon">Local Meals</li>
-                <li><img src="path/to/icon4.png" alt="icon">Visa Included</li>
+                <li><img src="path/to/icon4.png" alt="icon">Visa Included</li> -->
               </ul>
               <a href="#" class="learn-more-btn">Learn More</a>
             </div>
@@ -110,7 +110,7 @@ session_start();
         <!-- Image -->
         <div class="col-lg-6 mb-4">
           <div class="feature-image">
-            <img src="path/to/feature-image.jpg" alt="Feature Image">
+            <img src="assets/img/hero.jpg" alt="Feature Image">
           </div>
         </div>
         <!-- Features in 3x2 Grid -->
@@ -119,7 +119,7 @@ session_start();
             <!-- Feature 1 -->
             <div class="col-6">
               <div class="feature-item">
-                <img src="path/to/icon1.png" alt="Tawaf Icon">
+                <img src="assets/img/hero.jpg" alt="Tawaf Icon">
                 <div>
                   <h5>Tawaf</h5>
                   <p>Circumambulating the Kaaba in unity.</p>
@@ -129,7 +129,7 @@ session_start();
             <!-- Feature 2 -->
             <div class="col-6">
               <div class="feature-item">
-                <img src="path/to/icon2.png" alt="Ihram Icon">
+                <img src="assets/img/hero.jpg" alt="Ihram Icon">
                 <div>
                   <h5>Ihram</h5>
                   <p>Sacred attire signifying purity.</p>
@@ -139,7 +139,7 @@ session_start();
             <!-- Feature 3 -->
             <div class="col-6">
               <div class="feature-item">
-                <img src="path/to/icon3.png" alt="Mina Icon">
+                <img src="assets/img/hero.jpg" alt="Mina Icon">
                 <div>
                   <h5>Mina</h5>
                   <p>Sacred desert valley for pilgrims.</p>
@@ -149,7 +149,7 @@ session_start();
             <!-- Feature 4 -->
             <div class="col-6">
               <div class="feature-item">
-                <img src="path/to/icon4.png" alt="Jamarat Icon">
+                <img src="assets/img/hero.jpg" alt="Jamarat Icon">
                 <div>
                   <h5>Jamarat</h5>
                   <p>Symbolic act of rejecting Satan.</p>
@@ -159,7 +159,7 @@ session_start();
             <!-- Feature 5 -->
             <div class="col-6">
               <div class="feature-item">
-                <img src="path/to/icon5.png" alt="Zam-Zam Icon">
+                <img src="assets/img/hero.jpg" alt="Zam-Zam Icon">
                 <div>
                   <h5>Zam-Zam</h5>
                   <p>Holy water with miraculous origins.</p>
@@ -169,7 +169,7 @@ session_start();
             <!-- Feature 6 -->
             <div class="col-6">
               <div class="feature-item">
-                <img src="path/to/icon6.png" alt="Prayer Mat Icon">
+                <img src="assets/img/hero.jpg" alt="Prayer Mat Icon">
                 <div>
                   <h5>Prayer Mat</h5>
                   <p>Sacred space for performing Salah.</p>

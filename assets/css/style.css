@@ -72,7 +72,7 @@ body {
 .hero-section {
   position: relative;
   height: 400px;
-  background-image: url("path/to/hero-image.jpg");
+  background-image: url("/assets/img/hero.jpg");
   background-size: cover;
   background-position: center;
   display: flex;
@@ -797,6 +797,6 @@ a {
 }
 /* @media (max-width: 1024px) { */
   body {
-    margin-top: 50px;
+    /* margin-top: 50px; */
   }
 /* } */
