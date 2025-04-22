@@ -100,7 +100,7 @@
           <a href="add-transportation.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
             <i class="fas fa-plus-circle"></i> Add Transportation
           </a>
-          <a href="transportation.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+          <a href="view-transportation.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
             <i class="fas fa-list"></i> View Transportation
           </a>
         </div>
