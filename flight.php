@@ -1,31 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add New Flight</title>
-  <!-- Tailwind CSS CDN -->
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <!-- Font Awesome CDN -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <style>
-    .error-feedback {
-      color: #dc3545;
-      font-size: 0.875rem;
-      margin-top: 0.25rem;
-      display: none;
-    }
-
-    .is-invalid {
-      border-color: #dc3545 !important;
-    }
-
-    .is-valid {
-      border-color: #198754 !important;
-    }
-  </style>
-</head>
 
 <body class="bg-gray-50">
   <div class="flex h-screen">
@@ -556,8 +529,6 @@
     </div>
   </div>
 
-  <!-- SweetAlert2 for notifications -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -938,6 +909,3 @@
       }
     });
   </script>
-</body>
-
-</html>
