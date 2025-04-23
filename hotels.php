@@ -357,7 +357,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <?php if (!empty($success_message)): ?>
       <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-lg">
         <p><?php echo htmlspecialchars($success_message); ?></p>
-        <a href="my-bookings.php" class="text-blue-600 hover:underline">View Your Bookings</a>
+        <a href="user/index.php" class="text-blue-600 hover:underline">View Your Bookings</a>
       </div>
     <?php endif; ?>
 

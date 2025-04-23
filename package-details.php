@@ -152,7 +152,7 @@ $inclusions = json_decode($package['inclusions'], true) ?: [];
           </div>
 
           <div class="flex flex-col sm:flex-row gap-4">
-            <a href="booking.php?package_id=<?php echo $package['id']; ?>" class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-md transition duration-300 ease-in-out text-center">
+            <a href="package-booking.php?package_id=<?php echo $package['id']; ?>" class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-md transition duration-300 ease-in-out text-center">
               Book Now
             </a>
             <a href="packages.php" class="border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-3 px-6 rounded-md transition duration-300 ease-in-out text-center">
