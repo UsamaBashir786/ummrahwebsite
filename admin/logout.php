@@ -10,5 +10,5 @@ $_SESSION = array();
 session_destroy();
 
 // Redirect to login page
-header('Location: admin-login.php');
+header('Location: login.php');
 exit;

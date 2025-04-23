@@ -127,7 +127,7 @@
 
       <!-- Users -->
       <li>
-        <a href="users.php" class="flex items-center space-x-3 text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+        <a href="users.php" class="flex items-center2 space-x-3 text-gray-700 hover:bg-blue-100 rounded-lg p-2">
           <i class="fas fa-users"></i> <span>Users</span>
         </a>
       </li>
@@ -136,7 +136,7 @@
     <div class="text-gray-500 text-sm font-semibold uppercase mt-6">Settings</div>
     <ul class="space-y-2 mt-2">
       <li>
-        <a href="../logout.php" class="flex items-center space-x-3 text-red-500 hover:bg-red-100 rounded-lg p-2">
+        <a href="logout.php" class="flex items-center space-x-3 text-red-500 hover:bg-red-100 rounded-lg p-2">
           <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
         </a>
       </li>
