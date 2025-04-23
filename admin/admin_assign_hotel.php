@@ -25,6 +25,14 @@ $error_message = '';
 $booking = null;
 $hotels = [];
 $booking_details = [];
+$available_rooms = [];
+
+// Store form values to maintain state after submission
+$form_hotel_id = isset($_POST['hotel_id']) ? intval($_POST['hotel_id']) : 0;
+$form_check_in_date = isset($_POST['check_in_date']) ? $_POST['check_in_date'] : '';
+$form_check_out_date = isset($_POST['check_out_date']) ? $_POST['check_out_date'] : '';
+$form_room_id = isset($_POST['room_id']) ? $_POST['room_id'] : '';
+$form_special_requests = isset($_POST['special_requests']) ? $_POST['special_requests'] : '';
 
 // Fetch booking details
 $stmt = $conn->prepare("SELECT b.id, b.user_id, b.package_id, b.created_at, u.full_name 
@@ -49,6 +57,23 @@ if ($booking) {
   $result = $stmt->get_result();
   if ($result->num_rows > 0) {
     $booking_details = $result->fetch_assoc();
+
+    // Use booking details as default form values if not already set
+    if (empty($form_hotel_id)) {
+      $form_hotel_id = $booking_details['hotel_id'];
+    }
+    if (empty($form_check_in_date)) {
+      $form_check_in_date = $booking_details['check_in_date'];
+    }
+    if (empty($form_check_out_date)) {
+      $form_check_out_date = $booking_details['check_out_date'];
+    }
+    if (empty($form_room_id)) {
+      $form_room_id = $booking_details['room_id'];
+    }
+    if (empty($form_special_requests)) {
+      $form_special_requests = $booking_details['special_requests'];
+    }
   }
   $stmt->close();
 }
@@ -64,11 +89,11 @@ $stmt->close();
 
 // Process form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
-  $hotel_id = isset($_POST['hotel_id']) ? intval($_POST['hotel_id']) : 0;
-  $check_in_date = isset($_POST['check_in_date']) ? $_POST['check_in_date'] : '';
-  $check_out_date = isset($_POST['check_out_date']) ? $_POST['check_out_date'] : '';
-  $room_id = isset($_POST['room_id']) ? $_POST['room_id'] : '';
-  $special_requests = isset($_POST['special_requests']) ? $_POST['special_requests'] : '';
+  $hotel_id = $form_hotel_id;
+  $check_in_date = $form_check_in_date;
+  $check_out_date = $form_check_out_date;
+  $room_id = $form_room_id;
+  $special_requests = $form_special_requests;
 
   // Validate inputs
   if ($hotel_id <= 0) {
@@ -107,10 +132,76 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
         throw new Exception("Selected room does not exist.");
       }
       $room_status = $result->fetch_assoc()['status'];
-      if ($room_status != 'available') {
-        throw new Exception("Selected room is not available.");
+
+      // Check if room is marked as booked but might actually be available
+      if ($room_status != 'available' && empty($booking_details)) {
+        // Verify if the room is actually booked for the selected dates
+        $stmt->close();
+        $stmt = $conn->prepare("SELECT COUNT(*) as booking_count FROM hotel_bookings 
+                             WHERE hotel_id = ? AND room_id = ? 
+                             AND ((check_in_date <= ? AND check_out_date >= ?) 
+                                OR (check_in_date <= ? AND check_out_date >= ?) 
+                                OR (check_in_date >= ? AND check_out_date <= ?))
+                             AND booking_status != 'cancelled'");
+        $stmt->bind_param(
+          "isssssss",
+          $hotel_id,
+          $room_id,
+          $check_out_date,
+          $check_in_date,
+          $check_in_date,
+          $check_in_date,
+          $check_in_date,
+          $check_out_date
+        );
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $booking_count = $result->fetch_assoc()['booking_count'];
+        $stmt->close();
+
+        if ($booking_count > 0) {
+          throw new Exception("Selected room is booked for the selected dates.");
+        } else {
+          // Update room status since it's incorrectly marked as booked
+          $stmt = $conn->prepare("UPDATE hotel_rooms SET status = 'available' WHERE hotel_id = ? AND room_id = ?");
+          $stmt->bind_param("is", $hotel_id, $room_id);
+          $stmt->execute();
+          $stmt->close();
+        }
       }
-      $stmt->close();
+
+      // If we have an existing booking using this room, make sure we can update it
+      if (!empty($booking_details) && $booking_details['room_id'] != $room_id) {
+        // We're changing to a new room, so check if the new room is booked by someone else
+        $stmt = $conn->prepare("SELECT COUNT(*) as booking_count FROM hotel_bookings 
+                             WHERE hotel_id = ? AND room_id = ? 
+                             AND user_id != ? 
+                             AND ((check_in_date <= ? AND check_out_date >= ?) 
+                                OR (check_in_date <= ? AND check_out_date >= ?) 
+                                OR (check_in_date >= ? AND check_out_date <= ?))
+                             AND booking_status != 'cancelled'");
+        $user_id = $booking['user_id'];
+        $stmt->bind_param(
+          "isisssss",
+          $hotel_id,
+          $room_id,
+          $user_id,
+          $check_out_date,
+          $check_in_date,
+          $check_in_date,
+          $check_in_date,
+          $check_in_date,
+          $check_out_date
+        );
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $booking_count = $result->fetch_assoc()['booking_count'];
+        $stmt->close();
+
+        if ($booking_count > 0) {
+          throw new Exception("The new room you selected is already booked for these dates by another user.");
+        }
+      }
 
       // Check if booking already has a hotel assigned
       if (!empty($booking_details)) {
@@ -120,6 +211,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
                                   check_out_date = ?, total_price = ?, 
                                   special_requests = ?, updated_at = NOW() 
                               WHERE user_id = ?");
+        $user_id = $booking['user_id'];
         $stmt->bind_param(
           "isssdsi",
           $hotel_id,
@@ -173,8 +265,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
       $success_message = "Hotel assigned successfully to booking #$booking_id.";
 
       // Refresh booking details
-      $stmt = $conn->prepare("SELECT * FROM hotel_bookings WHERE booking_id = ?");
-      $stmt->bind_param("i", $booking_id);
+      $stmt = $conn->prepare("SELECT * FROM hotel_bookings WHERE user_id = ?");
+      $stmt->bind_param("i", $booking['user_id']);
       $stmt->execute();
       $result = $stmt->get_result();
       if ($result->num_rows > 0) {
@@ -190,29 +282,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
 
 // Check for room availability based on selected hotel and dates
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability'])) {
-  $hotel_id = isset($_POST['hotel_id']) ? intval($_POST['hotel_id']) : 0;
-  $check_in_date = isset($_POST['check_in_date']) ? $_POST['check_in_date'] : '';
-  $check_out_date = isset($_POST['check_out_date']) ? $_POST['check_out_date'] : '';
+  $hotel_id = $form_hotel_id;
+  $check_in_date = $form_check_in_date;
+  $check_out_date = $form_check_out_date;
 
   if ($hotel_id <= 0 || empty($check_in_date) || empty($check_out_date)) {
     $error_message = "Please provide hotel, check-in and check-out dates.";
   } elseif (strtotime($check_out_date) <= strtotime($check_in_date)) {
     $error_message = "Check-out date must be after check-in date.";
   } else {
-    // Query available rooms
-    $stmt = $conn->prepare("SELECT room_id FROM hotel_rooms 
-                          WHERE hotel_id = ? AND status = 'available' 
-                          AND room_id NOT IN (
-                              SELECT room_id FROM hotel_bookings 
-                              WHERE hotel_id = ? 
-                              AND ((check_in_date <= ? AND check_out_date >= ?) 
-                                   OR (check_in_date <= ? AND check_out_date >= ?) 
-                                   OR (check_in_date >= ? AND check_out_date <= ?))
-                              AND booking_status != 'cancelled'
-                          )");
+    // First get all rooms for the hotel
+    $stmt = $conn->prepare("SELECT room_id, status FROM hotel_rooms WHERE hotel_id = ?");
+    $stmt->bind_param("i", $hotel_id);
+    $stmt->execute();
+    $all_rooms_result = $stmt->get_result();
+    $all_rooms = [];
+    $available_rooms = [];
+
+    while ($row = $all_rooms_result->fetch_assoc()) {
+      $all_rooms[] = $row;
+      // Add rooms that are marked as available
+      if ($row['status'] == 'available') {
+        $available_rooms[] = $row['room_id'];
+      }
+    }
+    $stmt->close();
+
+    // Then find rooms that are actually booked for the requested dates
+    $stmt = $conn->prepare("SELECT DISTINCT room_id FROM hotel_bookings 
+                         WHERE hotel_id = ? 
+                         AND ((check_in_date <= ? AND check_out_date >= ?) 
+                              OR (check_in_date <= ? AND check_out_date >= ?) 
+                              OR (check_in_date >= ? AND check_out_date <= ?))
+                         AND booking_status != 'cancelled'");
     $stmt->bind_param(
-      "iissssss",
-      $hotel_id,
+      "issssss",
       $hotel_id,
       $check_out_date,
       $check_in_date,
@@ -222,12 +326,61 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
       $check_out_date
     );
     $stmt->execute();
-    $available_rooms_result = $stmt->get_result();
-    $available_rooms = [];
-    while ($row = $available_rooms_result->fetch_assoc()) {
-      $available_rooms[] = $row['room_id'];
+    $booked_rooms_result = $stmt->get_result();
+    $booked_rooms = [];
+
+    while ($row = $booked_rooms_result->fetch_assoc()) {
+      $booked_rooms[] = $row['room_id'];
     }
     $stmt->close();
+
+    // Find rooms that are marked as booked but don't have active bookings
+    // These might be rooms where bookings were deleted or canceled
+    foreach ($all_rooms as $room) {
+      $room_id = $room['room_id'];
+      // If room is marked as booked but not in our booked list for these dates
+      if ($room['status'] == 'booked' && !in_array($room_id, $booked_rooms)) {
+        // Check if this room has any active bookings at all
+        $stmt = $conn->prepare("SELECT COUNT(*) as booking_count FROM hotel_bookings 
+                             WHERE hotel_id = ? AND room_id = ? AND booking_status != 'cancelled'");
+        $stmt->bind_param("is", $hotel_id, $room_id);
+        $stmt->execute();
+        $count_result = $stmt->get_result();
+        $count_row = $count_result->fetch_assoc();
+        $stmt->close();
+
+        // If no active bookings exist, this room should be available
+        if ($count_row['booking_count'] == 0) {
+          // Add to available rooms list
+          $available_rooms[] = $room_id;
+
+          // Fix the room status in the database
+          $stmt = $conn->prepare("UPDATE hotel_rooms SET status = 'available' WHERE hotel_id = ? AND room_id = ?");
+          $stmt->bind_param("is", $hotel_id, $room_id);
+          $stmt->execute();
+          $stmt->close();
+        }
+      }
+    }
+
+    // Remove rooms that are actually booked from our available list
+    $available_rooms = array_diff($available_rooms, $booked_rooms);
+
+    // Convert back to array format (using array_values to reindex)
+    $available_rooms = array_values($available_rooms);
+
+    // If current room is already assigned, add it to available rooms
+    if (!empty($booking_details) && $booking_details['hotel_id'] == $hotel_id) {
+      if (!in_array($booking_details['room_id'], $available_rooms)) {
+        $available_rooms[] = $booking_details['room_id'];
+      }
+    }
+
+    if (empty($available_rooms)) {
+      $error_message = "No rooms available for the selected dates. Please choose different dates.";
+    } else {
+      $success_message = count($available_rooms) . " room(s) available for the selected dates.";
+    }
   }
 }
 ?>
@@ -297,7 +450,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
               <select name="hotel_id" id="hotel_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
                 <option value="">-- Select Hotel --</option>
                 <?php foreach ($hotels as $hotel): ?>
-                  <option value="<?php echo $hotel['id']; ?>" <?php echo (!empty($booking_details) && $booking_details['hotel_id'] == $hotel['id']) ? 'selected' : ''; ?>>
+                  <option value="<?php echo $hotel['id']; ?>" <?php echo ($form_hotel_id == $hotel['id']) ? 'selected' : ''; ?>>
                     <?php echo htmlspecialchars($hotel['hotel_name']); ?> (<?php echo ucfirst($hotel['location']); ?>) - PKR <?php echo number_format($hotel['price'], 2); ?>/night
                   </option>
                 <?php endforeach; ?>
@@ -306,12 +459,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
 
             <div>
               <label for="room_id" class="block text-sm font-medium text-gray-700 mb-1">Room ID</label>
-              <select name="room_id" id="room_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required <?php echo empty($available_rooms) ? 'disabled' : ''; ?>>
+              <select name="room_id" id="room_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required <?php echo empty($available_rooms) && empty($booking_details) ? 'disabled' : ''; ?>>
                 <?php if (!empty($available_rooms)): ?>
                   <option value="">-- Select Room --</option>
                   <?php foreach ($available_rooms as $room): ?>
-                    <option value="<?php echo $room; ?>" <?php echo (!empty($booking_details) && $booking_details['room_id'] == $room) ? 'selected' : ''; ?>>
-                      <?php echo $room; ?>
+                    <option value="<?php echo $room; ?>" <?php echo ($form_room_id == $room) ? 'selected' : ''; ?>>
+                      <?php echo $room; ?> <?php echo (!empty($booking_details) && $booking_details['room_id'] == $room) ? '(Currently Assigned)' : ''; ?>
                     </option>
                   <?php endforeach; ?>
                 <?php elseif (!empty($booking_details)): ?>
@@ -328,7 +481,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
               <label for="check_in_date" class="block text-sm font-medium text-gray-700 mb-1">Check-in Date</label>
               <input type="date" name="check_in_date" id="check_in_date"
                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value="<?php echo !empty($booking_details) ? $booking_details['check_in_date'] : ''; ?>"
+                value="<?php echo $form_check_in_date; ?>"
+                min="<?php echo date('Y-m-d'); ?>"
                 required>
             </div>
 
@@ -336,7 +490,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
               <label for="check_out_date" class="block text-sm font-medium text-gray-700 mb-1">Check-out Date</label>
               <input type="date" name="check_out_date" id="check_out_date"
                 class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value="<?php echo !empty($booking_details) ? $booking_details['check_out_date'] : ''; ?>"
+                value="<?php echo $form_check_out_date; ?>"
+                min="<?php echo !empty($form_check_in_date) ? $form_check_in_date : date('Y-m-d', strtotime('+1 day')); ?>"
                 required>
             </div>
           </div>
@@ -344,7 +499,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
           <div>
             <label for="special_requests" class="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
             <textarea name="special_requests" id="special_requests" rows="3"
-              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"><?php echo !empty($booking_details) ? htmlspecialchars($booking_details['special_requests']) : ''; ?></textarea>
+              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"><?php echo htmlspecialchars($form_special_requests); ?></textarea>
           </div>
 
           <div class="flex justify-between">
@@ -352,10 +507,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
               <i class="fas fa-search mr-2"></i>Check Room Availability
             </button>
 
-            <button type="submit" name="assign_hotel" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-              <i class="fas fa-check mr-2"></i>Assign Hotel
+            <button type="submit" name="assign_hotel" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" <?php echo empty($available_rooms) && empty($booking_details) ? 'disabled' : ''; ?>>
+              <i class="fas fa-check mr-2"></i><?php echo !empty($booking_details) ? 'Update Hotel Assignment' : 'Assign Hotel'; ?>
             </button>
           </div>
+
+          <?php if (empty($available_rooms) && empty($booking_details)): ?>
+            <div class="mt-4 text-red-500 text-center">
+              <p><i class="fas fa-exclamation-circle mr-2"></i>Please check room availability before assigning a hotel</p>
+            </div>
+          <?php endif; ?>
         </form>
       <?php else: ?>
         <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4">
@@ -385,6 +546,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
         if (!confirm('Are you sure you want to assign this hotel to the booking?')) {
           e.preventDefault();
         }
+      }
+    });
+
+    // Disable assign button if no room is selected
+    const roomSelect = document.getElementById('room_id');
+    const assignButton = document.querySelector('button[name="assign_hotel"]');
+
+    roomSelect.addEventListener('change', function() {
+      assignButton.disabled = !this.value;
+    });
+
+    // Enable room selection dropdown when hotel_id changes and check availability button is clicked
+    document.getElementById('hotel_id').addEventListener('change', function() {
+      if (this.value) {
+        document.getElementById('check_in_date').focus();
       }
     });
   </script>
