@@ -180,7 +180,7 @@ $result = $conn->query("SELECT COUNT(*) as total, COALESCE(AVG(price), 0) as avg
 if ($result) {
   $row = $result->fetch_assoc();
   $stats['total_packages'] = $row['total'];
-  $stats['avg_price'] = number_format((float)$row['avg_price'], 2); // Fixed line 175
+  $stats['avg_price'] = number_format((float)$row['avg_price'], 2);
 } else {
   error_log("Statistics query failed: " . $conn->error);
 }
@@ -520,56 +520,67 @@ if ($result) {
   <!-- Custom JavaScript -->
   <script src="assets/js/index.js"></script>
   <script>
+    // Suppress DataTables alerts (temporary workaround)
+    $.fn.dataTable.ext.errMode = 'none';
+
+    $('#packagesTable').on('error.dt', function(e, settings, techNote, message) {
+      console.error('DataTables Error:', message);
+    });
+
     // DataTables Initialization
     $(document).ready(function() {
+      const hasDataRows = $('#packagesTable tbody tr').not(':has(td[colspan="10"])').length > 0;
+
       $('#packagesTable').DataTable({
         pageLength: 10,
         order: [
           [8, 'desc']
-        ], // Sort by Created At (column 8)
-        columns: [{
+        ],
+        destroy: true,
+        columns: hasDataRows ? [{
             data: 'checkbox',
             orderable: false,
             searchable: false
-          }, // Checkbox
+          },
           {
             data: 'index',
             searchable: false
-          }, // #
+          },
           {
             data: 'image',
             orderable: false,
             searchable: false
-          }, // Image
+          },
           {
             data: 'title'
-          }, // Title
+          },
           {
             data: 'type'
-          }, // Type
+          },
           {
             data: 'flight_class'
-          }, // Flight Class
+          },
           {
             data: 'inclusions'
-          }, // Inclusions
+          },
           {
             data: 'price'
-          }, // Price
+          },
           {
             data: 'created_at'
-          }, // Created At
+          },
           {
             data: 'actions',
             orderable: false,
             searchable: false
-          } // Actions
-        ],
+          }
+        ] : null,
         language: {
           search: 'Search packages:',
           searchPlaceholder: 'Enter title or type...',
           emptyTable: 'No packages available.'
-        }
+        },
+        deferRender: true
       });
     });
 
