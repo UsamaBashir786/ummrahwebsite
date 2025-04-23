@@ -1,613 +1,922 @@
 <?php
-require_once 'config/db.php';
 session_start();
+include 'config/db.php';
 
-// Initialize variables for search
-$departure_city = isset($_GET['departure_city']) ? $_GET['departure_city'] : '';
-$arrival_city = isset($_GET['arrival_city']) ? $_GET['arrival_city'] : '';
-$departure_date = isset($_GET['departure_date']) ? $_GET['departure_date'] : '';
-$has_return = isset($_GET['has_return']) && $_GET['has_return'] == '1' ? 1 : 0;
-$return_date = $has_return && isset($_GET['return_date']) ? $_GET['return_date'] : '';
-$max_price = isset($_GET['max_price']) ? intval($_GET['max_price']) : 500000;
-$airline = isset($_GET['airline']) ? $_GET['airline'] : '';
-$direct_flights = isset($_GET['direct_flights']) && $_GET['direct_flights'] == '1' ? 1 : 0;
-$results = [];
-$return_results = [];
+// Initialize variables
+$search_results = [];
+$search_performed = false;
+$error_message = "";
+$current_date = date('Y-m-d');
+$is_round_trip = false;
 
-// Fetch available flight dates for calendar markers
-$flight_dates = [];
-if (!empty($departure_city) && !empty($arrival_city)) {
-  global $conn;
-  // Outbound flights
-  $sql = "SELECT departure_date, airline_name, flight_number, departure_city, arrival_city 
-            FROM flights 
-            WHERE departure_city = ? AND arrival_city = ?";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param("ss", $departure_city, $arrival_city);
-  $stmt->execute();
-  $result = $stmt->get_result();
-  while ($row = $result->fetch_assoc()) {
-    $flight_dates[$row['departure_date']][] = [
-      'type' => 'outbound',
-      'details' => "{$row['airline_name']} {$row['flight_number']}: {$row['departure_city']} to {$row['arrival_city']}"
-    ];
-  }
-  $stmt->close();
-
-  // Return flights (if round-trip)
-  if ($has_return) {
-    $sql = "SELECT departure_date, airline_name, flight_number, departure_city, arrival_city 
-                FROM flights 
-                WHERE departure_city = ? AND arrival_city = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("ss", $arrival_city, $departure_city);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-      $flight_dates[$row['departure_date']][] = [
-        'type' => 'return',
-        'details' => "{$row['airline_name']} {$row['flight_number']}: {$row['departure_city']} to {$row['arrival_city']}"
-      ];
-    }
-    $stmt->close();
+// Fetch available flight dates for calendar highlights
+$available_dates = ['one_way' => [], 'round_trip' => ['departure' => [], 'return' => []]];
+$sql_one_way = "SELECT DISTINCT departure_date FROM flights WHERE has_return = 0";
+$result_one_way = $conn->query($sql_one_way);
+if ($result_one_way) {
+  while ($row = $result_one_way->fetch_assoc()) {
+    $available_dates['one_way'][] = $row['departure_date'];
   }
 }
 
-// Perform search if form is submitted
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($departure_city) && !empty($arrival_city) && !empty($departure_date)) {
-  global $conn;
-
-  // Build query for outbound flights
-  $sql = "SELECT * FROM flights WHERE departure_city = ? AND arrival_city = ? AND departure_date = ? 
-            AND (economy_price <= ? OR business_price <= ? OR first_class_price <= ?)";
-  $params = [$departure_city, $arrival_city, $departure_date, $max_price, $max_price, $max_price];
-  $types = "ssssss";
-
-  if (!empty($airline)) {
-    $sql .= " AND airline_name = ?";
-    $params[] = $airline;
-    $types .= "s";
+$sql_round_trip = "SELECT DISTINCT departure_date, return_date FROM flights WHERE has_return = 1 AND return_date IS NOT NULL";
+$result_round_trip = $conn->query($sql_round_trip);
+if ($result_round_trip) {
+  while ($row = $result_round_trip->fetch_assoc()) {
+    $available_dates['round_trip']['departure'][] = $row['departure_date'];
+    $available_dates['round_trip']['return'][] = $row['return_date'];
   }
-  if ($direct_flights) {
-    $sql .= " AND has_stops = 0";
+}
+
+// Process search form submission
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+  $search_performed = true;
+
+  // Get form data
+  $departure_city = $_POST['departure_city'] ?? '';
+  $arrival_city = $_POST['arrival_city'] ?? '';
+  $departure_date = $_POST['departure_date'] ?? '';
+  $cabin_class = $_POST['cabin_class'] ?? '';
+  $passengers = isset($_POST['passengers']) ? intval($_POST['passengers']) : 1;
+  $trip_type = $_POST['trip_type'] ?? 'one_way';
+  $return_date = $_POST['return_date'] ?? '';
+
+  // Set round trip flag
+  $is_round_trip = ($trip_type === 'round_trip');
+
+  // Validate inputs
+  $validation_errors = [];
+
+  if (empty($departure_city)) {
+    $validation_errors[] = "Please select a departure city";
+  }
+  if (empty($arrival_city)) {
+    $validation_errors[] = "Please select an arrival city";
+  }
+  if ($departure_city === $arrival_city && !empty($departure_city)) {
+    $validation_errors[] = "Departure and arrival cities cannot be the same";
+  }
+  if (empty($departure_date)) {
+    $validation_errors[] = "Departure date is required";
+  }
+  if ($is_round_trip && empty($return_date)) {
+    $validation_errors[] = "Return date is required for round trips";
+  }
+  if ($is_round_trip && !empty($departure_date) && !empty($return_date) && strtotime($return_date) < strtotime($departure_date)) {
+    $validation_errors[] = "Return date must be after departure date";
   }
 
-  $stmt = $conn->prepare($sql);
-  if ($stmt === false) {
-    echo "<script>alert('Error preparing query: " . addslashes($conn->error) . "');</script>";
-    exit;
-  }
-  $stmt->bind_param($types, ...$params);
-  $stmt->execute();
-  $results = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-  $stmt->close();
+  if (empty($validation_errors)) {
+    // Build the SQL query
+    $sql = "SELECT * FROM flights WHERE departure_city = ? AND arrival_city = ? AND departure_date = ? AND has_return = ?";
+    $params = [$departure_city, $arrival_city, $departure_date, $is_round_trip ? 1 : 0];
+    $types = "sssi";
 
-  // If round-trip, query return flights
-  if ($has_return && !empty($return_date)) {
-    $sql = "SELECT * FROM flights WHERE departure_city = ? AND arrival_city = ? AND departure_date = ? 
-          AND (economy_price <= ? OR business_price <= ? OR first_class_price <= ?)";
-    $params = [$arrival_city, $departure_city, $return_date, $max_price, $max_price, $max_price];
-    $types = "ssssss";
-
-    if (!empty($airline)) {
-      $sql .= " AND airline_name = ?";
-      $params[] = $airline;
+    if ($is_round_trip) {
+      $sql .= " AND return_date = ?";
+      $params[] = $return_date;
       $types .= "s";
-    }
-    if ($direct_flights) {
-      $sql .= " AND has_stops = 0";
     }
 
     $stmt = $conn->prepare($sql);
     if ($stmt === false) {
-      echo "<script>alert('Error preparing query: " . addslashes($conn->error) . "');</script>";
-      exit;
+      $error_message = "Error preparing query: " . $conn->error;
+    } else {
+      $stmt->bind_param($types, ...$params);
+      if ($stmt->execute()) {
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+          $search_results[] = $row;
+        }
+      } else {
+        $error_message = "Error executing query: " . $stmt->error;
+      }
+      $stmt->close();
     }
-    $stmt->bind_param($types, ...$params);
-    $stmt->execute();
-    $return_results = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    $stmt->close();
+  } else {
+    $error_message = implode(", ", $validation_errors);
+  }
+} else {
+  // Load all flights by default
+  $sql = "SELECT * FROM flights ORDER BY departure_date DESC";
+  $result = $conn->query($sql);
+  if ($result && $result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+      $search_results[] = $row;
+    }
   }
 }
+
+// Get unique departure and arrival cities for dropdowns
+$departure_cities = [];
+$arrival_cities = [];
+$sql_cities = "SELECT DISTINCT departure_city FROM flights";
+$result_departure = $conn->query($sql_cities);
+if ($result_departure && $result_departure->num_rows > 0) {
+  while ($row = $result_departure->fetch_assoc()) {
+    $departure_cities[] = $row['departure_city'];
+  }
+}
+$sql_cities = "SELECT DISTINCT arrival_city FROM flights";
+$result_arrival = $conn->query($sql_cities);
+if ($result_arrival && $result_arrival->num_rows > 0) {
+  while ($row = $result_arrival->fetch_assoc()) {
+    $arrival_cities[] = $row['arrival_city'];
+  }
+}
+
+// Define cabin classes based on table structure
+$cabin_classes = ['economy', 'business', 'first_class'];
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <?php include 'includes/css-links.php' ?>
-  <link rel="stylesheet" href="assets/css/style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Search Flights | UmrahFlights</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#047857',
+            secondary: '#10B981',
+            accent: '#F59E0B',
+          },
+        },
+      },
+    }
+  </script>
   <style>
-    .autocomplete-suggestions {
+    .flatpickr-day.one-way {
+      background-color: #bfdbfe !important;
+      border-color: #bfdbfe !important;
+    }
+
+    .flatpickr-day.round-trip {
+      background-color: #bbf7d0 !important;
+      border-color: #bbf7d0 !important;
+    }
+
+    .flatpickr-day.one-way:hover,
+    .flatpickr-day.round-trip:hover {
+      background-color: #93c5fd !important;
+    }
+
+    .tooltip {
+      position: relative;
+    }
+
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 140px;
+      background-color: #374151;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
       position: absolute;
-      background: white;
-      border: 1px solid #e5e7eb;
-      border-radius: 0.5rem;
-      max-height: 200px;
-      overflow-y: auto;
-      width: 100%;
       z-index: 10;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      bottom: 125%;
+      left: 50%;
+      margin-left: -70px;
+      opacity: 0;
+      transition: opacity 0.3s;
     }
 
-    .autocomplete-suggestion {
-      padding: 0.5rem 1rem;
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .trip-type-option {
       cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 20px;
+      background-color: #e5e7eb;
+      transition: all 0.3s;
     }
 
-    .autocomplete-suggestion:hover {
-      background-color: #f3f4f6;
+    .trip-type-option.active {
+      background-color: #047857;
+      color: white;
+    }
+
+    .search-form {
+      background-color: #047857;
+      border-radius: 12px;
     }
 
     .flight-card {
-      transition: transform 0.2s, box-shadow 0.2s;
+      border-radius: 12px;
+      transition: transform 0.3s;
     }
 
     .flight-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    .flatpickr-day.has-flight {
-      position: relative;
-      background: #e6fffa !important;
-      border-color: #2dd4bf !important;
-    }
-
-    .flatpickr-day.has-flight::after {
-      content: '';
-      position: absolute;
-      bottom: 2px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 4px;
-      height: 4px;
-      background: #2dd4bf;
-      border-radius: 50%;
-    }
-
-    .flatpickr-day.has-flight:hover::before {
-      content: attr(data-tooltip);
-      position: absolute;
-      top: -50px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1f2937;
-      color: white;
-      padding: 6px 10px;
-      border-radius: 4px;
-      font-size: 12px;
-      white-space: pre-wrap;
-      z-index: 1000;
-      display: block;
-      pointer-events: none;
-    }
-
-    /* Booking.com inspired styles */
-    .search-section {
-      background: linear-gradient(135deg, #003087 0%, #0059b3 100%);
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-      margin-top: 2rem;
-    }
-
-    .search-section h4 {
-      color: white;
-      font-size: 1.75rem;
-      font-weight: 700;
-      margin-bottom: 1.5rem;
-    }
-
-    .search-form {
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      align-items: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .search-form input,
-    .search-form select {
-      border: 2px solid #e0e0e0;
-      border-radius: 6px;
-      padding: 0.75rem 1rem;
-      font-size: 1rem;
-      transition: border-color 0.3s ease;
-    }
-
-    .search-form input:focus,
-    .search-form select:focus {
-      border-color: #003087;
-      outline: none;
-    }
-
-    .search-form button {
-      background-color: #ffb700;
-      color: #003087;
-      font-weight: 600;
-      padding: 0.75rem 2rem;
-      border-radius: 6px;
-      border: none;
-      transition: background-color 0.3s ease;
-    }
-
-    .search-form button:hover {
-      background-color: #e6a500;
-    }
-
-    .search-form label {
-      color: #333;
-      font-weight: 500;
-    }
-
-    .journey-type {
-      background: #f5f5f5;
-      padding: 0.5rem;
-      border-radius: 6px;
-    }
-
-    .journey-type input[type="radio"] {
-      accent-color: #003087;
-    }
-
-    .checkbox-filter {
-      color: #333;
-      font-size: 0.9rem;
-    }
-
-    .checkbox-filter input[type="checkbox"] {
-      accent-color: #003087;
     }
   </style>
 </head>
 
-<body class="pt-24 bg-gray-100">
-  <?php include 'includes/navbar.php' ?>
+<body class="bg-gray-50 min-h-screen">
+  <?php include 'includes/navbar.php'; ?>
+  <br><br><br>
 
-  <!-- Search Section -->
-  <section class="search-section">
-    <div class="container mx-auto px-4">
-      <h4>Find the Best Umrah Flights</h4>
+  <div class="container mx-auto px-4 py-8">
+    <div class="text-center mb-8 animate__animated animate__fadeIn">
+      <h1 class="text-3xl md:text-4xl font-bold text-primary mb-2">
+        <i class="fas fa-plane-departure mr-2"></i> Find Your Perfect Flight
+      </h1>
+      <p class="text-gray-600 max-w-2xl mx-auto">Search and compare flights for your Umrah journey. Book with confidence and enjoy a seamless travel experience.</p>
+    </div>
 
-      <form class="search-form" method="GET" action="">
-        <!-- Journey Type -->
-        <div class="journey-type flex items-center gap-4">
+    <!-- Search Form -->
+    <div class="search-form p-6 mb-10 shadow-lg animate__animated animate__fadeIn animate__delay-1s">
+      <div class="text-center mb-4">
+        <div class="trip-type-selector flex justify-center space-x-4">
+          <label class="trip-type-option <?php echo !$is_round_trip ? 'active' : ''; ?>" data-trip-type="one_way">
+            <input type="radio" name="trip_type" value="one_way" class="hidden" <?php echo !$is_round_trip ? 'checked' : ''; ?>>
+            <i class="fas fa-long-arrow-alt-right mr-2"></i> One Way
+          </label>
+          <label class="trip-type-option <?php echo $is_round_trip ? 'active' : ''; ?>" data-trip-type="round_trip">
+            <input type="radio" name="trip_type" value="round_trip" class="hidden" <?php echo $is_round_trip ? 'checked' : ''; ?>>
+            <i class="fas fa-exchange-alt mr-2"></i> Round Trip
+          </label>
+        </div>
+      </div>
+
+      <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" id="flight-search-form">
+        <input type="hidden" name="trip_type" id="trip_type" value="<?php echo $is_round_trip ? 'round_trip' : 'one_way'; ?>">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <!-- Departure City -->
+          <div class="city-input">
+            <label for="departure_city" class="block text-sm font-medium text-white mb-1">From</label>
+            <div class="relative">
+              <i class="fas fa-plane-departure absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+              <select class="w-full pl-10 rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 py-3 bg-white" id="departure_city" name="departure_city" required>
+                <option value="">Select departure city</option>
+                <?php foreach ($departure_cities as $city): ?>
+                  <option value="<?php echo htmlspecialchars($city); ?>" <?php echo (isset($_POST['departure_city']) && $_POST['departure_city'] == $city) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($city); ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+          </div>
+
+          <!-- Arrival City -->
+          <div class="city-input">
+            <label for="arrival_city" class="block text-sm font-medium text-white mb-1">To</label>
+            <div class="relative">
+              <i class="fas fa-plane-arrival absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+              <select class="w-full pl-10 rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 py-3 bg-white" id="arrival_city" name="arrival_city" required>
+                <option value="">Select arrival city</option>
+                <?php foreach ($arrival_cities as $city): ?>
+                  <option value="<?php echo htmlspecialchars($city); ?>" <?php echo (isset($_POST['arrival_city']) && $_POST['arrival_city'] == $city) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($city); ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+          </div>
+
+          <!-- Departure Date -->
+          <div class="city-input">
+            <label for="departure_date" class="block text-sm font-medium text-white mb-1">Departure Date</label>
+            <div class="relative">
+              <i class="fas fa-calendar-alt absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+              <input type="text" class="w-full pl-10 rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 py-3 bg-white" id="departure_date" name="departure_date" required value="<?php echo isset($_POST['departure_date']) ? htmlspecialchars($_POST['departure_date']) : ''; ?>">
+            </div>
+          </div>
+
+          <!-- Return Date -->
+          <div class="city-input date-picker-container <?php echo !$is_round_trip ? 'hidden' : ''; ?>" id="return-date-container">
+            <label for="return_date" class="block text-sm font-medium text-white mb-1">Return Date</label>
+            <div class="relative">
+              <i class="fas fa-calendar-check absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+              <input type="text" class="w-full pl-10 rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 py-3 bg-white" id="return_date" name="return_date" <?php echo $is_round_trip ? 'required' : 'disabled'; ?> value="<?php echo isset($_POST['return_date']) ? htmlspecialchars($_POST['return_date']) : ''; ?>">
+            </div>
+          </div>
+        </div>
+
+        <!-- Calendar Legend -->
+        <div class="flex items-center justify-center space-x-4 mt-4">
           <div class="flex items-center">
-            <input type="radio" name="has_return" id="oneWay" value="0" class="w-4 h-4" <?php echo $has_return ? '' : 'checked'; ?>>
-            <label for="oneWay" class="ml-2 text-sm">One-way</label>
+            <span class="w-4 h-4 bg-blue-200 rounded-full mr-2"></span>
+            <span class="text-sm text-white">One-way Flights</span>
           </div>
           <div class="flex items-center">
-            <input type="radio" name="has_return" id="roundTrip" value="1" class="w-4 h-4" <?php echo $has_return ? 'checked' : ''; ?>>
-            <label for="roundTrip" class="ml-2 text-sm">Round Trip</label>
+            <span class="w-4 h-4 bg-green-200 rounded-full mr-2"></span>
+            <span class="text-sm text-white">Round-trip Flights</span>
           </div>
         </div>
 
-        <!-- Departure City -->
-        <div class="w-full sm:w-48 relative">
-          <input type="text" name="departure_city" id="departure_city" class="w-full" placeholder="From (e.g., Karachi)" value="<?php echo htmlspecialchars($departure_city); ?>" required autocomplete="off">
-          <div id="departure_suggestions" class="autocomplete-suggestions hidden"></div>
+        <div class="mt-6">
+          <button type="submit" id="search-button" class="w-full bg-white hover:bg-gray-100 text-primary font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out flex items-center justify-center shadow-md">
+            <i class="fas fa-search mr-2"></i> Search Flights
+          </button>
         </div>
-
-        <!-- Arrival City -->
-        <div class="w-full sm:w-48 relative">
-          <input type="text" name="arrival_city" id="arrival_city" class="w-full" placeholder="To (e.g., Jeddah)" value="<?php echo htmlspecialchars($arrival_city); ?>" required autocomplete="off">
-          <div id="arrival_suggestions" class="autocomplete-suggestions hidden"></div>
-        </div>
-
-        <!-- Departure Date -->
-        <div class="w-full sm:w-48">
-          <input type="text" name="departure_date" id="departure_date" class="w-full" placeholder="Depart" value="<?php echo htmlspecialchars($departure_date); ?>" required>
-        </div>
-
-        <!-- Return Date -->
-        <div class="w-full sm:w-48">
-          <input type="text" name="return_date" id="return_date" class="w-full" placeholder="Return" value="<?php echo htmlspecialchars($return_date); ?>" <?php echo $has_return ? '' : 'disabled'; ?>>
-        </div>
-
-        <!-- Travellers and Class -->
-        <div class="w-full sm:w-48">
-          <select name="travellers" id="travellers" class="w-full">
-            <option value="1 Adult, Economy">1 Adult, Economy</option>
-            <option value="2 Adults, Economy">2 Adults, Economy</option>
-            <option value="1 Adult, Business">1 Adult, Business</option>
-            <option value="2 Adults, Business">2 Adults, Business</option>
-            <option value="1 Adult, First Class">1 Adult, First Class</option>
-          </select>
-        </div>
-
-        <!-- Search Button -->
-        <button type="submit">Search Flights</button>
-
-        <!-- Hidden Filters -->
-        <input type="hidden" name="max_price" id="max_price" value="<?php echo htmlspecialchars($max_price); ?>">
-        <input type="hidden" name="airline" id="airline" value="<?php echo htmlspecialchars($airline); ?>">
-        <input type="hidden" name="direct_flights" id="direct_flights" value="<?php echo $direct_flights; ?>">
       </form>
-
-      <div class="mt-4 flex flex-wrap gap-4">
-        <div class="flex items-center checkbox-filter">
-          <input type="checkbox" id="nearbyAirportsFrom" class="w-4 h-4">
-          <label for="nearbyAirportsFrom" class="text-white ml-2">Add nearby airports (From)</label>
-        </div>
-        <div class="flex items-center checkbox-filter">
-          <input type="checkbox" id="nearbyAirportsTo" class="w-4 h-4">
-          <label for="nearbyAirportsTo" class="ml-2 text-white">Add nearby airports (To)</label>
-        </div>
-        <div class="flex items-center checkbox-filter">
-          <input type="checkbox" id="directFlightsCheck" class="w-4 h-4" <?php echo $direct_flights ? 'checked' : ''; ?>>
-          <label for="directFlightsCheck" class="ml-2 text-white">Direct flights</label>
-        </div>
-      </div>
     </div>
-  </section>
 
-  <!-- Flight Listing Section -->
-  <section class="py-12">
-    <div class="container mx-auto px-4">
-      <h2 class="text-3xl font-bold text-gray-800 mb-8">Find Your Umrah Flight</h2>
+    <!-- Refresh Button -->
+    <div class="mb-6 flex justify-end">
+      <button id="refresh-button" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center">
+        <i class="fas fa-sync-alt mr-2"></i> Refresh Results
+      </button>
+    </div>
 
-      <div class="flex flex-col lg:flex-row gap-8">
-        <!-- Flight List -->
-        <div class="w-full">
-          <?php if (!empty($results)) { ?>
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">Outbound Flights</h3>
-            <?php foreach ($results as $flight) {
-              $stops = json_decode($flight['stops'], true);
-              $class_type = explode(', ', $_GET['travellers'] ?? '1 Adult, Economy')[1];
-              $price = $class_type === 'Economy' ? $flight['economy_price'] : ($class_type === 'Business' ? $flight['business_price'] : $flight['first_class_price']);
-              $seats = $class_type === 'Economy' ? $flight['economy_seats'] : ($class_type === 'Business' ? $flight['business_seats'] : $flight['first_class_seats']);
-            ?>
-              <div class="bg-white p-4 rounded-lg shadow-md mb-4 flex flex-col sm:flex-row justify-between items-center flight-card">
-                <div class="flex flex-col sm:flex-row items-center mb-4 sm:mb-0">
-                  <div>
-                    <h5 class="text-lg font-semibold text-gray-800">
-                      <?php echo htmlspecialchars($flight['airline_name']); ?> - <?php echo htmlspecialchars($flight['flight_number']); ?>
-                    </h5>
-                    <p class="text-gray-600">
-                      <?php echo htmlspecialchars($flight['departure_city']); ?> to <?php echo htmlspecialchars($flight['arrival_city']); ?>
-                      | <?php echo htmlspecialchars($flight['departure_time']); ?>, <?php echo htmlspecialchars($flight['departure_date']); ?>
-                    </p>
-                    <p class="text-gray-600">
-                      Duration: <?php echo number_format($flight['flight_duration'], 1); ?>h
-                      | <?php echo $flight['has_stops'] ? (count($stops) . ' stop(s): ' . implode(', ', array_column($stops, 'city'))) : 'Direct'; ?>
-                    </p>
-                    <p class="text-gray-600">
-                      <?php echo htmlspecialchars($class_type); ?> | <?php echo htmlspecialchars($seats); ?> seats available
-                    </p>
-                    <?php if (!empty($flight['flight_notes'])) { ?>
-                      <p class="text-gray-500 text-sm">Notes: <?php echo htmlspecialchars($flight['flight_notes']); ?></p>
-                    <?php } ?>
+    <!-- Search Results -->
+    <div id="search-results" class="animate__animated animate__fadeIn">
+      <?php if (!empty($error_message)): ?>
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg shadow-sm" role="alert">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
+            </div>
+            <div>
+              <p class="font-medium"><?php echo $error_message; ?></p>
+            </div>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <?php if (empty($search_results) && $search_performed && empty($error_message)): ?>
+        <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-6 rounded-lg shadow-sm mb-8" role="alert">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-info-circle text-blue-500 text-xl mr-3"></i>
+            </div>
+            <div>
+              <p class="font-medium text-lg">No flights found</p>
+              <p class="mt-2">Try adjusting your search parameters or selecting different dates.</p>
+              <div class="mt-4">
+                <button onclick="document.getElementById('flight-search-form').scrollIntoView({behavior: 'smooth'})" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-150 flex items-center">
+                  <i class="fas fa-sync-alt mr-2"></i> Modify Search
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      <?php elseif (!empty($search_results)): ?>
+        <div class="mb-6">
+          <h2 class="text-2xl font-bold text-gray-800 mb-2">
+            <i class="fas fa-list-alt text-primary mr-2"></i>
+            <?php echo count($search_results); ?> Flight<?php echo count($search_results) > 1 ? 's' : ''; ?> Found
+          </h2>
+          <?php if ($search_performed): ?>
+            <p class="text-gray-600 text-sm">
+              <?php echo htmlspecialchars($departure_city); ?> to <?php echo htmlspecialchars($arrival_city); ?>
+              on <?php echo date('D, M j, Y', strtotime($departure_date)); ?>
+              <?php if ($is_round_trip): ?>
+                (Return on <?php echo date('D, M j, Y', strtotime($return_date)); ?>)
+              <?php endif; ?>
+            </p>
+          <?php else: ?>
+            <p class="text-gray-600 text-sm">Showing all available flights</p>
+          <?php endif; ?>
+        </div>
+
+        <div class="space-y-6">
+          <?php foreach ($search_results as $index => $flight):
+            $min_price = min($flight['economy_price'], $flight['business_price'], $flight['first_class_price']);
+            $is_cheapest = $index === 0;
+          ?>
+            <div class="flight-card bg-white shadow-sm hover:shadow-md p-6 relative <?php echo $is_cheapest ? 'animate__animated animate__pulse' : ''; ?>">
+              <?php if ($is_cheapest): ?>
+                <div class="price-badge absolute top-4 right-4 bg-secondary text-white text-xs font-medium px-2 py-1 rounded-full">Best Deal</div>
+              <?php endif; ?>
+
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <!-- Airline Info -->
+                <div class="md:col-span-3">
+                  <div class="flex items-center">
+                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                      <i class="fas fa-plane text-primary text-xl"></i>
+                    </div>
+                    <div>
+                      <h5 class="font-bold text-lg text-gray-800"><?php echo htmlspecialchars($flight['airline_name']); ?></h5>
+                      <p class="text-gray-500 text-sm">Flight: <?php echo htmlspecialchars($flight['flight_number']); ?></p>
+                    </div>
+                  </div>
+                  <div class="md:hidden mt-4 text-right">
+                    <div class="font-bold text-2xl text-secondary">PKR <?php echo number_format($min_price, 0); ?></div>
+                    <p class="text-sm text-gray-500">Lowest fare</p>
                   </div>
                 </div>
-                <div class="text-center sm:text-right">
-                  <div class="text-2xl font-bold text-teal-600 mb-2">Rs.<?php echo number_format($price); ?></div>
-                  <a href="#" class="inline-block bg-teal-500 hover:bg-teal-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">Book Now</a>
-                </div>
-              </div>
-            <?php } ?>
-          <?php } elseif ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($departure_city)) { ?>
-            <p class="text-gray-600">No outbound flights found for the selected criteria.</p>
-          <?php } ?>
 
-          <?php if ($has_return && !empty($return_results)) { ?>
-            <h3 class="text-xl font-semibold text-gray-800 mb-4 mt-8">Return Flights</h3>
-            <?php foreach ($return_results as $flight) {
-              $stops = json_decode($flight['stops'], true);
-              $class_type = explode(', ', $_GET['travellers'] ?? '1 Adult, Economy')[1];
-              $price = $class_type === 'Economy' ? $flight['economy_price'] : ($class_type === 'Business' ? $flight['business_price'] : $flight['first_class_price']);
-              $seats = $class_type === 'Economy' ? $flight['economy_seats'] : ($class_type === 'Business' ? $flight['business_seats'] : $flight['first_class_seats']);
-            ?>
-              <div class="bg-white p-4 rounded-lg shadow-md mb-4 flex flex-col sm:flex-row justify-between items-center flight-card">
-                <div class="flex flex-col sm:flex-row items-center mb-4 sm:mb-0">
-                  <div>
-                    <h5 class="text-lg font-semibold text-gray-800">
-                      <?php echo htmlspecialchars($flight['airline_name']); ?> - <?php echo htmlspecialchars($flight['flight_number']); ?>
-                    </h5>
-                    <p class="text-gray-600">
-                      <?php echo htmlspecialchars($flight['departure_city']); ?> to <?php echo htmlspecialchars($flight['arrival_city']); ?>
-                      | <?php echo htmlspecialchars($flight['departure_time']); ?>, <?php echo htmlspecialchars($flight['departure_date']); ?>
-                    </p>
-                    <p class="text-gray-600">
-                      Duration: <?php echo number_format($flight['flight_duration'], 1); ?>h
-                      | <?php echo $flight['has_stops'] ? (count($stops) . ' stop(s): ' . implode(', ', array_column($stops, 'city'))) : 'Direct'; ?>
-                    </p>
-                    <p class="text-gray-600">
-                      <?php echo htmlspecialchars($class_type); ?> | <?php echo htmlspecialchars($seats); ?> seats available
-                    </p>
-                    <?php if (!empty($flight['flight_notes'])) { ?>
-                      <p class="text-gray-500 text-sm">Notes: <?php echo htmlspecialchars($flight['flight_notes']); ?></p>
-                    <?php } ?>
+                <!-- Flight Info -->
+                <div class="md:col-span-6">
+                  <div class="flex items-center justify-between mb-4">
+                    <div class="text-center">
+                      <p class="text-2xl font-bold text-gray-800"><?php echo date('H:i', strtotime($flight['departure_time'])); ?></p>
+                      <p class="text-sm text-gray-600"><?php echo htmlspecialchars($flight['departure_city']); ?></p>
+                    </div>
+                    <div class="flight-route flex-1 mx-4 flex items-center justify-between">
+                      <div class="city text-center"><i class="fas fa-circle text-primary text-xs"></i></div>
+                      <div class="route-line flex-1 mx-2 h-0.5 bg-gray-300 relative overflow-hidden">
+                        <div class="plane-icon"><i class="fas fa-plane text-primary"></i></div>
+                      </div>
+                      <div class="city text-center"><i class="fas fa-circle text-primary text-xs"></i></div>
+                    </div>
+                    <div class="text-center">
+                      <p class="text-sm text-gray-600"><?php echo htmlspecialchars($flight['arrival_city']); ?></p>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between border-t pt-3">
+                    <div>
+                      <p class="text-sm text-gray-600">
+                        <i class="far fa-calendar-alt text-primary mr-1"></i>
+                        <?php echo date('D, M j, Y', strtotime($flight['departure_date'])); ?>
+                      </p>
+                    </div>
+                    <div>
+                      <p class="text-sm text-gray-600">
+                        <i class="far fa-clock text-primary mr-1"></i>
+                        Duration: <?php echo htmlspecialchars($flight['flight_duration']); ?> hours
+                      </p>
+                    </div>
+                    <div class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium <?php echo $flight['has_stops'] ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'; ?>">
+                      <i class="fas <?php echo $flight['has_stops'] ? 'fa-map-marker-alt' : 'fa-check-circle'; ?> mr-1"></i>
+                      <?php echo $flight['has_stops'] ? 'Stops' : 'Direct'; ?>
+                    </div>
                   </div>
                 </div>
-                <div class="text-center sm:text-right">
-                  <div class="text-2xl font-bold text-teal-600 mb-2">Rs.<?php echo number_format($price); ?></div>
-                  <a href="#" class="inline-block bg-teal-500 hover:bg-teal-600 text-white font-medium py-2 px-6 rounded-lg transition duration-300">Book Now</a>
+
+                <!-- Price & Action -->
+                <div class="md:col-span-3 flex flex-col justify-between items-end">
+                  <div class="hidden md:block">
+                    <div class="font-bold text-2xl text-secondary">PKR <?php echo number_format($min_price, 0); ?></div>
+                    <p class="text-sm text-gray-500">Lowest fare</p>
+                  </div>
+                  <div class="w-full md:w-auto">
+                    <button type="button" class="view-details-btn w-full md:w-auto bg-primary hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg text-sm transition" data-flight-id="<?php echo $flight['id']; ?>">
+                      <i class="fas fa-chevron-down mr-1 details-icon-<?php echo $flight['id']; ?>"></i> View Details
+                    </button>
+                  </div>
                 </div>
               </div>
-            <?php } ?>
-          <?php } elseif ($has_return && !empty($return_date)) { ?>
-            <p class="text-gray-600">No return flights found for the selected criteria.</p>
-          <?php } ?>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <?php include "includes/footer.php" ?>
-  <?php include "includes/js-links.php" ?>
+              <!-- Expandable Details Section -->
+              <div id="details-<?php echo $flight['id']; ?>" class="details-transition mt-4 pt-4 border-t border-gray-200 hidden">
+                <div class="tabs mb-4 flex space-x-2">
+                  <div class="tab active px-4 py-2 rounded-lg cursor-pointer bg-gray-100 hover:bg-gray-200" data-tab="pricing-<?php echo $flight['id']; ?>">
+                    <i class="fas fa-tag mr-1"></i> Pricing & Classes
+                  </div>
+                  <div class="tab px-4 py-2 rounded-lg cursor-pointer bg-gray-100 hover:bg-gray-200" data-tab="route-<?php echo $flight['id']; ?>">
+                    <i class="fas fa-route mr-1"></i> Flight Route
+                  </div>
+                  <div class="tab px-4 py-2 rounded-lg cursor-pointer bg-gray-100 hover:bg-gray-200" data-tab="info-<?php echo $flight['id']; ?>">
+                    <i class="fas fa-info-circle mr-1"></i> Flight Information
+                  </div>
+                  <?php if ($flight['has_return']): ?>
+                    <div class="tab px-4 py-2 rounded-lg cursor-pointer bg-gray-100 hover:bg-gray-200" data-tab="return-<?php echo $flight['id']; ?>">
+                      <i class="fas fa-undo-alt mr-1"></i> Return Flight
+                    </div>
+                  <?php endif; ?>
+                </div>
+
+                <div class="tab-content">
+                  <!-- Pricing & Classes Tab -->
+                  <div id="pricing-<?php echo $flight['id']; ?>" class="tab-pane active">
+                    <h6 class="font-medium text-gray-700 mb-3">Available Classes and Pricing</h6>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <?php foreach (['economy' => 'Economy', 'business' => 'Business', 'first_class' => 'First Class'] as $class_key => $class_name):
+                        $price_field = $class_key . '_price';
+                        $seats_field = $class_key . '_seats';
+                        $class_icon = $class_key === 'business' ? 'fa-briefcase' : ($class_key === 'first_class' ? 'fa-crown' : 'fa-chair');
+                        $bg_color = $class_key === 'business' ? 'bg-purple-50' : ($class_key === 'first_class' ? 'bg-blue-50' : 'bg-green-50');
+                        $text_color = $class_key === 'business' ? 'text-purple-700' : ($class_key === 'first_class' ? 'text-blue-700' : 'text-green-700');
+                      ?>
+                        <div class="<?php echo $bg_color; ?> border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                          <div class="flex items-center mb-3">
+                            <div class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center mr-2">
+                              <i class="fas <?php echo $class_icon; ?> <?php echo $text_color; ?>"></i>
+                            </div>
+                            <span class="font-medium <?php echo $text_color; ?>"><?php echo $class_name; ?></span>
+                          </div>
+                          <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                              <span class="text-sm text-gray-600">Price:</span>
+                              <span class="font-bold <?php echo $text_color; ?>">PKR <?php echo number_format($flight[$price_field], 0); ?></span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                              <span class="text-sm text-gray-600">Available Seats:</span>
+                              <span class="font-medium"><?php echo $flight[$seats_field]; ?></span>
+                            </div>
+                          </div>
+                          <div class="mt-4">
+                            <a href="booking-flight.php?flight_id=<?php echo $flight['id']; ?>&cabin_class=<?php echo $class_key; ?>" class="block w-full text-center py-2 px-4 border border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-colors text-sm font-medium">
+                              Select
+                            </a>
+                          </div>
+                        </div>
+                      <?php endforeach; ?>
+                    </div>
+                  </div>
+
+                  <!-- Flight Route Tab -->
+                  <div id="route-<?php echo $flight['id']; ?>" class="tab-pane hidden">
+                    <div class="bg-gray-50 rounded-xl p-6">
+                      <div class="relative">
+                        <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-300"></div>
+                        <div class="space-y-8">
+                          <div class="flex">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center z-10">
+                              <i class="fas fa-plane-departure text-white text-sm"></i>
+                            </div>
+                            <div class="ml-6">
+                              <p class="font-bold text-gray-800"><?php echo htmlspecialchars($flight['departure_city']); ?></p>
+                              <p class="text-gray-600"><?php echo date('h:i A', strtotime($flight['departure_time'])); ?></p>
+                              <p class="text-sm text-gray-500"><?php echo date('l, F j, Y', strtotime($flight['departure_date'])); ?></p>
+                            </div>
+                          </div>
+                          <?php if ($flight['has_stops'] && $flight['stops']):
+                            $stops = json_decode($flight['stops'], true);
+                            if (is_array($stops)):
+                              foreach ($stops as $stop):
+                          ?>
+                                <div class="flex">
+                                  <div class="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center z-10">
+                                    <i class="fas fa-map-marker-alt text-white text-sm"></i>
+                                  </div>
+                                  <div class="ml-6">
+                                    <p class="font-bold text-gray-800"><?php echo htmlspecialchars($stop['city']); ?></p>
+                                    <p class="text-gray-600">Layover: <?php echo htmlspecialchars($stop['duration']); ?> hours</p>
+                                  </div>
+                                </div>
+                          <?php
+                              endforeach;
+                            endif;
+                          endif; ?>
+                          <div class="flex">
+                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center z-10">
+                              <i class="fas fa-plane-arrival text-white text-sm"></i>
+                            </div>
+                            <div class="ml-6">
+                              <p class="font-bold text-gray-800"><?php echo htmlspecialchars($flight['arrival_city']); ?></p>
+                              <p class="text-sm text-gray-500"><?php echo date('l, F j, Y', strtotime($flight['departure_date'])); ?></p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="mt-8 p-4 bg-white rounded-lg border border-gray-200">
+                        <h6 class="font-medium text-gray-700 mb-2">Flight Summary</h6>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div>
+                            <p class="text-sm text-gray-500">Total Duration</p>
+                            <p class="font-medium"><?php echo htmlspecialchars($flight['flight_duration']); ?> hours</p>
+                          </div>
+                          <div>
+                            <p class="text-sm text-gray-500">Distance</p>
+                            <p class="font-medium"><?php echo htmlspecialchars($flight['distance']); ?> km</p>
+                          </div>
+                          <div>
+                            <p class="text-sm text-gray-500">Flight Type</p>
+                            <p class="font-medium"><?php echo $flight['has_stops'] ? 'Stops' : 'Direct'; ?></p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Flight Information Tab -->
+                  <div id="info-<?php echo $flight['id']; ?>" class="tab-pane hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div class="bg-gray-50 rounded-xl p-4">
+                        <h6 class="font-medium text-gray-700 mb-3">Airline Information</h6>
+                        <div class="space-y-3">
+                          <div class="flex items-center">
+                            <div class="w-8 text-primary"><i class="fas fa-plane"></i></div>
+                            <div>
+                              <p class="text-sm text-gray-500">Airline</p>
+                              <p class="font-medium"><?php echo htmlspecialchars($flight['airline_name']); ?></p>
+                            </div>
+                          </div>
+                          <div class="flex items-center">
+                            <div class="w-8 text-primary"><i class="fas fa-id-card"></i></div>
+                            <div>
+                              <p class="text-sm text-gray-500">Flight Number</p>
+                              <p class="font-medium"><?php echo htmlspecialchars($flight['flight_number']); ?></p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="bg-gray-50 rounded-xl p-4">
+                        <h6 class="font-medium text-gray-700 mb-3">Additional Information</h6>
+                        <?php if ($flight['flight_notes']): ?>
+                          <div class="mb-4">
+                            <p class="text-sm text-gray-500 mb-1">Flight Notes</p>
+                            <p class="bg-white p-3 rounded-lg border border-gray-200 text-sm"><?php echo htmlspecialchars($flight['flight_notes']); ?></p>
+                          </div>
+                        <?php endif; ?>
+                        <div>
+                          <p class="text-sm text-gray-500 mb-2">Flight Features</p>
+                          <div class="flex flex-wrap gap-2">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"><i class="fas fa-wifi mr-1"></i> Wi-Fi</span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700"><i class="fas fa-utensils mr-1"></i> Meals</span>
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-pink-50 text-pink-700"><i class="fas fa-tv mr-1"></i> Entertainment</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Return Flight Tab -->
+                  <?php if ($flight['has_return']): ?>
+                    <div id="return-<?php echo $flight['id']; ?>" class="tab-pane hidden">
+                      <div class="bg-purple-50 rounded-xl p-6">
+                        <h6 class="font-bold text-purple-700 mb-4"><i class="fas fa-plane-arrival mr-2"></i> Return Flight Details</h6>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div class="bg-white rounded-lg shadow-sm p-4">
+                            <h6 class="font-medium text-gray-700 mb-3">Return Journey</h6>
+                            <div class="space-y-3">
+                              <div class="flex items-center">
+                                <div class="w-8 text-purple-600"><i class="fas fa-calendar-day"></i></div>
+                                <div>
+                                  <p class="text-sm text-gray-500">Return Date</p>
+                                  <p class="font-medium"><?php echo date('D, M j, Y', strtotime($flight['return_date'])); ?></p>
+                                </div>
+                              </div>
+                              <div class="flex items-center">
+                                <div class="w-8 text-purple-600"><i class="fas fa-clock"></i></div>
+                                <div>
+                                  <p class="text-sm text-gray-500">Return Time</p>
+                                  <p class="font-medium"><?php echo date('h:i A', strtotime($flight['return_time'])); ?></p>
+                                </div>
+                              </div>
+                              <div class="flex items-center">
+                                <div class="w-8 text-purple-600"><i class="fas fa-plane"></i></div>
+                                <div>
+                                  <p class="text-sm text-gray-500">Flight Number</p>
+                                  <p class="font-medium"><?php echo htmlspecialchars($flight['return_flight_number']); ?></p>
+                                </div>
+                              </div>
+                              <div class="flex items-center">
+                                <div class="w-8 text-purple-600"><i class="fas fa-hourglass-half"></i></div>
+                                <div>
+                                  <p class="text-sm text-gray-500">Flight Duration</p>
+                                  <p class="font-medium"><?php echo htmlspecialchars($flight['return_flight_duration']); ?> hours</p>
+                                </div>
+                              </div>
+                              <div class="flex items-center">
+                                <div class="w-8 text-purple-600"><i class="fas fa-building"></i></div>
+                                <div>
+                                  <p class="text-sm text-gray-500">Airline</p>
+                                  <p class="font-medium"><?php echo htmlspecialchars($flight['return_airline']); ?></p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="bg-white rounded-lg shadow-sm p-4">
+                            <h6 class="font-medium text-gray-700 mb-3">Return Flight Route</h6>
+                            <div class="relative pb-6">
+                              <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-300"></div>
+                              <div class="space-y-8">
+                                <div class="flex">
+                                  <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center z-10">
+                                    <i class="fas fa-plane-departure text-white text-sm"></i>
+                                  </div>
+                                  <div class="ml-6">
+                                    <p class="font-bold text-gray-800"><?php echo htmlspecialchars($flight['arrival_city']); ?></p>
+                                    <p class="text-gray-600"><?php echo date('h:i A', strtotime($flight['return_time'])); ?></p>
+                                    <p class="text-sm text-gray-500"><?php echo date('l, F j, Y', strtotime($flight['return_date'])); ?></p>
+                                  </div>
+                                </div>
+                                <?php if ($flight['has_return_stops'] && $flight['return_stops']):
+                                  $return_stops = json_decode($flight['return_stops'], true);
+                                  if (is_array($return_stops)):
+                                    foreach ($return_stops as $stop):
+                                ?>
+                                      <div class="flex">
+                                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center z-10">
+                                          <i class="fas fa-map-marker-alt text-white text-sm"></i>
+                                        </div>
+                                        <div class="ml-6">
+                                          <p class="font-bold text-gray-800"><?php echo htmlspecialchars($stop['city']); ?></p>
+                                          <p class="text-gray-600">Layover: <?php echo htmlspecialchars($stop['duration']); ?> hours</p>
+                                        </div>
+                                      </div>
+                                <?php
+                                    endforeach;
+                                  endif;
+                                endif; ?>
+                                <div class="flex">
+                                  <div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center z-10">
+                                    <i class="fas fa-plane-arrival text-white text-sm"></i>
+                                  </div>
+                                  <div class="ml-6">
+                                    <p class="font-bold text-gray-800"><?php echo htmlspecialchars($flight['departure_city']); ?></p>
+                                    <p class="text-sm text-gray-500"><?php echo date('l, F j, Y', strtotime($flight['return_date'])); ?></p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="mt-4 text-center">
+                              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium <?php echo $flight['has_return_stops'] ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'; ?>">
+                                <i class="fas <?php echo $flight['has_return_stops'] ? 'fa-map-marker-alt' : 'fa-check-circle'; ?> mr-1"></i>
+                                <?php echo $flight['has_return_stops'] ? 'Stops' : 'Direct Return Flight'; ?>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  <?php endif; ?>
+                </div>
+                <div class="mt-6 flex justify-center">
+                  <a href="booking-flight.php?flight_id=<?php echo $flight['id']; ?>" class="bg-primary hover:bg-green-700 text-white font-medium py-2.5 px-6 rounded-lg transition duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-1 flex items-center">
+                    <i class="fas fa-ticket-alt mr-2"></i> Book Now
+                  </a>
+                </div>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
   <script>
-    // City autocomplete data
-    const cities = [{
-        name: 'Karachi',
-        code: 'KHI'
-      },
-      {
-        name: 'Lahore',
-        code: 'LHE'
-      },
-      {
-        name: 'Islamabad',
-        code: 'ISB'
-      },
-      {
-        name: 'Rawalpindi',
-        code: 'RWP'
-      },
-      {
-        name: 'Faisalabad',
-        code: 'FSD'
-      },
-      {
-        name: 'Multan',
-        code: 'MUX'
-      },
-      {
-        name: 'Hyderabad',
-        code: 'HDD'
-      },
-      {
-        name: 'Peshawar',
-        code: 'PEW'
-      },
-      {
-        name: 'Quetta',
-        code: 'UET'
-      },
-      {
-        name: 'Jeddah',
-        code: 'JED'
-      },
-      {
-        name: 'Medina',
-        code: 'MED'
-      }
-    ];
+    // Pass available dates to JavaScript
+    const availableDates = <?php echo json_encode($available_dates); ?>;
 
-    // Autocomplete function
-    function setupAutocomplete(inputId, suggestionsId) {
-      const input = document.getElementById(inputId);
-      const suggestions = document.getElementById(suggestionsId);
-
-      input.addEventListener('input', () => {
-        const query = input.value.toLowerCase();
-        suggestions.innerHTML = '';
-        if (query.length < 2) {
-          suggestions.classList.add('hidden');
-          return;
-        }
-
-        const matches = cities.filter(city => city.name.toLowerCase().includes(query));
-        if (matches.length === 0) {
-          suggestions.classList.add('hidden');
-          return;
-        }
-
-        matches.forEach(city => {
-          const div = document.createElement('div');
-          div.className = 'autocomplete-suggestion';
-          div.textContent = `${city.name} (${city.code})`;
-          div.addEventListener('click', () => {
-            input.value = city.name;
-            suggestions.classList.add('hidden');
-            document.forms[0].submit();
-          });
-          suggestions.appendChild(div);
-        });
-        suggestions.classList.remove('hidden');
-      });
-
-      document.addEventListener('click', (e) => {
-        if (!input.contains(e.target) && !suggestions.contains(e.target)) {
-          suggestions.classList.add('hidden');
+    // Initialize departure calendar
+    function initializeDepartureCalendar(isOneWay) {
+      return flatpickr("#departure_date", {
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        onDayCreate: function(dObj, dStr, fp, dayElem) {
+          const date = dayElem.dateObj.toISOString().split('T')[0];
+          if (isOneWay && availableDates.one_way.includes(date)) {
+            dayElem.classList.add("one-way", "tooltip");
+            dayElem.innerHTML += `<span class="tooltip-text">One-way flights available</span>`;
+          } else if (!isOneWay && availableDates.round_trip.departure.includes(date)) {
+            dayElem.classList.add("round-trip", "tooltip");
+            dayElem.innerHTML += `<span class="tooltip-text">Round-trip flights available</span>`;
+          }
+        },
+        onChange: function(selectedDates, dateStr, instance) {
+          if (!isOneWay) {
+            returnPicker.set("minDate", dateStr);
+            returnPicker.set("enable", availableDates.round_trip.return.filter(returnDate => {
+              return availableDates.round_trip.departure.some((depDate, index) =>
+                depDate === dateStr && availableDates.round_trip.return[index] === returnDate
+              );
+            }));
+          }
         }
       });
     }
 
-    // Initialize autocomplete
-    setupAutocomplete('departure_city', 'departure_suggestions');
-    setupAutocomplete('arrival_city', 'arrival_suggestions');
-
-    // Flight dates for calendar markers
-    const flightDates = <?php echo json_encode($flight_dates); ?>;
-
-    // Debug flight dates
-    console.log('flightDates:', flightDates);
-
-    // Initialize Flatpickr for departure date
-    const departurePicker = flatpickr('#departure_date', {
-      dateFormat: 'Y-m-d',
-      minDate: '2025-04-23',
-      maxDate: '2026-12-31',
-      onDayCreate: function(dObj, dStr, fp, dayElem) {
-        const date = dayElem.dateObj.toISOString().split('T')[0];
-        if (flightDates[date] && flightDates[date].length > 0) {
-          dayElem.classList.add('has-flight');
-          const outboundFlights = flightDates[date].filter(f => f.type === 'outbound');
-          const tooltip = outboundFlights.length > 0 ?
-            outboundFlights.map(f => f.details).join('\n') :
-            'Flights available';
-          if (tooltip) {
-            dayElem.setAttribute('data-tooltip', tooltip);
+    // Initialize return calendar
+    function initializeReturnCalendar() {
+      return flatpickr("#return_date", {
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        enable: [],
+        onDayCreate: function(dObj, dStr, fp, dayElem) {
+          const date = dayElem.dateObj.toISOString().split('T')[0];
+          if (availableDates.round_trip.return.includes(date)) {
+            dayElem.classList.add("round-trip", "tooltip");
+            dayElem.innerHTML += `<span class="tooltip-text">Return flights available</span>`;
           }
         }
-      }
-    });
+      });
+    }
 
-    // Initialize Flatpickr for return date
-    const returnPicker = flatpickr('#return_date', {
-      dateFormat: 'Y-m-d',
-      minDate: '2025-04-23',
-      maxDate: '2026-12-31',
-      onDayCreate: function(dObj, dStr, fp, dayElem) {
-        const date = dayElem.dateObj.toISOString().split('T')[0];
-        if (flightDates[date] && flightDates[date].length > 0) {
-          dayElem.classList.add('has-flight');
-          const returnFlights = flightDates[date].filter(f => f.type === 'return');
-          const tooltip = returnFlights.length > 0 ?
-            returnFlights.map(f => f.details).join('\n') :
-            'Flights available';
-          if (tooltip) {
-            dayElem.setAttribute('data-tooltip', tooltip);
-          }
-        }
-      },
-      disableMobile: true
-    });
+    // Initialize calendars
+    let departurePicker = initializeDepartureCalendar(true);
+    let returnPicker = initializeReturnCalendar();
 
-    // Update filters
-    const directFlightsCheck = document.getElementById('directFlightsCheck');
-    const directFlightsInput = document.getElementById('direct_flights');
-    directFlightsCheck.addEventListener('change', () => {
-      directFlightsInput.value = directFlightsCheck.checked ? '1' : '0';
-      document.forms[0].submit();
-    });
+    // Trip type selector
+    const tripTypeOptions = document.querySelectorAll('.trip-type-option');
+    const tripTypeInput = document.getElementById('trip_type');
+    const returnDateContainer = document.getElementById('return-date-container');
+    const returnDateInput = document.getElementById('return_date');
 
-    // Toggle return date field
-    document.querySelectorAll('input[name="has_return"]').forEach(input => {
-      input.addEventListener('change', () => {
-        const returnDateInput = document.getElementById('return_date');
-        returnDateInput.disabled = input.value == '0';
-        if (input.value == '0') {
+    tripTypeOptions.forEach(option => {
+      option.addEventListener('click', function() {
+        tripTypeOptions.forEach(opt => opt.classList.remove('active'));
+        this.classList.add('active');
+        const tripType = this.getAttribute('data-trip-type');
+        tripTypeInput.value = tripType;
+        const isOneWay = tripType === 'one_way';
+        returnDateContainer.classList.toggle('hidden', isOneWay);
+        returnDateInput.disabled = isOneWay;
+        returnDateInput.required = !isOneWay;
+        if (isOneWay) {
           returnDateInput.value = '';
-          returnPicker.clear();
+          returnPicker.set("enable", []);
+        } else {
+          const departureDate = document.getElementById('departure_date').value;
+          if (departureDate) {
+            returnPicker.set("minDate", departureDate);
+            returnPicker.set("enable", availableDates.round_trip.return.filter(returnDate => {
+              return availableDates.round_trip.departure.some((depDate, index) =>
+                depDate === departureDate && availableDates.round_trip.return[index] === returnDate
+              );
+            }));
+          }
+        }
+        departurePicker.destroy();
+        departurePicker = initializeDepartureCalendar(isOneWay);
+        validateForm();
+        const radioInput = this.querySelector('input[type="radio"]');
+        if (radioInput) radioInput.checked = true;
+      });
+    });
+
+    // Update return date minimum
+    document.getElementById('departure_date').addEventListener('change', function() {
+      const isOneWay = tripTypeInput.value === 'one_way';
+      if (!isOneWay) {
+        returnPicker.set("minDate", this.value);
+        returnPicker.set("enable", availableDates.round_trip.return.filter(returnDate => {
+          return availableDates.round_trip.departure.some((depDate, index) =>
+            depDate === this.value && availableDates.round_trip.return[index] === returnDate
+          );
+        }));
+      }
+      validateForm();
+    });
+
+    // Form validation
+    function validateForm() {
+      const departureCity = document.getElementById('departure_city').value;
+      const arrivalCity = document.getElementById('arrival_city').value;
+      const departureDate = document.getElementById('departure_date').value;
+      const isRoundTrip = tripTypeInput.value === 'round_trip';
+      const returnDate = document.getElementById('return_date').value;
+      const searchBtn = document.getElementById('search-button');
+      const isValid = departureCity && arrivalCity && departureDate && (!isRoundTrip || returnDate);
+      searchBtn.disabled = !isValid;
+    }
+
+    ['departure_city', 'arrival_city', 'departure_date', 'return_date'].forEach(id => {
+      const element = document.getElementById(id);
+      if (element) element.addEventListener('change', validateForm);
+    });
+
+    // Handle view details buttons
+    const viewDetailsButtons = document.querySelectorAll('.view-details-btn');
+    viewDetailsButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const flightId = this.getAttribute('data-flight-id');
+        const detailsDiv = document.getElementById('details-' + flightId);
+        const icon = document.querySelector('.details-icon-' + flightId);
+        if (detailsDiv.classList.contains('hidden')) {
+          detailsDiv.classList.remove('hidden');
+          icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+          this.classList.replace('bg-primary', 'bg-green-700');
+        } else {
+          detailsDiv.classList.add('hidden');
+          icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+          this.classList.replace('bg-green-700', 'bg-primary');
         }
       });
     });
 
-    // Ensure return date is after departure date
-    document.getElementById('departure_date').addEventListener('change', function() {
-      const departureDate = new Date(this.value);
-      returnPicker.set('minDate', departureDate);
+    // Handle tabs
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        const tabId = this.getAttribute('data-tab');
+        const flightId = tabId.split('-')[1];
+        const flightTabs = document.querySelectorAll(`[data-tab$="-${flightId}"]`);
+        const tabPanes = document.querySelectorAll(`[id$="-${flightId}"].tab-pane`);
+        flightTabs.forEach(t => t.classList.remove('active', 'bg-gray-200'));
+        tabPanes.forEach(p => p.classList.add('hidden'));
+        this.classList.add('active', 'bg-gray-200');
+        document.getElementById(tabId).classList.remove('hidden');
+      });
+    });
+
+    // Refresh button
+    document.getElementById('refresh-button').addEventListener('click', function() {
+      const refreshIcon = this.querySelector('.fa-sync-alt');
+      refreshIcon.classList.add('animate-spin');
+      setTimeout(() => window.location.reload(true), 300);
+    });
+
+    // Loading overlay
+    document.getElementById('flight-search-form').addEventListener('submit', function() {
+      const searchBtn = document.getElementById('search-button');
+      searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Searching...';
+      searchBtn.disabled = true;
     });
   </script>
 </body>
 
 </html>
+
+<?php
+$conn->close();
+?>
