@@ -28,7 +28,7 @@ $booking_details = [];
 
 // Fetch booking details
 $stmt = $conn->prepare("SELECT b.id, b.user_id, b.package_id, b.created_at, u.full_name 
-                       FROM booking b 
+                       FROM package_bookings b 
                        JOIN users u ON b.user_id = u.id 
                        WHERE b.id = ?");
 $stmt->bind_param("i", $booking_id);
@@ -43,8 +43,8 @@ $stmt->close();
 
 // Check if hotel is already assigned to this booking
 if ($booking) {
-  $stmt = $conn->prepare("SELECT * FROM hotel_bookings WHERE booking_id = ?");
-  $stmt->bind_param("i", $booking_id);
+  $stmt = $conn->prepare("SELECT * FROM hotel_bookings WHERE user_id = ?");
+  $stmt->bind_param("i", $booking['user_id']);
   $stmt->execute();
   $result = $stmt->get_result();
   if ($result->num_rows > 0) {
@@ -119,7 +119,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
                               SET hotel_id = ?, room_id = ?, check_in_date = ?, 
                                   check_out_date = ?, total_price = ?, 
                                   special_requests = ?, updated_at = NOW() 
-                              WHERE booking_id = ?");
+                              WHERE user_id = ?");
         $stmt->bind_param(
           "isssdsi",
           $hotel_id,
@@ -128,7 +128,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
           $check_out_date,
           $total_price,
           $special_requests,
-          $booking_id
+          $user_id
         );
         if (!$stmt->execute()) {
           throw new Exception("Error updating hotel booking: " . $stmt->error);
@@ -139,13 +139,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
         $booking_reference = 'HB' . strtoupper(uniqid());
         $user_id = $booking['user_id'];
         $stmt = $conn->prepare("INSERT INTO hotel_bookings 
-                              (booking_id, user_id, hotel_id, room_id, check_in_date, 
+                              (user_id, hotel_id, room_id, check_in_date, 
                                check_out_date, total_price, booking_status, payment_status, 
                                booking_reference, special_requests) 
-                              VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed', 'paid', ?, ?)");
+                              VALUES (?, ?, ?, ?, ?, ?, 'confirmed', 'paid', ?, ?)");
         $stmt->bind_param(
-          "iiisssss",
-          $booking_id,
+          "iisssdss",
           $user_id,
           $hotel_id,
           $room_id,

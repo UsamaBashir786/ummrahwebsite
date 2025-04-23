@@ -30,7 +30,7 @@ $booking_details = [];
 
 // Fetch booking details
 $stmt = $conn->prepare("SELECT b.id, b.user_id, b.package_id, b.created_at, u.full_name, u.email, u.phone 
-                       FROM booking b 
+                       FROM package_bookings b 
                        JOIN users u ON b.user_id = u.id 
                        WHERE b.id = ?");
 $stmt->bind_param("i", $booking_id);
@@ -197,7 +197,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
                                  additional_notes, booking_status) 
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')");
           $stmt->bind_param(
-            "iisississsssss",
+            "iisississssss",
             $booking_id,
             $user_id,
             $transport_type,

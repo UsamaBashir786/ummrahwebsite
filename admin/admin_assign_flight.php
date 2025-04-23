@@ -28,7 +28,7 @@ $booking_details = [];
 
 // Fetch booking details
 $stmt = $conn->prepare("SELECT b.id, b.user_id, b.package_id, b.created_at, u.full_name 
-                       FROM booking b 
+                       FROM package_bookings b 
                        JOIN users u ON b.user_id = u.id 
                        WHERE b.id = ?");
 $stmt->bind_param("i", $booking_id);
@@ -43,8 +43,8 @@ $stmt->close();
 
 // Check if flight is already assigned to this booking
 if ($booking) {
-  $stmt = $conn->prepare("SELECT * FROM flight_bookings WHERE booking_id = ?");
-  $stmt->bind_param("i", $booking_id);
+  $stmt = $conn->prepare("SELECT * FROM flight_bookings WHERE user_id = ?");
+  $stmt->bind_param("i", $booking['user_id']);
   $stmt->execute();
   $result = $stmt->get_result();
   if ($result->num_rows > 0) {
@@ -130,9 +130,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
                                       total_price = ?, passenger_name = ?,
                                       passenger_email = ?, passenger_phone = ?,
                                       updated_at = NOW() 
-                                  WHERE booking_id = ?");
+                                  WHERE user_id = ?");
             $stmt->bind_param(
-              "isiiisssi",
+              "isiidsssi",
               $flight_id,
               $cabin_class,
               $adult_count,
@@ -141,7 +141,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
               $passenger_name,
               $passenger_email,
               $passenger_phone,
-              $booking_id
+              $user_id
             );
             if (!$stmt->execute()) {
               throw new Exception("Error updating flight booking: " . $stmt->error);
@@ -151,14 +151,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
             $booking_reference = 'FB' . strtoupper(uniqid());
             $user_id = $booking['user_id'];
             $stmt = $conn->prepare("INSERT INTO flight_bookings 
-                                  (booking_id, user_id, flight_id, cabin_class, 
+                                  (user_id, flight_id, cabin_class, 
                                    adult_count, children_count, total_price, 
                                    passenger_name, passenger_email, passenger_phone,
                                    booking_status, payment_status, booking_reference) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', 'paid', ?)");
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', 'pending', ?)");
             $stmt->bind_param(
-              "iiisiidsss",
-              $booking_id,
+              "iisiidsss",
               $user_id,
               $flight_id,
               $cabin_class,
