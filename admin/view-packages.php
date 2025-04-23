@@ -4,13 +4,21 @@ require_once '../config/db.php';
 session_name('admin_session');
 session_start();
 
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Check if admin is logged in
 if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true) {
   header('Location: login.php');
   exit;
 }
 
-// Use the $conn from config/db.php (MySQLi connection)
+// Verify database connection
+if (!$conn) {
+  die("Database connection failed: " . mysqli_connect_error());
+}
 
 // Handle bulk delete
 if (isset($_POST['bulk_delete']) && !empty($_POST['package_ids'])) {
@@ -164,15 +172,17 @@ $stats = [
   'total_packages' => 0,
   'by_type' => ['single' => 0, 'group' => 0, 'vip' => 0],
   'by_flight_class' => ['economy' => 0, 'business' => 0, 'first' => 0],
-  'avg_price' => 0,
+  'avg_price' => '0.00',
   'recent_packages' => 0
 ];
 
-$result = $conn->query("SELECT COUNT(*) as total, AVG(price) as avg_price FROM umrah_packages");
+$result = $conn->query("SELECT COUNT(*) as total, COALESCE(AVG(price), 0) as avg_price FROM umrah_packages");
 if ($result) {
   $row = $result->fetch_assoc();
   $stats['total_packages'] = $row['total'];
-  $stats['avg_price'] = number_format($row['avg_price'], 2);
+  $stats['avg_price'] = number_format((float)$row['avg_price'], 2); // Fixed line 175
+} else {
+  error_log("Statistics query failed: " . $conn->error);
 }
 
 $result = $conn->query("SELECT package_type, COUNT(*) as count FROM umrah_packages GROUP BY package_type");
@@ -180,6 +190,8 @@ if ($result) {
   while ($row = $result->fetch_assoc()) {
     $stats['by_type'][$row['package_type']] = $row['count'];
   }
+} else {
+  error_log("Package type query failed: " . $conn->error);
 }
 
 $result = $conn->query("SELECT flight_class, COUNT(*) as count FROM umrah_packages GROUP BY flight_class");
@@ -187,11 +199,15 @@ if ($result) {
   while ($row = $result->fetch_assoc()) {
     $stats['by_flight_class'][$row['flight_class']] = $row['count'];
   }
+} else {
+  error_log("Flight class query failed: " . $conn->error);
 }
 
 $result = $conn->query("SELECT COUNT(*) as recent FROM umrah_packages WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
 if ($result) {
   $stats['recent_packages'] = $result->fetch_assoc()['recent'];
+} else {
+  error_log("Recent packages query failed: " . $conn->error);
 }
 ?>
 <!DOCTYPE html>
@@ -205,7 +221,7 @@ if ($result) {
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <!-- DataTables CSS (Custom Tailwind Styling) -->
+  <!-- DataTables CSS -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.tailwindcss.min.css">
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
@@ -309,28 +325,28 @@ if ($result) {
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" aria-label="Package statistics">
       <div class="stats-card bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
         <h3 class="text-lg font-semibold text-gray-800">Total Packages</h3>
-        <p class="text-2xl font-bold text-blue-600"><?php echo $stats['total_packages']; ?></p>
+        <p class="text-2xl font-bold text-blue-600"><?php echo $stats['total_packages'] ?: 'N/A'; ?></p>
       </div>
       <div class="stats-card bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
         <h3 class="text-lg font-semibold text-gray-800">Average Price (PKR)</h3>
-        <p class="text-2xl font-bold text-blue-600"><?php echo $stats['avg_price']; ?></p>
+        <p class="text-2xl font-bold text-blue-600"><?php echo $stats['avg_price'] ?: 'N/A'; ?></p>
       </div>
       <div class="stats-card bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
         <h3 class="text-lg font-semibold text-gray-800">Recent Packages (30 Days)</h3>
-        <p class="text-2xl font-bold text-blue-600"><?php echo $stats['recent_packages']; ?></p>
+        <p class="text-2xl font-bold text-blue-600"><?php echo $stats['recent_packages'] ?: 'N/A'; ?></p>
       </div>
       <div class="stats-card bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
         <h3 class="text-lg font-semibold text-gray-800">By Package Type</h3>
         <p class="text-sm text-gray-600">
-          Single: <?php echo $stats['by_type']['single']; ?><br>
-          Group: <?php echo $stats['by_type']['group']; ?><br>
-          VIP: <?php echo $stats['by_type']['vip']; ?>
+          Single: <?php echo $stats['by_type']['single'] ?: '0'; ?><br>
+          Group: <?php echo $stats['by_type']['group'] ?: '0'; ?><br>
+          VIP: <?php echo $stats['by_type']['vip'] ?: '0'; ?>
         </p>
       </div>
     </section>
 
     <!-- Chart Section -->
-    <!-- <section class="bg-white p-6 rounded-lg shadow-md mb-6" aria-label="Package distribution charts">
+    <section class="bg-white p-6 rounded-lg shadow-md mb-6" aria-label="Package distribution charts">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h3 class="text-lg font-semibold text-gray-800 mb-4">Packages by Type</h3>
@@ -341,7 +357,7 @@ if ($result) {
           <canvas id="flightChart" class="w-full h-64"></canvas>
         </div>
       </div>
-    </section> -->
+    </section>
 
     <!-- Filters Section -->
     <section class="bg-white p-6 rounded-lg shadow-md mb-6" aria-label="Package filters">
@@ -447,7 +463,7 @@ if ($result) {
                     </td>
                     <td class="p-3"><?php echo $index + 1; ?></td>
                     <td class="p-3">
-                      <img src="../<?php echo htmlspecialchars($package['package_image']); ?>" alt="Package Image for <?php echo htmlspecialchars($package['title']); ?>" class="table-img w-12 h-12 object-cover rounded" aria-label="Package image">
+                      <img src="../<?php echo htmlspecialchars($package['package_image'] ?: 'assets/img/default-package.jpg'); ?>" alt="Package Image for <?php echo htmlspecialchars($package['title']); ?>" class="table-img w-12 h-12 object-cover rounded" aria-label="Package image">
                     </td>
                     <td class="p-3"><?php echo htmlspecialchars($package['title']); ?></td>
                     <td class="p-3"><?php echo ucfirst(htmlspecialchars($package['package_type'])); ?></td>
@@ -510,15 +526,44 @@ if ($result) {
         pageLength: 10,
         order: [
           [8, 'desc']
-        ],
-        columnDefs: [{
+        ], // Sort by Created At (column 8)
+        columns: [{
+            data: 'checkbox',
             orderable: false,
-            targets: [0, 2, 9]
-          }, // Disable sorting for checkbox, image, actions
+            searchable: false
+          }, // Checkbox
           {
-            searchable: false,
-            targets: [0, 2, 9]
-          } // Disable search for checkbox, image, actions
+            data: 'index',
+            searchable: false
+          }, // #
+          {
+            data: 'image',
+            orderable: false,
+            searchable: false
+          }, // Image
+          {
+            data: 'title'
+          }, // Title
+          {
+            data: 'type'
+          }, // Type
+          {
+            data: 'flight_class'
+          }, // Flight Class
+          {
+            data: 'inclusions'
+          }, // Inclusions
+          {
+            data: 'price'
+          }, // Price
+          {
+            data: 'created_at'
+          }, // Created At
+          {
+            data: 'actions',
+            orderable: false,
+            searchable: false
+          } // Actions
         ],
         language: {
           search: 'Search packages:',
@@ -545,7 +590,6 @@ if ($result) {
 
     // Sidebar Toggle
     document.getElementById('sidebarToggle').addEventListener('click', function() {
-      // Assuming sidebar has a toggle mechanism in includes/sidebar.php
       document.querySelector('aside').classList.toggle('hidden');
     });
 
@@ -576,7 +620,7 @@ if ($result) {
         if (package) {
           const inclusions = JSON.parse(package.inclusions || '[]').map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(', ');
           modalContent.innerHTML = `
-            <img src="../${package.package_image}" alt="${package.title}" class="w-full h-48 object-cover rounded-md mb-4">
+            <img src="../${package.package_image || 'assets/img/default-package.jpg'}" alt="${package.title}" class="w-full h-48 object-cover rounded-md mb-4">
             <p><strong>Title:</strong> ${package.title}</p>
             <p><strong>Type:</strong> ${package.package_type.charAt(0).toUpperCase() + package.package_type.slice(1)}</p>
             <p><strong>Flight Class:</strong> ${package.flight_class.charAt(0).toUpperCase() + package.flight_class.slice(1)}</p>
@@ -617,9 +661,9 @@ if ($result) {
         labels: ['Single', 'Group', 'VIP'],
         datasets: [{
           data: [
-            <?php echo $stats['by_type']['single']; ?>,
-            <?php echo $stats['by_type']['group']; ?>,
-            <?php echo $stats['by_type']['vip']; ?>
+            <?php echo $stats['by_type']['single'] ?: 0; ?>,
+            <?php echo $stats['by_type']['group'] ?: 0; ?>,
+            <?php echo $stats['by_type']['vip'] ?: 0; ?>
           ],
           backgroundColor: ['#3B82F6', '#10B981', '#F59E0B']
         }]
@@ -641,9 +685,9 @@ if ($result) {
         datasets: [{
           label: 'Packages',
           data: [
-            <?php echo $stats['by_flight_class']['economy']; ?>,
-            <?php echo $stats['by_flight_class']['business']; ?>,
-            <?php echo $stats['by_flight_class']['first']; ?>
+            <?php echo $stats['by_flight_class']['economy'] ?: 0; ?>,
+            <?php echo $stats['by_flight_class']['business'] ?: 0; ?>,
+            <?php echo $stats['by_flight_class']['first'] ?: 0; ?>
           ],
           backgroundColor: '#3B82F6'
         }]
