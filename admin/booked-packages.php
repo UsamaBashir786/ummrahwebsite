@@ -465,12 +465,12 @@ if ($result) {
           <tbody>
             <?php if (empty($bookings)): ?>
               <tr>
-                <td colspan="11" class="text-center py-4 text-gray-500">No bookings found</td>
+                <td colspan="11" class="p-3 text-center text-gray-500">No bookings found</td>
               </tr>
             <?php else: ?>
               <?php foreach ($bookings as $booking): ?>
                 <tr>
-                  <td class="py-3"><?php echo $booking['id']; ?></td>
+                  <td class="p-3"><?php echo $booking['id']; ?></td>
                   <td>
                     <div class="font-medium"><?php echo htmlspecialchars($booking['user_name']); ?></div>
                     <div class="text-sm text-gray-500"><?php echo htmlspecialchars($booking['user_email']); ?></div>
@@ -506,7 +506,7 @@ if ($result) {
                       <?php endif; ?>
                       
                       <?php if ($booking['booking_status'] !== 'cancelled'): ?>
-                        <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-red-600 hover:text-red-800" title="Cancel Booking" onclick="return confirm('Are you sure you want to cancel this booking?')">
+                        <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-red-600 hover:text-red-800" title="Cancel Booking" onclick="return confirm('Are you sure you want to cancel this booking?');">
                           <i class="fas fa-times"></i>
                         </a>
                       <?php endif; ?>
@@ -544,4 +544,67 @@ if ($result) {
         <!-- Content will be loaded dynamically -->
         <div class="animate-pulse">
           <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-          <div class="h-
+          <div class="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+          <div class="h-4 bg-gray-200 rounded w-5/6 mb-4"></div>
+          <div class="h-4 bg-gray-200 rounded w-2/3 mb-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- jQuery and DataTables -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
+  <script>
+    $(document).ready(function() {
+      // Initialize DataTable
+      $('#bookingsTable').DataTable({
+        "order": [
+          [0, "desc"]
+        ],
+        "pageLength": 10,
+        "lengthMenu": [
+          [10, 25, 50, -1],
+          [10, 25, 50, "All"]
+        ],
+        "columnDefs": [{
+            "orderable": false,
+            "targets": 10
+          } // Disable sorting on actions column
+        ],
+        "responsive": true
+      });
+
+      // View Details Modal
+      $('.view-details').click(function() {
+        const bookingId = $(this).data('id');
+        $('#detailsModal').removeClass('hidden').addClass('flex');
+
+        // In a real application, you would fetch the details via AJAX
+        // For now, we'll just fill it with example content
+        const booking = <?php echo json_encode($bookings); ?>.find(b => b.id == bookingId);
+        if (booking) {
+          let html = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 class="font-semibold text-gray-700 mb-3">Booking Information</h4>
+                <p><span class="font-medium">Booking ID:</span> ${booking.id}</p>
+                <p><span class="font-medium">Reference:</span> ${booking.booking_reference}</p>
+                <p><span class="font-medium">Booking Date:</span> ${new Date(booking.created_at).toLocaleDateString()}</p>
+                <p><span class="font-medium">Booking Status:</span> <span class="status-badge status-${booking.booking_status}">${booking.booking_status.charAt(0).toUpperCase() + booking.booking_status.slice(1)}</span></p>
+                <p><span class="font-medium">Payment Status:</span> <span class="status-badge payment-${booking.payment_status}">${booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}</span></p>
+                <p><span class="font-medium">Total Price:</span> PKR ${parseInt(booking.total_price).toLocaleString()}</p>
+              </div>
+              <div>
+                <h4 class="font-semibold text-gray-700 mb-3">Guest Information</h4>
+                <p><span class="font-medium">Name:</span> ${booking.user_name}</p>
+                <p><span class="font-medium">Email:</span> ${booking.user_email}</p>
+                <p><span class="font-medium">Number of Travelers:</span> ${booking.num_travelers}</p>
+                <p><span class="font-medium">Travel Date:</span> ${new Date(booking.travel_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p><span class="font-medium">Special Requests:</span> ${booking.special_requests || 'None'}</p>
+              </div>
+              <div class="md:col-span-2">
+                <h4 class="font-semibold text-gray-700 mb-3">Package Details</h4>
+                <p><span class="font-medium">Package Title:</span> ${booking.package_title}</p>
+                <p><span class="font-medium">Package Type:</span> <span class="package-type-badge package-${booking.package_type}">${booking.package_type.charAt(0).toUpperCase()
