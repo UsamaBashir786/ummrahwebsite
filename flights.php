@@ -10,21 +10,29 @@ $current_date = date('Y-m-d');
 $is_round_trip = false;
 
 // Fetch available flight dates for calendar highlights
-$available_dates = ['one_way' => [], 'round_trip' => ['departure' => [], 'return' => []]];
-$sql_one_way = "SELECT DISTINCT departure_date FROM flights WHERE has_return = 0";
-$result_one_way = $conn->query($sql_one_way);
-if ($result_one_way) {
-  while ($row = $result_one_way->fetch_assoc()) {
-    $available_dates['one_way'][] = $row['departure_date'];
+$available_dates = ['departure' => [], 'return' => []];
+
+// Fetch one-way and round-trip departure dates for the departure calendar
+$sql_departure = "SELECT DISTINCT departure_date FROM flights WHERE has_return = 0 
+                 UNION 
+                 SELECT DISTINCT departure_date FROM flights WHERE has_return = 1";
+$result_departure = $conn->query($sql_departure);
+if ($result_departure) {
+  while ($row = $result_departure->fetch_assoc()) {
+    $available_dates['departure'][] = $row['departure_date'];
   }
 }
 
-$sql_round_trip = "SELECT DISTINCT departure_date, return_date FROM flights WHERE has_return = 1 AND return_date IS NOT NULL";
-$result_round_trip = $conn->query($sql_round_trip);
-if ($result_round_trip) {
-  while ($row = $result_round_trip->fetch_assoc()) {
-    $available_dates['round_trip']['departure'][] = $row['departure_date'];
-    $available_dates['round_trip']['return'][] = $row['return_date'];
+// Fetch round-trip return dates for the return calendar
+$sql_return = "SELECT DISTINCT departure_date, return_date FROM flights WHERE has_return = 1 AND return_date IS NOT NULL";
+$result_return = $conn->query($sql_return);
+if ($result_return) {
+  while ($row = $result_return->fetch_assoc()) {
+    if (!in_array($row['return_date'], $available_dates['return'])) {
+      $available_dates['return'][] = $row['return_date'];
+    }
+    // Store the mapping of departure to return dates for validation
+    $departure_to_return[$row['departure_date']][] = $row['return_date'];
   }
 }
 
@@ -154,20 +162,14 @@ $cabin_classes = ['economy', 'business', 'first_class'];
     }
   </script>
   <style>
-    .flatpickr-day.one-way {
-      background-color: #bfdbfe !important;
-      border-color: #bfdbfe !important;
-    }
-
-    .flatpickr-day.round-trip {
+    /* .flatpickr-day.available-flight {
       background-color: #bbf7d0 !important;
       border-color: #bbf7d0 !important;
     }
 
-    .flatpickr-day.one-way:hover,
-    .flatpickr-day.round-trip:hover {
-      background-color: #93c5fd !important;
-    }
+    .flatpickr-day.available-flight:hover {
+      background-color: #86efac !important;
+    } */
 
     .tooltip {
       position: relative;
@@ -308,12 +310,8 @@ $cabin_classes = ['economy', 'business', 'first_class'];
         <!-- Calendar Legend -->
         <div class="flex items-center justify-center space-x-4 mt-4">
           <div class="flex items-center">
-            <span class="w-4 h-4 bg-blue-200 rounded-full mr-2"></span>
-            <span class="text-sm text-white">One-way Flights</span>
-          </div>
-          <div class="flex items-center">
             <span class="w-4 h-4 bg-green-200 rounded-full mr-2"></span>
-            <span class="text-sm text-white">Round-trip Flights</span>
+            <span class="text-sm text-white">Flights Available</span>
           </div>
         </div>
 
@@ -482,6 +480,30 @@ $cabin_classes = ['economy', 'business', 'first_class'];
                   <?php endif; ?>
                 </div>
 
+                <?php
+                // Calculate remaining seats for each cabin class
+                $remaining_seats = [];
+                foreach (['economy', 'business', 'first_class'] as $class_key) {
+                  $total_seats = $flight[$class_key . '_seats'];
+                  $sql = "SELECT SUM(adult_count + children_count) as booked_seats 
+                          FROM flight_bookings 
+                          WHERE flight_id = ? 
+                          AND cabin_class = ? 
+                          AND payment_status IN ('pending', 'completed')";
+                  $stmt = $conn->prepare($sql);
+                  if ($stmt) {
+                    $stmt->bind_param("is", $flight['id'], $class_key);
+                    $stmt->execute();
+                    $result = $stmt->get_result();
+                    $booked_seats = $result->fetch_assoc()['booked_seats'] ?? 0;
+                    $remaining_seats[$class_key] = max(0, $total_seats - $booked_seats);
+                    $stmt->close();
+                  } else {
+                    $remaining_seats[$class_key] = 0; // Fallback in case of error
+                  }
+                }
+                ?>
+
                 <div class="tab-content">
                   <!-- Pricing & Classes Tab -->
                   <div id="pricing-<?php echo $flight['id']; ?>" class="tab-pane active">
@@ -489,7 +511,6 @@ $cabin_classes = ['economy', 'business', 'first_class'];
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <?php foreach (['economy' => 'Economy', 'business' => 'Business', 'first_class' => 'First Class'] as $class_key => $class_name):
                         $price_field = $class_key . '_price';
-                        $seats_field = $class_key . '_seats';
                         $class_icon = $class_key === 'business' ? 'fa-briefcase' : ($class_key === 'first_class' ? 'fa-crown' : 'fa-chair');
                         $bg_color = $class_key === 'business' ? 'bg-purple-50' : ($class_key === 'first_class' ? 'bg-blue-50' : 'bg-green-50');
                         $text_color = $class_key === 'business' ? 'text-purple-700' : ($class_key === 'first_class' ? 'text-blue-700' : 'text-green-700');
@@ -507,12 +528,12 @@ $cabin_classes = ['economy', 'business', 'first_class'];
                               <span class="font-bold <?php echo $text_color; ?>">PKR <?php echo number_format($flight[$price_field], 0); ?></span>
                             </div>
                             <div class="flex justify-between items-center">
-                              <span class="text-sm text-gray-600">Available Seats:</span>
-                              <span class="font-medium"><?php echo $flight[$seats_field]; ?></span>
+                              <span class="text-sm text-gray-600">Remaining Seats:</span>
+                              <span class="font-medium"><?php echo $remaining_seats[$class_key]; ?></span>
                             </div>
                           </div>
                           <div class="mt-4">
-                            <a href="booking-flight.php?flight_id=<?php echo $flight['id']; ?>&cabin_class=<?php echo $class_key; ?>" class="block w-full text-center py-2 px-4 border border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-colors text-sm font-medium">
+                            <a href="booking-flight.php?flight_id=<?php echo $flight['id']; ?>&cabin_class=<?php echo $class_key; ?>" class="block w-full text-center py-2 px-4 border border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-colors text-sm font-medium <?php echo $remaining_seats[$class_key] == 0 ? 'opacity-50 cursor-not-allowed' : ''; ?>" <?php echo $remaining_seats[$class_key] == 0 ? 'onclick="return false;"' : ''; ?>>
                               Select
                             </a>
                           </div>
@@ -730,11 +751,6 @@ $cabin_classes = ['economy', 'business', 'first_class'];
                     </div>
                   <?php endif; ?>
                 </div>
-                <div class="mt-6 flex justify-center">
-                  <a href="booking-flight.php?flight_id=<?php echo $flight['id']; ?>" class="bg-primary hover:bg-green-700 text-white font-medium py-2.5 px-6 rounded-lg transition duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-1 flex items-center">
-                    <i class="fas fa-ticket-alt mr-2"></i> Book Now
-                  </a>
-                </div>
               </div>
             </div>
           <?php endforeach; ?>
@@ -747,30 +763,32 @@ $cabin_classes = ['economy', 'business', 'first_class'];
   <script>
     // Pass available dates to JavaScript
     const availableDates = <?php echo json_encode($available_dates); ?>;
+    const departureToReturn = <?php echo json_encode($departure_to_return); ?>;
+
+    // Debug the available dates in the console
+    console.log("Available Dates:", availableDates);
+    console.log("Departure to Return Mapping:", departureToReturn);
 
     // Initialize departure calendar
-    function initializeDepartureCalendar(isOneWay) {
+    function initializeDepartureCalendar() {
       return flatpickr("#departure_date", {
         dateFormat: "Y-m-d",
         minDate: "today",
         onDayCreate: function(dObj, dStr, fp, dayElem) {
           const date = dayElem.dateObj.toISOString().split('T')[0];
-          if (isOneWay && availableDates.one_way.includes(date)) {
-            dayElem.classList.add("one-way", "tooltip");
-            dayElem.innerHTML += `<span class="tooltip-text">One-way flights available</span>`;
-          } else if (!isOneWay && availableDates.round_trip.departure.includes(date)) {
-            dayElem.classList.add("round-trip", "tooltip");
-            dayElem.innerHTML += `<span class="tooltip-text">Round-trip flights available</span>`;
+          if (availableDates.departure.includes(date)) {
+            console.log(`Highlighting available flight date in departure calendar: ${date}`);
+            dayElem.classList.add("available-flight", "tooltip");
+            dayElem.innerHTML += `<span class="tooltip-text">Flights available</span>`;
           }
         },
         onChange: function(selectedDates, dateStr, instance) {
+          const isOneWay = tripTypeInput.value === 'one_way';
           if (!isOneWay) {
             returnPicker.set("minDate", dateStr);
-            returnPicker.set("enable", availableDates.round_trip.return.filter(returnDate => {
-              return availableDates.round_trip.departure.some((depDate, index) =>
-                depDate === dateStr && availableDates.round_trip.return[index] === returnDate
-              );
-            }));
+            // Enable return dates that correspond to the selected departure date
+            const validReturnDates = departureToReturn[dateStr] || [];
+            returnPicker.set("enable", validReturnDates);
           }
         }
       });
@@ -784,8 +802,9 @@ $cabin_classes = ['economy', 'business', 'first_class'];
         enable: [],
         onDayCreate: function(dObj, dStr, fp, dayElem) {
           const date = dayElem.dateObj.toISOString().split('T')[0];
-          if (availableDates.round_trip.return.includes(date)) {
-            dayElem.classList.add("round-trip", "tooltip");
+          if (availableDates.return.includes(date)) {
+            console.log(`Highlighting return date in return calendar: ${date}`);
+            dayElem.classList.add("available-flight", "tooltip");
             dayElem.innerHTML += `<span class="tooltip-text">Return flights available</span>`;
           }
         }
@@ -793,7 +812,7 @@ $cabin_classes = ['economy', 'business', 'first_class'];
     }
 
     // Initialize calendars
-    let departurePicker = initializeDepartureCalendar(true);
+    let departurePicker = initializeDepartureCalendar();
     let returnPicker = initializeReturnCalendar();
 
     // Trip type selector
@@ -819,15 +838,12 @@ $cabin_classes = ['economy', 'business', 'first_class'];
           const departureDate = document.getElementById('departure_date').value;
           if (departureDate) {
             returnPicker.set("minDate", departureDate);
-            returnPicker.set("enable", availableDates.round_trip.return.filter(returnDate => {
-              return availableDates.round_trip.departure.some((depDate, index) =>
-                depDate === departureDate && availableDates.round_trip.return[index] === returnDate
-              );
-            }));
+            const validReturnDates = departureToReturn[departureDate] || [];
+            returnPicker.set("enable", validReturnDates);
           }
         }
         departurePicker.destroy();
-        departurePicker = initializeDepartureCalendar(isOneWay);
+        departurePicker = initializeDepartureCalendar();
         validateForm();
         const radioInput = this.querySelector('input[type="radio"]');
         if (radioInput) radioInput.checked = true;
@@ -839,11 +855,8 @@ $cabin_classes = ['economy', 'business', 'first_class'];
       const isOneWay = tripTypeInput.value === 'one_way';
       if (!isOneWay) {
         returnPicker.set("minDate", this.value);
-        returnPicker.set("enable", availableDates.round_trip.return.filter(returnDate => {
-          return availableDates.round_trip.departure.some((depDate, index) =>
-            depDate === this.value && availableDates.round_trip.return[index] === returnDate
-          );
-        }));
+        const validReturnDates = departureToReturn[this.value] || [];
+        returnPicker.set("enable", validReturnDates);
       }
       validateForm();
     });
