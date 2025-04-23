@@ -120,23 +120,9 @@
 
       <!-- Assignments Dropdown -->
       <li>
-        <button class="flex items-center justify-between w-full text-gray-700 hover:bg-blue-100 rounded-lg p-2" data-target="#assignments-dropdown">
-          <span class="flex items-center space-x-3">
-            <i class="fas fa-link"></i> <span>Assignments</span>
-          </span>
-          <i class="fas fa-chevron-down"></i>
-        </button>
-        <div class="hidden space-y-2 pl-6 mt-2" id="assignments-dropdown">
-          <a href="assign-hotels.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
-            <i class="fas fa-hotel"></i> Assign Hotels
-          </a>
-          <a href="assign-transport.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
-            <i class="fas fa-bus"></i> Assign Transportation
-          </a>
-          <a href="assign-flights.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
-            <i class="fas fa-plane"></i> Assign Flights
-          </a>
-        </div>
+        <a href="assign-services.php" class="flex items-center space-x-3 text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+          <i class="fas fa-users"></i> <span>Assignments</span>
+        </a>
       </li>
 
       <!-- Users -->
