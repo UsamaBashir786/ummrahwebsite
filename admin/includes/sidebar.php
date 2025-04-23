@@ -49,6 +49,9 @@
           <a href="view-flights.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
             <i class="fas fa-list"></i> View Flights
           </a>
+          <a href="booked-flights.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-ticket-alt"></i> Flight Bookings
+          </a>
         </div>
       </li>
 
@@ -66,6 +69,9 @@
           </a>
           <a href="view-hotels.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
             <i class="fas fa-list"></i> View Hotels
+          </a>
+          <a href="booked-hotels.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-bed"></i> Hotel Bookings
           </a>
         </div>
       </li>
@@ -85,6 +91,9 @@
           <a href="view-packages.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
             <i class="fas fa-list"></i> View Packages
           </a>
+          <a href="booked-packages.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-suitcase"></i> Package Bookings
+          </a>
         </div>
       </li>
 
@@ -102,6 +111,9 @@
           </a>
           <a href="view-transportation.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
             <i class="fas fa-list"></i> View Transportation
+          </a>
+          <a href="booked-transportation.php" class="block text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+            <i class="fas fa-taxi"></i> Transportation Bookings
           </a>
         </div>
       </li>

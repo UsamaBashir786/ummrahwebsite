@@ -28,7 +28,7 @@ $message_type = '';
 if (isset($_GET['action']) && isset($_GET['id'])) {
   $action = $_GET['action'];
   $booking_id = (int)$_GET['id'];
-  
+
   if ($action === 'confirm') {
     $stmt = $conn->prepare("UPDATE package_bookings SET booking_status = 'confirmed' WHERE id = ?");
     $stmt->bind_param("i", $booking_id);
@@ -118,21 +118,32 @@ if (!empty($filters['date_to'])) {
 
 $sql .= " ORDER BY pb.created_at DESC";
 
+// Log the query for debugging
+error_log("Package Bookings Query: " . $sql);
+
 // Prepare and execute query
 $stmt = $conn->prepare($sql);
-if (!empty($params)) {
-  $stmt->bind_param($types, ...$params);
-}
-$stmt->execute();
-$result = $stmt->get_result();
-
-// Fetch all bookings
-if ($result) {
-  while ($row = $result->fetch_assoc()) {
-    $bookings[] = $row;
+if ($stmt === false) {
+  error_log("Prepare failed: " . $conn->error);
+  $message = "Database error occurred. Please try again later.";
+  $message_type = "error";
+} else {
+  if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
   }
+  if (!$stmt->execute()) {
+    error_log("Execute failed: " . $stmt->error);
+    $message = "Database error occurred. Please try again later.";
+    $message_type = "error";
+  } else {
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+      $bookings[] = $row;
+    }
+    error_log("Number of package bookings retrieved: " . count($bookings));
+  }
+  $stmt->close();
 }
-$stmt->close();
 
 // Get booking statistics
 $stats = [
@@ -146,33 +157,51 @@ $stats = [
   'total_travelers' => 0,
 ];
 
-$result = $conn->query("SELECT 
-                          COUNT(*) as total,
-                          SUM(CASE WHEN booking_status = 'pending' THEN 1 ELSE 0 END) as pending,
-                          SUM(CASE WHEN booking_status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
-                          SUM(CASE WHEN booking_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
-                          SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as payment_pending,
-                          SUM(CASE WHEN payment_status = 'completed' THEN 1 ELSE 0 END) as payment_completed,
-                          SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END) as total_revenue,
-                          SUM(num_travelers) as total_travelers
-                        FROM package_bookings");
+$stats_query = "SELECT 
+                   COUNT(*) as total,
+                   SUM(CASE WHEN booking_status = 'pending' THEN 1 ELSE 0 END) as pending,
+                   SUM(CASE WHEN booking_status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
+                   SUM(CASE WHEN booking_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+                   SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as payment_pending,
+                   SUM(CASE WHEN payment_status = 'completed' THEN 1 ELSE 0 END) as payment_completed,
+                   COALESCE(SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END), 0) as total_revenue,
+                   COALESCE(SUM(num_travelers), 0) as total_travelers
+                FROM package_bookings";
+
+// Log the stats query for debugging
+error_log("Package Stats Query: " . $stats_query);
+
+$result = $conn->query($stats_query);
 if ($result) {
   $stats = $result->fetch_assoc();
+} else {
+  error_log("Stats query failed: " . $conn->error);
+  $message = "Error fetching statistics: " . $conn->error;
+  $message_type = "error";
 }
 
 // Get package type breakdown
-$result = $conn->query("SELECT 
-                          up.package_type,
-                          COUNT(*) as count
-                        FROM package_bookings pb
-                        JOIN umrah_packages up ON pb.package_id = up.id
-                        WHERE pb.booking_status != 'cancelled'
-                        GROUP BY up.package_type");
-$package_stats = [];
+$package_query = "SELECT 
+                     up.package_type,
+                     COALESCE(COUNT(*), 0) as count
+                  FROM package_bookings pb
+                  JOIN umrah_packages up ON pb.package_id = up.id
+                  WHERE pb.booking_status != 'cancelled'
+                  GROUP BY up.package_type";
+
+// Log the package query for debugging
+error_log("Package Type Query: " . $package_query);
+
+$package_stats = ['single' => 0, 'group' => 0, 'vip' => 0];
+$result = $conn->query($package_query);
 if ($result) {
   while ($row = $result->fetch_assoc()) {
     $package_stats[$row['package_type']] = $row['count'];
   }
+} else {
+  error_log("Package type query failed: " . $conn->error);
+  $message = "Error fetching package type statistics: " . $conn->error;
+  $message_type = "error";
 }
 ?>
 <!DOCTYPE html>
@@ -338,7 +367,7 @@ if ($result) {
         </div>
         <div>
           <h3 class="text-gray-500 text-sm font-medium">Total Bookings</h3>
-          <p class="text-2xl font-bold text-gray-800"><?php echo $stats['total']; ?></p>
+          <p class="text-2xl font-bold text-gray-800"><?php echo $stats['total'] ?? 0; ?></p>
         </div>
       </div>
 
@@ -348,7 +377,7 @@ if ($result) {
         </div>
         <div>
           <h3 class="text-gray-500 text-sm font-medium">Total Travelers</h3>
-          <p class="text-2xl font-bold text-gray-800"><?php echo $stats['total_travelers']; ?></p>
+          <p class="text-2xl font-bold text-gray-800"><?php echo $stats['total_travelers'] ?? 0; ?></p>
         </div>
       </div>
 
@@ -358,7 +387,7 @@ if ($result) {
         </div>
         <div>
           <h3 class="text-gray-500 text-sm font-medium">Total Revenue</h3>
-          <p class="text-2xl font-bold text-gray-800">PKR <?php echo number_format($stats['total_revenue'], 0); ?></p>
+          <p class="text-2xl font-bold text-gray-800">PKR <?php echo number_format($stats['total_revenue'] ?? 0, 0); ?></p>
         </div>
       </div>
 
@@ -369,8 +398,8 @@ if ($result) {
         <div>
           <h3 class="text-gray-500 text-sm font-medium">Package Types</h3>
           <p class="text-sm font-medium text-gray-800">
-            Single: <?php echo $package_stats['single'] ?? 0; ?>, 
-            Group: <?php echo $package_stats['group'] ?? 0; ?>, 
+            Single: <?php echo $package_stats['single'] ?? 0; ?>,
+            Group: <?php echo $package_stats['group'] ?? 0; ?>,
             VIP: <?php echo $package_stats['vip'] ?? 0; ?>
           </p>
         </div>
@@ -484,9 +513,9 @@ if ($result) {
                     </span>
                   </td>
                   <td><?php echo date('M d, Y', strtotime($booking['travel_date'])); ?></td>
-                  <td class="text-center"><?php echo $booking['num_travelers']; ?></td>
+                  <td class="text-center"><?php echo $booking['num_travelers'] ?? 0; ?></td>
                   <td><?php echo htmlspecialchars($booking['booking_reference']); ?></td>
-                  <td class="font-medium">PKR <?php echo number_format($booking['total_price'], 0); ?></td>
+                  <td class="font-medium">PKR <?php echo number_format($booking['total_price'] ?? 0, 0); ?></td>
                   <td>
                     <span class="status-badge <?php echo 'status-' . $booking['booking_status']; ?>">
                       <?php echo ucfirst($booking['booking_status']); ?>
@@ -504,19 +533,19 @@ if ($result) {
                           <i class="fas fa-check"></i>
                         </a>
                       <?php endif; ?>
-                      
+
                       <?php if ($booking['booking_status'] !== 'cancelled'): ?>
                         <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-red-600 hover:text-red-800" title="Cancel Booking" onclick="return confirm('Are you sure you want to cancel this booking?');">
                           <i class="fas fa-times"></i>
                         </a>
                       <?php endif; ?>
-                      
+
                       <?php if ($booking['payment_status'] === 'pending'): ?>
                         <a href="?action=complete_payment&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-blue-600 hover:text-blue-800" title="Mark Payment as Completed">
                           <i class="fas fa-dollar-sign"></i>
                         </a>
                       <?php endif; ?>
-                      
+
                       <button type="button" class="action-btn text-gray-600 hover:text-gray-800 view-details" data-id="<?php echo $booking['id']; ?>" title="View Details">
                         <i class="fas fa-eye"></i>
                       </button>
@@ -594,17 +623,43 @@ if ($result) {
                 <p><span class="font-medium">Booking Date:</span> ${new Date(booking.created_at).toLocaleDateString()}</p>
                 <p><span class="font-medium">Booking Status:</span> <span class="status-badge status-${booking.booking_status}">${booking.booking_status.charAt(0).toUpperCase() + booking.booking_status.slice(1)}</span></p>
                 <p><span class="font-medium">Payment Status:</span> <span class="status-badge payment-${booking.payment_status}">${booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}</span></p>
-                <p><span class="font-medium">Total Price:</span> PKR ${parseInt(booking.total_price).toLocaleString()}</p>
+                <p><span class="font-medium">Total Price:</span> PKR ${parseInt(booking.total_price || 0).toLocaleString()}</p>
               </div>
               <div>
                 <h4 class="font-semibold text-gray-700 mb-3">Guest Information</h4>
                 <p><span class="font-medium">Name:</span> ${booking.user_name}</p>
                 <p><span class="font-medium">Email:</span> ${booking.user_email}</p>
-                <p><span class="font-medium">Number of Travelers:</span> ${booking.num_travelers}</p>
+                <p><span class="font-medium">Number of Travelers:</span> ${booking.num_travelers || 0}</p>
                 <p><span class="font-medium">Travel Date:</span> ${new Date(booking.travel_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                 <p><span class="font-medium">Special Requests:</span> ${booking.special_requests || 'None'}</p>
               </div>
               <div class="md:col-span-2">
                 <h4 class="font-semibold text-gray-700 mb-3">Package Details</h4>
                 <p><span class="font-medium">Package Title:</span> ${booking.package_title}</p>
-                <p><span class="font-medium">Package Type:</span> <span class="package-type-badge package-${booking.package_type}">${booking.package_type.charAt(0).toUpperCase()
+                <p><span class="font-medium">Package Type:</span> <span class="package-type-badge package-${booking.package_type}">${booking.package_type.charAt(0).toUpperCase() + booking.package_type.slice(1)}</span></p>
+                <p><span class="font-medium">Price Per Person:</span> PKR ${parseInt(booking.package_price || 0).toLocaleString()}</p>
+              </div>
+            </div>
+          `;
+          $('#modalContent').html(html);
+        } else {
+          $('#modalContent').html('<p class="text-red-500">Error loading booking details.</p>');
+        }
+      });
+
+      // Close Modal
+      $('#closeModal').click(function() {
+        $('#detailsModal').removeClass('flex').addClass('hidden');
+      });
+
+      // Close modal when clicking outside
+      $('#detailsModal').click(function(e) {
+        if ($(e.target).is('#detailsModal')) {
+          $('#detailsModal').removeClass('flex').addClass('hidden');
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

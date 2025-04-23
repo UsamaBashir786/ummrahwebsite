@@ -15,11 +15,10 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
 $bookings = [];
 $filters = [
   'status' => $_GET['status'] ?? '',
-  'payment' => $_GET['payment'] ?? '',
-  'location' => $_GET['location'] ?? '',
+  'type' => $_GET['type'] ?? '',
   'search' => $_GET['search'] ?? '',
-  'check_in_from' => $_GET['check_in_from'] ?? '',
-  'check_in_to' => $_GET['check_in_to'] ?? '',
+  'date_from' => $_GET['date_from'] ?? '',
+  'date_to' => $_GET['date_to'] ?? '',
 ];
 $message = '';
 $message_type = '';
@@ -30,7 +29,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
   $booking_id = (int)$_GET['id'];
 
   if ($action === 'confirm') {
-    $stmt = $conn->prepare("UPDATE hotel_bookings SET booking_status = 'confirmed' WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE transportation_bookings SET booking_status = 'confirmed' WHERE id = ?");
     $stmt->bind_param("i", $booking_id);
     if ($stmt->execute()) {
       $message = "Booking #$booking_id has been confirmed successfully.";
@@ -41,51 +40,21 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
     }
     $stmt->close();
   } elseif ($action === 'cancel') {
-    // Start transaction
-    $conn->begin_transaction();
-
-    try {
-      // Get hotel and room ID
-      $stmt = $conn->prepare("SELECT hotel_id, room_id FROM hotel_bookings WHERE id = ?");
-      $stmt->bind_param("i", $booking_id);
-      $stmt->execute();
-      $result = $stmt->get_result();
-      $booking_data = $result->fetch_assoc();
-      $stmt->close();
-
-      if ($booking_data) {
-        // Update booking status
-        $stmt = $conn->prepare("UPDATE hotel_bookings SET booking_status = 'cancelled' WHERE id = ?");
-        $stmt->bind_param("i", $booking_id);
-        if (!$stmt->execute()) {
-          throw new Exception("Error updating booking status: " . $conn->error);
-        }
-        $stmt->close();
-
-        // Update room status to available
-        $stmt = $conn->prepare("UPDATE hotel_rooms SET status = 'available' WHERE hotel_id = ? AND room_id = ?");
-        $stmt->bind_param("is", $booking_data['hotel_id'], $booking_data['room_id']);
-        if (!$stmt->execute()) {
-          throw new Exception("Error updating room status: " . $conn->error);
-        }
-        $stmt->close();
-
-        $conn->commit();
-        $message = "Booking #$booking_id has been cancelled and room has been released.";
-        $message_type = "success";
-      } else {
-        throw new Exception("Booking not found");
-      }
-    } catch (Exception $e) {
-      $conn->rollback();
-      $message = "Error: " . $e->getMessage();
-      $message_type = "error";
-    }
-  } elseif ($action === 'complete_payment') {
-    $stmt = $conn->prepare("UPDATE hotel_bookings SET payment_status = 'paid' WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE transportation_bookings SET booking_status = 'cancelled' WHERE id = ?");
     $stmt->bind_param("i", $booking_id);
     if ($stmt->execute()) {
-      $message = "Payment for booking #$booking_id has been marked as paid.";
+      $message = "Booking #$booking_id has been cancelled.";
+      $message_type = "success";
+    } else {
+      $message = "Error cancelling booking: " . $conn->error;
+      $message_type = "error";
+    }
+    $stmt->close();
+  } elseif ($action === 'complete_payment') {
+    $stmt = $conn->prepare("UPDATE transportation_bookings SET payment_status = 'completed' WHERE id = ?");
+    $stmt->bind_param("i", $booking_id);
+    if ($stmt->execute()) {
+      $message = "Payment for booking #$booking_id has been marked as completed.";
       $message_type = "success";
     } else {
       $message = "Error updating payment status: " . $conn->error;
@@ -96,61 +65,51 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
 }
 
 // Build the query with filters
-$sql = "SELECT hb.*, h.hotel_name, h.location, h.price as price_per_night, 
-               DATEDIFF(hb.check_out_date, hb.check_in_date) as nights_count,
-               u.full_name as user_name, u.email as user_email
-        FROM hotel_bookings hb
-        JOIN hotels h ON hb.hotel_id = h.id
-        JOIN users u ON hb.user_id = u.id
+$sql = "SELECT tb.*, u.full_name as user_name, u.email as user_email 
+        FROM transportation_bookings tb
+        JOIN users u ON tb.user_id = u.id
         WHERE 1=1";
 
 $params = [];
 $types = "";
 
 if (!empty($filters['status'])) {
-  $sql .= " AND hb.booking_status = ?";
+  $sql .= " AND tb.booking_status = ?";
   $params[] = $filters['status'];
   $types .= "s";
 }
 
-if (!empty($filters['payment'])) {
-  $sql .= " AND hb.payment_status = ?";
-  $params[] = $filters['payment'];
-  $types .= "s";
-}
-
-if (!empty($filters['location'])) {
-  $sql .= " AND h.location = ?";
-  $params[] = $filters['location'];
+if (!empty($filters['type'])) {
+  $sql .= " AND tb.transport_type = ?";
+  $params[] = $filters['type'];
   $types .= "s";
 }
 
 if (!empty($filters['search'])) {
   $search = "%" . $filters['search'] . "%";
-  $sql .= " AND (h.hotel_name LIKE ? OR hb.booking_reference LIKE ? OR u.full_name LIKE ? OR u.email LIKE ?)";
+  $sql .= " AND (tb.route_name LIKE ? OR tb.full_name LIKE ? OR u.email LIKE ?)";
   $params[] = $search;
   $params[] = $search;
   $params[] = $search;
-  $params[] = $search;
-  $types .= "ssss";
+  $types .= "sss";
 }
 
-if (!empty($filters['check_in_from'])) {
-  $sql .= " AND hb.check_in_date >= ?";
-  $params[] = $filters['check_in_from'];
+if (!empty($filters['date_from'])) {
+  $sql .= " AND tb.pickup_date >= ?";
+  $params[] = $filters['date_from'];
   $types .= "s";
 }
 
-if (!empty($filters['check_in_to'])) {
-  $sql .= " AND hb.check_in_date <= ?";
-  $params[] = $filters['check_in_to'];
+if (!empty($filters['date_to'])) {
+  $sql .= " AND tb.pickup_date <= ?";
+  $params[] = $filters['date_to'];
   $types .= "s";
 }
 
-$sql .= " ORDER BY hb.created_at DESC";
+$sql .= " ORDER BY tb.created_at DESC";
 
 // Log the query for debugging
-error_log("Hotel Bookings Query: " . $sql);
+error_log("Transportation Bookings Query: " . $sql);
 
 // Prepare and execute query
 $stmt = $conn->prepare($sql);
@@ -171,7 +130,7 @@ if ($stmt === false) {
     while ($row = $result->fetch_assoc()) {
       $bookings[] = $row;
     }
-    error_log("Number of hotel bookings retrieved: " . count($bookings));
+    error_log("Number of transportation bookings retrieved: " . count($bookings));
   }
   $stmt->close();
 }
@@ -182,11 +141,9 @@ $stats = [
   'pending' => 0,
   'confirmed' => 0,
   'cancelled' => 0,
-  'unpaid' => 0,
-  'paid' => 0,
   'total_revenue' => 0,
-  'makkah_bookings' => 0,
-  'madinah_bookings' => 0
+  'taxi_bookings' => 0,
+  'rentacar_bookings' => 0
 ];
 
 $stats_query = "SELECT 
@@ -194,42 +151,49 @@ $stats_query = "SELECT
                    SUM(CASE WHEN booking_status = 'pending' THEN 1 ELSE 0 END) as pending,
                    SUM(CASE WHEN booking_status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
                    SUM(CASE WHEN booking_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
-                   SUM(CASE WHEN payment_status = 'unpaid' THEN 1 ELSE 0 END) as unpaid,
-                   SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as paid,
-                   COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN total_price ELSE 0 END), 0) as total_revenue
-                FROM hotel_bookings";
+                   COALESCE(SUM(price), 0) as total_revenue,
+                   SUM(CASE WHEN transport_type = 'taxi' THEN 1 ELSE 0 END) as taxi_bookings,
+                   SUM(CASE WHEN transport_type = 'rentacar' THEN 1 ELSE 0 END) as rentacar_bookings
+                FROM transportation_bookings";
 
 // Log the stats query for debugging
-error_log("Hotel Stats Query: " . $stats_query);
+error_log("Transportation Stats Query: " . $stats_query);
 
 $result = $conn->query($stats_query);
 if ($result) {
   $stats = $result->fetch_assoc();
+  // Ensure all stats have default values
+  $stats['total_revenue'] = $stats['total_revenue'] ?? 0;
+  $stats['taxi_bookings'] = $stats['taxi_bookings'] ?? 0;
+  $stats['rentacar_bookings'] = $stats['rentacar_bookings'] ?? 0;
 } else {
   error_log("Stats query failed: " . $conn->error);
   $message = "Error fetching statistics: " . $conn->error;
   $message_type = "error";
 }
 
-// Get location breakdown
-$location_query = "SELECT 
-                      COALESCE(SUM(CASE WHEN h.location = 'makkah' THEN 1 ELSE 0 END), 0) as makkah_bookings,
-                      COALESCE(SUM(CASE WHEN h.location = 'madinah' THEN 1 ELSE 0 END), 0) as madinah_bookings
-                   FROM hotel_bookings hb
-                   JOIN hotels h ON hb.hotel_id = h.id
-                   WHERE hb.booking_status != 'cancelled'";
+// Get popular vehicle types
+$vehicle_query = "SELECT 
+                     vehicle_type, 
+                     COALESCE(COUNT(*), 0) as count
+                  FROM transportation_bookings 
+                  WHERE booking_status != 'cancelled'
+                  GROUP BY vehicle_type 
+                  ORDER BY count DESC 
+                  LIMIT 5";
 
-// Log the location query for debugging
-error_log("Location Query: " . $location_query);
+// Log the vehicle query for debugging
+error_log("Popular Vehicle Query: " . $vehicle_query);
 
-$result = $conn->query($location_query);
+$popular_vehicles = [];
+$result = $conn->query($vehicle_query);
 if ($result) {
-  $location_stats = $result->fetch_assoc();
-  $stats['makkah_bookings'] = $location_stats['makkah_bookings'] ?? 0;
-  $stats['madinah_bookings'] = $location_stats['madinah_bookings'] ?? 0;
+  while ($row = $result->fetch_assoc()) {
+    $popular_vehicles[$row['vehicle_type']] = $row['count'];
+  }
 } else {
-  error_log("Location query failed: " . $conn->error);
-  $message = "Error fetching location statistics: " . $conn->error;
+  error_log("Popular vehicle query failed: " . $conn->error);
+  $message = "Error fetching vehicle statistics: " . $conn->error;
   $message_type = "error";
 }
 ?>
@@ -239,7 +203,7 @@ if ($result) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hotel Bookings | UmrahFlights Admin</title>
+  <title>Transportation Bookings | UmrahFlights Admin</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome -->
@@ -274,14 +238,31 @@ if ($result) {
       color: #DC2626;
     }
 
-    .payment-paid {
+    .payment-completed {
       background-color: #D1FAE5;
       color: #047857;
     }
 
-    .payment-unpaid {
+    .payment-pending {
       background-color: #FEF3C7;
       color: #D97706;
+    }
+
+    .transport-type-badge {
+      border-radius: 9999px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .transport-taxi {
+      background-color: #DBEAFE;
+      color: #1E40AF;
+    }
+
+    .transport-rentacar {
+      background-color: #E0E7FF;
+      color: #4338CA;
     }
 
     .action-btn {
@@ -355,13 +336,13 @@ if ($result) {
     <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
       <div>
         <h1 class="text-2xl font-bold text-gray-800 flex items-center">
-          <i class="fas fa-hotel text-blue-600 mr-2"></i> Hotel Bookings
+          <i class="fas fa-car text-blue-600 mr-2"></i> Transportation Bookings
         </h1>
-        <p class="text-gray-600">Manage all hotel bookings</p>
+        <p class="text-gray-600">Manage all transportation bookings</p>
       </div>
       <div class="mt-4 md:mt-0">
-        <a href="view-hotels.php" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <i class="fas fa-hotel mr-2"></i> View Hotels
+        <a href="view-transportation.php" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <i class="fas fa-car mr-2"></i> View Transportation
         </a>
       </div>
     </div>
@@ -393,18 +374,21 @@ if ($result) {
           <i class="fas fa-money-bill text-green-600 text-xl"></i>
         </div>
         <div>
-          <h3 class="text-gray-500 text-sm font-medium">Revenue</h3>
+          <h3 class="text-gray-500 text-sm font-medium">Total Revenue</h3>
           <p class="text-2xl font-bold text-gray-800">PKR <?php echo number_format($stats['total_revenue'] ?? 0, 0); ?></p>
         </div>
       </div>
 
       <div class="bg-white rounded-lg shadow p-4 flex items-start">
         <div class="bg-yellow-100 rounded-lg p-3 mr-4">
-          <i class="fas fa-map-marker-alt text-yellow-600 text-xl"></i>
+          <i class="fas fa-car text-yellow-600 text-xl"></i>
         </div>
         <div>
-          <h3 class="text-gray-500 text-sm font-medium">Locations</h3>
-          <p class="text-md font-medium text-gray-800">Makkah: <?php echo $stats['makkah_bookings'] ?? 0; ?>, Madinah: <?php echo $stats['madinah_bookings'] ?? 0; ?></p>
+          <h3 class="text-gray-500 text-sm font-medium">Transport Types</h3>
+          <p class="text-sm font-medium text-gray-800">
+            Taxi: <?php echo $stats['taxi_bookings'] ?? 0; ?>,
+            Rent-a-car: <?php echo $stats['rentacar_bookings'] ?? 0; ?>
+          </p>
         </div>
       </div>
     </div>
@@ -422,7 +406,7 @@ if ($result) {
     <!-- Filter Section -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
       <h2 class="text-lg font-semibold text-gray-800 mb-4">Filter Bookings</h2>
-      <form action="" method="GET" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <form action="" method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div>
           <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Booking Status</label>
           <select id="status" name="status" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
@@ -433,38 +417,30 @@ if ($result) {
           </select>
         </div>
         <div>
-          <label for="payment" class="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
-          <select id="payment" name="payment" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-            <option value="">All Payments</option>
-            <option value="unpaid" <?php echo $filters['payment'] === 'unpaid' ? 'selected' : ''; ?>>Unpaid</option>
-            <option value="paid" <?php echo $filters['payment'] === 'paid' ? 'selected' : ''; ?>>Paid</option>
-          </select>
-        </div>
-        <div>
-          <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-          <select id="location" name="location" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-            <option value="">All Locations</option>
-            <option value="makkah" <?php echo $filters['location'] === 'makkah' ? 'selected' : ''; ?>>Makkah</option>
-            <option value="madinah" <?php echo $filters['location'] === 'madinah' ? 'selected' : ''; ?>>Madinah</option>
+          <label for="type" class="block text-sm font-medium text-gray-700 mb-1">Transport Type</label>
+          <select id="type" name="type" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="">All Types</option>
+            <option value="taxi" <?php echo $filters['type'] === 'taxi' ? 'selected' : ''; ?>>Taxi</option>
+            <option value="rentacar" <?php echo $filters['type'] === 'rentacar' ? 'selected' : ''; ?>>Rent-a-car</option>
           </select>
         </div>
         <div>
           <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-          <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($filters['search']); ?>" placeholder="Hotel name, reference, guest" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($filters['search']); ?>" placeholder="Route, customer name, email" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
         </div>
         <div>
-          <label for="check_in_from" class="block text-sm font-medium text-gray-700 mb-1">Check-in From</label>
-          <input type="date" id="check_in_from" name="check_in_from" value="<?php echo htmlspecialchars($filters['check_in_from']); ?>" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+          <input type="date" id="date_from" name="date_from" value="<?php echo htmlspecialchars($filters['date_from']); ?>" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
         </div>
         <div>
-          <label for="check_in_to" class="block text-sm font-medium text-gray-700 mb-1">Check-in To</label>
-          <input type="date" id="check_in_to" name="check_in_to" value="<?php echo htmlspecialchars($filters['check_in_to']); ?>" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+          <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+          <input type="date" id="date_to" name="date_to" value="<?php echo htmlspecialchars($filters['date_to']); ?>" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
         </div>
-        <div class="md:col-span-3 lg:col-span-6 flex justify-end">
+        <div class="md:col-span-5 flex justify-end">
           <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg mr-2">
             <i class="fas fa-filter mr-2"></i> Apply Filters
           </button>
-          <a href="booked-hotels.php" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg">
+          <a href="booked-transportation.php" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg">
             <i class="fas fa-sync-alt mr-2"></i> Reset
           </a>
         </div>
@@ -474,58 +450,54 @@ if ($result) {
     <!-- Bookings Table -->
     <div class="bg-white rounded-lg shadow">
       <div class="p-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-800">Hotel Bookings</h2>
+        <h2 class="text-lg font-semibold text-gray-800">Transportation Bookings</h2>
       </div>
       <div class="overflow-x-auto p-4">
         <table id="bookingsTable" class="w-full stripe hover">
           <thead>
             <tr>
               <th>ID</th>
-              <th>Guest</th>
-              <th>Hotel</th>
-              <th>Room</th>
-              <th>Check-in / Check-out</th>
-              <th>Nights</th>
-              <th>Reference</th>
-              <th>Total Price</th>
-              <th>Booking Status</th>
-              <th>Payment Status</th>
+              <th>Customer</th>
+              <th>Type</th>
+              <th>Route</th>
+              <th>Vehicle</th>
+              <th>Pickup Date</th>
+              <th>Price</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             <?php if (empty($bookings)): ?>
               <tr>
-                <td colspan="11" class="text-center py-4 text-gray-500">No bookings found</td>
+                <td colspan="9" class="p-3 text-center text-gray-500">No bookings found</td>
               </tr>
             <?php else: ?>
               <?php foreach ($bookings as $booking): ?>
                 <tr>
-                  <td class="py-3"><?php echo $booking['id']; ?></td>
+                  <td class="p-3"><?php echo $booking['id']; ?></td>
                   <td>
-                    <div class="font-medium"><?php echo htmlspecialchars($booking['user_name']); ?></div>
-                    <div class="text-sm text-gray-500"><?php echo htmlspecialchars($booking['user_email']); ?></div>
+                    <div class="font-medium"><?php echo htmlspecialchars($booking['full_name']); ?></div>
+                    <div class="text-sm text-gray-500"><?php echo htmlspecialchars($booking['email']); ?></div>
+                    <div class="text-sm text-gray-500"><?php echo htmlspecialchars($booking['phone'] ?? ''); ?></div>
                   </td>
                   <td>
-                    <div class="font-medium"><?php echo htmlspecialchars($booking['hotel_name']); ?></div>
-                    <div class="text-sm text-gray-500 capitalize"><?php echo htmlspecialchars($booking['location']); ?></div>
-                  </td>
-                  <td class="text-center"><?php echo htmlspecialchars($booking['room_id']); ?></td>
-                  <td>
-                    <div>In: <?php echo date('M d, Y', strtotime($booking['check_in_date'])); ?></div>
-                    <div>Out: <?php echo date('M d, Y', strtotime($booking['check_out_date'])); ?></div>
-                  </td>
-                  <td class="text-center"><?php echo $booking['nights_count']; ?></td>
-                  <td><?php echo htmlspecialchars($booking['booking_reference']); ?></td>
-                  <td class="font-medium">PKR <?php echo number_format($booking['total_price'] ?? 0, 0); ?></td>
-                  <td>
-                    <span class="status-badge <?php echo 'status-' . $booking['booking_status']; ?>">
-                      <?php echo ucfirst($booking['booking_status']); ?>
+                    <span class="transport-type-badge <?php echo 'transport-' . $booking['transport_type']; ?>">
+                      <?php echo ucfirst($booking['transport_type']); ?>
                     </span>
                   </td>
                   <td>
-                    <span class="status-badge <?php echo 'payment-' . $booking['payment_status']; ?>">
-                      <?php echo ucfirst($booking['payment_status']); ?>
+                    <div class="font-medium"><?php echo htmlspecialchars($booking['route_name']); ?></div>
+                  </td>
+                  <td><?php echo htmlspecialchars($booking['vehicle_type'] ?? ''); ?></td>
+                  <td>
+                    <div><?php echo date('M d, Y', strtotime($booking['pickup_date'])); ?></div>
+                    <div class="text-sm text-gray-500"><?php echo date('h:i A', strtotime($booking['pickup_time'] ?? '00:00:00')); ?></div>
+                  </td>
+                  <td class="font-medium">PKR <?php echo number_format($booking['price'] ?? 0, 0); ?></td>
+                  <td>
+                    <span class="status-badge <?php echo 'status-' . $booking['booking_status']; ?>">
+                      <?php echo ucfirst($booking['booking_status']); ?>
                     </span>
                   </td>
                   <td>
@@ -537,14 +509,8 @@ if ($result) {
                       <?php endif; ?>
 
                       <?php if ($booking['booking_status'] !== 'cancelled'): ?>
-                        <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-red-600 hover:text-red-800" title="Cancel Booking" onclick="return confirm('Are you sure you want to cancel this booking?')">
+                        <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-red-600 hover:text-red-800" title="Cancel Booking" onclick="return confirm('Are you sure you want to cancel this booking?');">
                           <i class="fas fa-times"></i>
-                        </a>
-                      <?php endif; ?>
-
-                      <?php if ($booking['payment_status'] === 'unpaid'): ?>
-                        <a href="?action=complete_payment&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-blue-600 hover:text-blue-800" title="Mark Payment as Paid">
-                          <i class="fas fa-dollar-sign"></i>
                         </a>
                       <?php endif; ?>
 
@@ -601,7 +567,7 @@ if ($result) {
         ],
         "columnDefs": [{
             "orderable": false,
-            "targets": 10
+            "targets": 8
           } // Disable sorting on actions column
         ],
         "responsive": true
@@ -621,27 +587,25 @@ if ($result) {
               <div>
                 <h4 class="font-semibold text-gray-700 mb-3">Booking Information</h4>
                 <p><span class="font-medium">Booking ID:</span> ${booking.id}</p>
-                <p><span class="font-medium">Reference:</span> ${booking.booking_reference}</p>
-                <p><span class="font-medium">Booking Date:</span> ${new Date(booking.created_at).toLocaleDateString()}</p>
+                <p><span class="font-medium">Transport Type:</span> <span class="transport-type-badge transport-${booking.transport_type}">${booking.transport_type.charAt(0).toUpperCase() + booking.transport_type.slice(1)}</span></p>
+                <p><span class="font-medium">Route:</span> ${booking.route_name}</p>
+                <p><span class="font-medium">Vehicle Type:</span> ${booking.vehicle_type || 'N/A'}</p>
+                <p><span class="font-medium">Price:</span> PKR ${parseInt(booking.price || 0).toLocaleString()}</p>
                 <p><span class="font-medium">Booking Status:</span> <span class="status-badge status-${booking.booking_status}">${booking.booking_status.charAt(0).toUpperCase() + booking.booking_status.slice(1)}</span></p>
-                <p><span class="font-medium">Payment Status:</span> <span class="status-badge payment-${booking.payment_status}">${booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}</span></p>
-                <p><span class="font-medium">Total Price:</span> PKR ${parseInt(booking.total_price || 0).toLocaleString()}</p>
               </div>
               <div>
-                <h4 class="font-semibold text-gray-700 mb-3">Guest Information</h4>
-                <p><span class="font-medium">Name:</span> ${booking.user_name}</p>
-                <p><span class="font-medium">Email:</span> ${booking.user_email}</p>
-                <p><span class="font-medium">Special Requests:</span> ${booking.special_requests || 'None'}</p>
+                <h4 class="font-semibold text-gray-700 mb-3">Customer Information</h4>
+                <p><span class="font-medium">Name:</span> ${booking.full_name}</p>
+                <p><span class="font-medium">Email:</span> ${booking.email}</p>
+                <p><span class="font-medium">Phone:</span> ${booking.phone || 'N/A'}</p>
               </div>
               <div class="md:col-span-2">
-                <h4 class="font-semibold text-gray-700 mb-3">Hotel Information</h4>
-                <p><span class="font-medium">Hotel Name:</span> ${booking.hotel_name}</p>
-                <p><span class="font-medium">Location:</span> ${booking.location.charAt(0).toUpperCase() + booking.location.slice(1)}</p>
-                <p><span class="font-medium">Room ID:</span> ${booking.room_id}</p>
-                <p><span class="font-medium">Price per Night:</span> PKR ${parseInt(booking.price_per_night || 0).toLocaleString()}</p>
-                <p><span class="font-medium">Check-in Date:</span> ${new Date(booking.check_in_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                <p><span class="font-medium">Check-out Date:</span> ${new Date(booking.check_out_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                <p><span class="font-medium">Number of Nights:</span> ${booking.nights_count}</p>
+                <h4 class="font-semibold text-gray-700 mb-3">Trip Details</h4>
+                <p><span class="font-medium">Pickup Date:</span> ${new Date(booking.pickup_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p><span class="font-medium">Pickup Time:</span> ${new Date('1970-01-01T' + (booking.pickup_time || '00:00:00')).toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })}</p>
+                <p><span class="font-medium">Pickup Location:</span> ${booking.pickup_location || 'N/A'}</p>
+                <p><span class="font-medium">Additional Notes:</span> ${booking.additional_notes || 'None'}</p>
+                <p><span class="font-medium">Created:</span> ${new Date(booking.created_at).toLocaleString()}</p>
               </div>
             </div>
           `;

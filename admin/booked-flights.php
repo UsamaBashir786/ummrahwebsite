@@ -110,21 +110,31 @@ if (!empty($filters['date_to'])) {
 
 $sql .= " ORDER BY fb.created_at DESC";
 
+// Log the query for debugging
+error_log("Bookings Query: " . $sql);
+
 // Prepare and execute query
 $stmt = $conn->prepare($sql);
-if (!empty($params)) {
-  $stmt->bind_param($types, ...$params);
-}
-$stmt->execute();
-$result = $stmt->get_result();
-
-// Fetch all bookings
-if ($result) {
-  while ($row = $result->fetch_assoc()) {
-    $bookings[] = $row;
+if ($stmt === false) {
+  error_log("Prepare failed: " . $conn->error);
+  $message = "Database error occurred. Please try again later.";
+  $message_type = "error";
+} else {
+  if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
   }
+  if (!$stmt->execute()) {
+    error_log("Execute failed: " . $stmt->error);
+    $message = "Database error occurred. Please try again later.";
+    $message_type = "error";
+  } else {
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+      $bookings[] = $row;
+    }
+  }
+  $stmt->close();
 }
-$stmt->close();
 
 // Get booking statistics
 $stats = [
@@ -138,20 +148,30 @@ $stats = [
   'potential_revenue' => 0
 ];
 
-$result = $conn->query("SELECT 
-                          COUNT(*) as total,
-                          SUM(CASE WHEN booking_status = 'pending' THEN 1 ELSE 0 END) as pending,
-                          SUM(CASE WHEN booking_status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
-                          SUM(CASE WHEN booking_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
-                          SUM(CASE WHEN payment_status = 'completed' THEN 1 ELSE 0 END) as completed_payments,
-                          SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as pending_payments,
-                          SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END) as total_revenue,
-                          SUM(CASE WHEN booking_status != 'cancelled' THEN total_price ELSE 0 END) as potential_revenue
-                        FROM flight_bookings");
+$stats_query = "SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN booking_status = 'pending' THEN 1 ELSE 0 END) as pending,
+                    SUM(CASE WHEN booking_status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
+                    SUM(CASE WHEN booking_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+                    SUM(CASE WHEN payment_status = 'completed' THEN 1 ELSE 0 END) as completed_payments,
+                    SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as pending_payments,
+                    COALESCE(SUM(CASE WHEN payment_status = 'completed' THEN total_price ELSE 0 END), 0) as total_revenue,
+                    COALESCE(SUM(CASE WHEN booking_status != 'cancelled' THEN total_price ELSE 0 END), 0) as potential_revenue
+                FROM flight_bookings";
+
+// Log the stats query for debugging
+error_log("Stats Query: " . $stats_query);
+
+$result = $conn->query($stats_query);
 if ($result) {
   $stats = $result->fetch_assoc();
+} else {
+  error_log("Stats query failed: " . $conn->error);
+  $message = "Error fetching statistics: " . $conn->error;
+  $message_type = "error";
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -323,7 +343,7 @@ if ($result) {
         </div>
         <div>
           <h3 class="text-gray-500 text-sm font-medium">Total Revenue</h3>
-          <p class="text-2xl font-bold text-gray-800">PKR <?php echo number_format($stats['total_revenue'], 0); ?></p>
+          <p class="text-2xl font-bold text-gray-800">PKR <?php echo number_format($stats['total_revenue'] ?? 0, 0); ?></p>
         </div>
       </div>
     </div>
@@ -431,7 +451,7 @@ if ($result) {
                     <div>Adults: <?php echo $booking['adult_count']; ?></div>
                     <div>Children: <?php echo $booking['children_count']; ?></div>
                   </td>
-                  <td class="font-medium">PKR <?php echo number_format($booking['total_price'], 0); ?></td>
+                  <td class="font-medium">PKR <?php echo number_format($booking['total_price'] ?? 0, 0); ?></td>
                   <td>
                     <span class="status-badge <?php echo 'status-' . $booking['booking_status']; ?>">
                       <?php echo ucfirst($booking['booking_status']); ?>
@@ -538,13 +558,13 @@ if ($result) {
                 <p><span class="font-medium">Booking Date:</span> ${new Date(booking.created_at).toLocaleDateString()}</p>
                 <p><span class="font-medium">Booking Status:</span> <span class="status-badge status-${booking.booking_status}">${booking.booking_status.charAt(0).toUpperCase() + booking.booking_status.slice(1)}</span></p>
                 <p><span class="font-medium">Payment Status:</span> <span class="status-badge payment-${booking.payment_status}">${booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}</span></p>
-                <p><span class="font-medium">Total Price:</span> PKR ${parseInt(booking.total_price).toLocaleString()}</p>
+                <p><span class="font-medium">Total Price:</span> PKR ${parseInt(booking.total_price || 0).toLocaleString()}</p>
               </div>
               <div>
                 <h4 class="font-semibold text-gray-700 mb-3">Passenger Information</h4>
                 <p><span class="font-medium">Name:</span> ${booking.passenger_name}</p>
                 <p><span class="font-medium">Email:</span> ${booking.passenger_email}</p>
-                <p><span class="font-medium">Phone:</span> ${booking.passenger_phone}</p>
+                <p><span class="font-medium">Phone:</span> ${booking.passenger_phone || 'N/A'}</p>
                 <p><span class="font-medium">Adults:</span> ${booking.adult_count}</p>
                 <p><span class="font-medium">Children:</span> ${booking.children_count}</p>
               </div>
