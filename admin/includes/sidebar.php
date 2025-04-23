@@ -118,13 +118,6 @@
         </div>
       </li>
 
-      <!-- Assignments Dropdown -->
-      <li>
-        <a href="assign-services.php" class="flex items-center space-x-3 text-gray-700 hover:bg-blue-100 rounded-lg p-2">
-          <i class="fas fa-users"></i> <span>Assignments</span>
-        </a>
-      </li>
-
       <!-- Users -->
       <li>
         <a href="users.php" class="flex items-center2 space-x-3 text-gray-700 hover:bg-blue-100 rounded-lg p-2">
