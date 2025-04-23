@@ -141,7 +141,10 @@ body {
   color: #2c3e50;
   margin-bottom: 40px;
 }
-.bg-green-600{
+.bg-green-600, .bg-blue-100, .bg-blue-500,.bg-blue-600,.bg-blue-700{
+  background-color: #17a2b8 !important;
+}
+.bg-blue-500{
   background-color: #17a2b8 !important;
 }
 .bg-green-700{
@@ -150,7 +153,7 @@ body {
 .text-green-600{
   color: #17a2b8 !important;
 }
-.text-green-500{
+.text-green-500, .text-blue-500{
   color: #17a2b8 !important;
 }
 .section-subtitle {
@@ -750,17 +753,7 @@ body {
   box-shadow: 0 0 5px rgba(23, 162, 184, 0.3);
 }
 
-.transport-card {
-  background-color: white;
-  border: none;
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+
 
 .transport-info {
   display: flex;

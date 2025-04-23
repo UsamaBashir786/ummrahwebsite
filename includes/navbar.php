@@ -21,7 +21,7 @@ if (session_status() == PHP_SESSION_NONE) {
           <a href="packages.php" class="text-gray-700 hover:text-teal-500 px-3 py-2 rounded-md text-sm font-medium">Packages</a>
           <a href="about-us.php" class="text-gray-700 hover:text-teal-500 px-3 py-2 rounded-md text-sm font-medium">About Us</a>
 
-          <!-- Dropdown -->
+          <!-- Dropdown - FIXED -->
           <div class="relative group">
             <button class="text-gray-700 group-hover:text-teal-500 px-3 py-2 rounded-md text-sm font-medium inline-flex items-center">
               <span>More</span>
@@ -29,11 +29,15 @@ if (session_status() == PHP_SESSION_NONE) {
                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
               </svg>
             </button>
-            <div class="absolute right-0 w-48 mt-2 origin-top-right bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-150 ease-in-out z-10">
-              <div class="py-1">
-                <a href="transportation.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Transportation</a>
-                <a href="flights.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Flights</a>
-                <a href="hotels.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Hotels</a>
+            <!-- Added padding-top to create a buffer zone between button and menu -->
+            <div class="absolute right-0 w-48 pt-2 origin-top-right z-10">
+              <!-- This is the actual dropdown menu content -->
+              <div class="bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition duration-150 ease-in-out">
+                <div class="py-1">
+                  <a href="transportation.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Transportation</a>
+                  <a href="flights.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Flights</a>
+                  <a href="hotels.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Hotels</a>
+                </div>
               </div>
             </div>
           </div>
@@ -69,8 +73,8 @@ if (session_status() == PHP_SESSION_NONE) {
       <a href="about-us.php" class="text-gray-700 hover:text-teal-500 block px-3 py-2 rounded-md text-base font-medium">About Us</a>
 
       <!-- Mobile dropdown -->
-      <div x-data="{ open: false }" class="relative">
-        <button @click="open = !open" class="text-gray-700 hover:text-teal-500 block px-3 py-2 rounded-md text-base font-medium w-full text-left">
+      <div class="relative">
+        <button id="mobileMoreBtn" class="text-gray-700 hover:text-teal-500 block px-3 py-2 rounded-md text-base font-medium w-full text-left">
           <div class="flex justify-between items-center">
             <span>More</span>
             <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -78,7 +82,7 @@ if (session_status() == PHP_SESSION_NONE) {
             </svg>
           </div>
         </button>
-        <div x-show="open" @click.away="open = false" class="px-2 py-2 mobile-submenu hidden">
+        <div id="mobileSubmenu" class="px-2 py-2 hidden">
           <a href="transportation.php" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-teal-500 hover:bg-gray-50 rounded-md">Transportation</a>
           <a href="flights.php" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-teal-500 hover:bg-gray-50 rounded-md">Flights</a>
           <a href="hotels.php" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-teal-500 hover:bg-gray-50 rounded-md">Hotels</a>
@@ -102,10 +106,8 @@ if (session_status() == PHP_SESSION_NONE) {
     document.getElementById('mobile-menu').classList.toggle('hidden');
   });
 
-  // Mobile submenu toggles
-  document.querySelectorAll('.mobile-submenu').forEach(submenu => {
-    submenu.previousElementSibling.addEventListener('click', function() {
-      submenu.classList.toggle('hidden');
-    });
+  // Mobile submenu toggle - fixed to use the proper IDs
+  document.getElementById('mobileMoreBtn').addEventListener('click', function() {
+    document.getElementById('mobileSubmenu').classList.toggle('hidden');
   });
-</script> 
+</script>
