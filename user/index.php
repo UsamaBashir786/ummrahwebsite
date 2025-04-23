@@ -86,7 +86,7 @@ if (isset($_POST['cancel_booking'])) {
     $stmt->bind_param("ii", $booking_id, $user_id);
     $stmt->execute();
     $stmt->close();
-    header("Location: user.index.php");
+    header("Location: index.php");
     exit();
   }
 }
@@ -117,7 +117,7 @@ if (isset($_POST['update_profile'])) {
   $stmt->bind_param("sssssi", $full_name, $email, $phone, $dob, $profile_image, $user_id);
   $stmt->execute();
   $stmt->close();
-  header("Location: user.index.php");
+  header("Location: index.php");
   exit();
 }
 ?>
