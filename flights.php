@@ -11,6 +11,7 @@ $is_round_trip = false;
 
 // Fetch available flight dates for calendar highlights
 $available_dates = ['departure' => [], 'return' => []];
+$departure_to_return = [];
 
 // Fetch one-way and round-trip departure dates for the departure calendar
 $sql_departure = "SELECT DISTINCT departure_date FROM flights WHERE has_return = 0 
@@ -162,14 +163,14 @@ $cabin_classes = ['economy', 'business', 'first_class'];
     }
   </script>
   <style>
-    /* .flatpickr-day.available-flight {
+    .flatpickr-day.available-flight {
       background-color: #bbf7d0 !important;
       border-color: #bbf7d0 !important;
     }
 
     .flatpickr-day.available-flight:hover {
       background-color: #86efac !important;
-    } */
+    }
 
     .tooltip {
       position: relative;
@@ -299,6 +300,7 @@ $cabin_classes = ['economy', 'business', 'first_class'];
 
           <!-- Return Date -->
           <div class="city-input date-picker-container <?php echo !$is_round_trip ? 'hidden' : ''; ?>" id="return-date-container">
+
             <label for="return_date" class="block text-sm font-medium text-white mb-1">Return Date</label>
             <div class="relative">
               <i class="fas fa-calendar-check absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
@@ -774,6 +776,7 @@ $cabin_classes = ['economy', 'business', 'first_class'];
       return flatpickr("#departure_date", {
         dateFormat: "Y-m-d",
         minDate: "today",
+        allowInput: false, // Prevent manual input
         onDayCreate: function(dObj, dStr, fp, dayElem) {
           const date = dayElem.dateObj.toISOString().split('T')[0];
           if (availableDates.departure.includes(date)) {
@@ -799,6 +802,7 @@ $cabin_classes = ['economy', 'business', 'first_class'];
       return flatpickr("#return_date", {
         dateFormat: "Y-m-d",
         minDate: "today",
+        allowInput: false, // Prevent manual input
         enable: [],
         onDayCreate: function(dObj, dStr, fp, dayElem) {
           const date = dayElem.dateObj.toISOString().split('T')[0];
@@ -878,23 +882,27 @@ $cabin_classes = ['economy', 'business', 'first_class'];
       if (element) element.addEventListener('change', validateForm);
     });
 
-    // Handle view details buttons
-    const viewDetailsButtons = document.querySelectorAll('.view-details-btn');
-    viewDetailsButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        const flightId = this.getAttribute('data-flight-id');
+    // Use event delegation for view-details buttons
+    document.getElementById('search-results').addEventListener('click', function(e) {
+      const button = e.target.closest('.view-details-btn');
+      if (button) {
+        const flightId = button.getAttribute('data-flight-id');
         const detailsDiv = document.getElementById('details-' + flightId);
         const icon = document.querySelector('.details-icon-' + flightId);
-        if (detailsDiv.classList.contains('hidden')) {
-          detailsDiv.classList.remove('hidden');
-          icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
-          this.classList.replace('bg-primary', 'bg-green-700');
+        if (detailsDiv && icon) {
+          if (detailsDiv.classList.contains('hidden')) {
+            detailsDiv.classList.remove('hidden');
+            icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            button.classList.replace('bg-primary', 'bg-green-700');
+          } else {
+            detailsDiv.classList.add('hidden');
+            icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            button.classList.replace('bg-green-700', 'bg-primary');
+          }
         } else {
-          detailsDiv.classList.add('hidden');
-          icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-          this.classList.replace('bg-green-700', 'bg-primary');
+          console.error('Details div or icon not found for flight ID:', flightId);
         }
-      });
+      }
     });
 
     // Handle tabs
