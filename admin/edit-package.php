@@ -199,7 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="dropdown">
             <button class="btn dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
               <div class="rounded-circle overflow-hidden me-2" style="width: 32px; height: 32px;">
-                <img src="../assets/img/admin.jpg" alt="Admin User" class="img-fluid">
+                <!-- <img src="../assets/img/admin.jpg" alt="Admin User" class="img-fluid"> -->
               </div>
               <span class="d-none d-md-inline">Admin User</span>
             </button>

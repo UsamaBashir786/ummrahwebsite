@@ -290,7 +290,7 @@ if ($result) {
         </div>
         <div class="relative">
           <button id="userDropdown" class="flex items-center text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="User menu" aria-expanded="false">
-            <img src="../assets/img/admin.jpg" alt="Admin User" class="w-8 h-8 rounded-full mr-2">
+            <!-- <img src="../assets/img/admin.jpg" alt="Admin User" class="w-8 h-8 rounded-full mr-2"> -->
             <span class="hidden md:inline text-gray-800">Admin User</span>
             <i class="fas fa-chevron-down ml-1"></i>
           </button>
@@ -520,7 +520,7 @@ if ($result) {
   <!-- Custom JavaScript -->
   <script src="assets/js/index.js"></script>
   <script>
-    // Suppress DataTables alerts (temporary workaround)
+    // Suppress DataTables alerts
     $.fn.dataTable.ext.errMode = 'none';
 
     $('#packagesTable').on('error.dt', function(e, settings, techNote, message) {
@@ -584,6 +584,68 @@ if ($result) {
       });
     });
 
+    // Modal Handling
+    const modal = document.getElementById('detailsModal');
+    const closeModal = document.getElementById('closeModal');
+    const modalContent = document.getElementById('modalContent');
+
+    // Use event delegation for view-details buttons
+    document.querySelector('#packagesTable').addEventListener('click', function(e) {
+      const button = e.target.closest('.view-details');
+      if (button) {
+        const id = button.getAttribute('data-id');
+        const packages = <?php echo json_encode($packages); ?>;
+        if (!packages || !Array.isArray(packages)) {
+          console.error('Packages array is invalid:', packages);
+          return;
+        }
+        const package = packages.find(p => p.id == parseInt(id));
+        if (package) {
+          let inclusions = [];
+          try {
+            inclusions = JSON.parse(package.inclusions || '[]').map(i => i.charAt(0).toUpperCase() + i.slice(1));
+          } catch (error) {
+            console.error('Error parsing inclusions:', error);
+            inclusions = [];
+          }
+          modalContent.innerHTML = `
+            <img src="../${package.package_image || 'assets/img/default-package.jpg'}" alt="${package.title || 'Package'}" class="w-full h-48 object-cover rounded-md mb-4">
+            <p><strong>Title:</strong> ${package.title || 'N/A'}</p>
+            <p><strong>Type:</strong> ${(package.package_type || '').charAt(0).toUpperCase() + (package.package_type || '').slice(1) || 'N/A'}</p>
+            <p><strong>Flight Class:</strong> ${(package.flight_class || '').charAt(0).toUpperCase() + (package.flight_class || '').slice(1) || 'N/A'}</p>
+            <p><strong>Inclusions:</strong> ${inclusions.length ? inclusions.join(', ') : 'None'}</p>
+            <p><strong>Price (PKR):</strong> ${Number(package.price || 0).toFixed(2)}</p>
+            <p><strong>Created At:</strong> ${package.created_at ? new Date(package.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</p>
+          `;
+          modal.classList.remove('modal-hidden');
+          modal.classList.add('modal-visible');
+          console.log('Modal opened:', modal.classList);
+          modal.focus();
+        } else {
+          console.error('Package not found for ID:', id);
+        }
+      }
+    });
+
+    closeModal.addEventListener('click', function() {
+      modal.classList.add('modal-hidden');
+      modal.classList.remove('modal-visible');
+    });
+
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        modal.classList.add('modal-hidden');
+        modal.classList.remove('modal-visible');
+      }
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.classList.contains('modal-visible')) {
+        modal.classList.add('modal-hidden');
+        modal.classList.remove('modal-visible');
+      }
+    });
+
     // User Dropdown Toggle
     document.getElementById('userDropdown').addEventListener('click', function() {
       const menu = document.getElementById('userDropdownMenu');
@@ -618,52 +680,6 @@ if ($result) {
       const checked = document.querySelectorAll('.package-checkbox:checked').length;
       document.getElementById('bulkDeleteBtn').classList.toggle('hidden', checked === 0);
     }
-
-    // Modal Handling
-    const modal = document.getElementById('detailsModal');
-    const closeModal = document.getElementById('closeModal');
-    const modalContent = document.getElementById('modalContent');
-
-    document.querySelectorAll('.view-details').forEach(button => {
-      button.addEventListener('click', function() {
-        const id = this.getAttribute('data-id');
-        const package = <?php echo json_encode($packages); ?>.find(p => p.id == id);
-        if (package) {
-          const inclusions = JSON.parse(package.inclusions || '[]').map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(', ');
-          modalContent.innerHTML = `
-            <img src="../${package.package_image || 'assets/img/default-package.jpg'}" alt="${package.title}" class="w-full h-48 object-cover rounded-md mb-4">
-            <p><strong>Title:</strong> ${package.title}</p>
-            <p><strong>Type:</strong> ${package.package_type.charAt(0).toUpperCase() + package.package_type.slice(1)}</p>
-            <p><strong>Flight Class:</strong> ${package.flight_class.charAt(0).toUpperCase() + package.flight_class.slice(1)}</p>
-            <p><strong>Inclusions:</strong> ${inclusions || 'None'}</p>
-            <p><strong>Price (PKR):</strong> ${Number(package.price).toFixed(2)}</p>
-            <p><strong>Created At:</strong> ${new Date(package.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-          `;
-          modal.classList.remove('modal-hidden');
-          modal.classList.add('modal-visible');
-          modal.focus();
-        }
-      });
-    });
-
-    closeModal.addEventListener('click', function() {
-      modal.classList.add('modal-hidden');
-      modal.classList.remove('modal-visible');
-    });
-
-    modal.addEventListener('click', function(e) {
-      if (e.target === modal) {
-        modal.classList.add('modal-hidden');
-        modal.classList.remove('modal-visible');
-      }
-    });
-
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && modal.classList.contains('modal-visible')) {
-        modal.classList.add('modal-hidden');
-        modal.classList.remove('modal-visible');
-      }
-    });
 
     // Chart.js Initialization
     const typeChart = new Chart(document.getElementById('typeChart'), {

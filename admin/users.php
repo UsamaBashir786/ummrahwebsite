@@ -256,7 +256,7 @@ $stmt->close();
       <div class="flex items-center space-x-4">
         <div class="relative">
           <button id="userDropdown" class="flex items-center text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="User menu" aria-expanded="false">
-            <img src="../assets/img/admin.jpg" alt="Admin User" class="w-8 h-8 rounded-full mr-2">
+            <!-- <img src="../assets/img/admin.jpg" alt="Admin User" class="w-8 h-8 rounded-full mr-2"> -->
             <span class="hidden md:inline text-gray-800">Admin User</span>
             <i class="fas fa-chevron-down ml-1"></i>
           </button>
