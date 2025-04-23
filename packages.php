@@ -99,7 +99,7 @@ function getFlightClassColor($class)
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <?php include 'includes/css-links.php' ?>
   <style>
-    body{
+    body {
       margin-top: 65px !important;
     }
   </style>
@@ -127,11 +127,24 @@ function getFlightClassColor($class)
     </div>
   </section>
 
+  <?php
+  // Form section with clear filters button added - this replaces the existing filter form section
+  ?>
   <!-- Packages Filter Section -->
   <section class="py-8">
     <div class="container mx-auto px-4 max-w-6xl">
       <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">Filter Packages</h3>
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-800">Filter Packages</h3>
+          <?php if ($filter_type || $filter_class || $filter_price_min > 0 || $filter_price_max > 0): ?>
+            <a href="packages.php" class="text-gray-600 hover:text-green-600 flex items-center text-sm transition duration-300">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear Filters
+            </a>
+          <?php endif; ?>
+        </div>
         <form action="" method="GET" class="filter-form">
           <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div class="md:col-span-3">
@@ -170,7 +183,6 @@ function getFlightClassColor($class)
       </div>
     </div>
   </section>
-
   <!-- Packages List Section -->
   <section class="pb-12">
     <div class="container mx-auto px-4 max-w-6xl">
