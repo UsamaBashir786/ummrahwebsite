@@ -90,101 +90,89 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html lang="en">
 
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - UmrahFlights</title>
+  <!-- Include Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <?php include 'includes/css-links.php' ?>
-  <link rel="stylesheet" href="assets/css/style.css">
-  <style>
-    body {
-      background-color: #f8f9fa;
-      justify-content: center;
-      align-items: center;
-      margin: 0;
-    }
-
-    .error {
-      color: red;
-      margin-bottom: 10px;
-    }
-
-    .success {
-      color: green;
-      margin-bottom: 10px;
-    }
-
-    .register-container {
-      max-width: 500px;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn-register {
-      background-color: #4e73df;
-      color: white;
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 5px;
-      font-weight: bold;
-    }
-
-    .btn-register:hover {
-      background-color: #2e59d9;
-    }
-
-    .login-link {
-      text-align: center;
-      margin-top: 15px;
-    }
-    body{
-      margin-top: 100px !important;
-    }
-  </style>
 </head>
 
-<body>
+<body class="bg-gray-50 pt-24">
   <!-- Navbar -->
   <?php include 'includes/navbar.php'; ?>
 
-  <div class="register-container my-5 m-auto">
-    <h2 class="text-center mb-4">Register with UmrahFlights</h2>
+  <div class="max-w-xl mx-auto my-10 bg-white p-8 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Register with UmrahFlights</h2>
 
     <?php if (!empty($errors)): ?>
-      <div class="alert alert-danger">
+      <div class="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
         <?php foreach ($errors as $error): ?>
-          <p class="mb-1"><?php echo $error; ?></p>
+          <p class="text-sm mb-1"><?php echo $error; ?></p>
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
 
     <form method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>" enctype="multipart/form-data">
-      <div class="mb-3">
-        <label for="fullName" class="form-label">Full Name</label>
-        <input type="text" class="form-control" id="fullName" name="fullName"
-          placeholder="Enter your full name" value="<?php echo isset($fullName) ? htmlspecialchars($fullName) : ''; ?>" required>
+      <div class="mb-4">
+        <label for="fullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+        <input type="text" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+               id="fullName" 
+               name="fullName" 
+               placeholder="Enter your full name" 
+               value="<?php echo isset($fullName) ? htmlspecialchars($fullName) : ''; ?>" 
+               required>
       </div>
-      <div class="mb-3">
-        <label for="email" class="form-label">Email Address</label>
-        <input type="email" class="form-control" id="email" name="email"
-          placeholder="Enter your email" value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>" required>
+      
+      <div class="mb-4">
+        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+        <input type="email" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+               id="email" 
+               name="email" 
+               placeholder="Enter your email" 
+               value="<?php echo isset($email) ? htmlspecialchars($email) : ''; ?>" 
+               required>
       </div>
-      <div class="mb-3">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="password" name="password"
-          placeholder="Enter your password" required>
+      
+      <div class="mb-4">
+        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <input type="password" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+               id="password" 
+               name="password" 
+               placeholder="Enter your password (min. 6 characters)" 
+               required>
       </div>
-      <div class="mb-3">
-        <label for="dob" class="form-label">Date of Birth</label>
-        <input type="date" class="form-control" id="dob" name="dob"
-          value="<?php echo isset($dob) ? htmlspecialchars($dob) : ''; ?>" required>
+      
+      <div class="mb-4">
+        <label for="dob" class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+        <input type="date" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+               id="dob" 
+               name="dob" 
+               value="<?php echo isset($dob) ? htmlspecialchars($dob) : ''; ?>" 
+               required>
       </div>
-      <div class="mb-3">
-        <label for="profileImage" class="form-label">Profile Image</label>
-        <input type="file" class="form-control" id="profileImage" name="profileImage" accept="image/*">
+      
+      <div class="mb-6">
+        <label for="profileImage" class="block text-sm font-medium text-gray-700 mb-1">Profile Image</label>
+        <input type="file" 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+               id="profileImage" 
+               name="profileImage" 
+               accept="image/*">
+        <p class="mt-1 text-xs text-gray-500">Upload a profile picture (JPG, JPEG, PNG, GIF)</p>
       </div>
-      <button type="submit" class="btn btn-primary btn-register">Register</button>
-      <div class="login-link">
-        <p>Already have an account? <a href="login.php">Login here</a></p>
+      
+      <button type="submit" 
+              class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-300 ease-in-out">
+        Register
+      </button>
+      
+      <div class="mt-4 text-center text-gray-600">
+        <p>Already have an account? <a href="login.php" class="text-green-600 hover:text-green-800 font-medium">Login here</a></p>
       </div>
     </form>
   </div>

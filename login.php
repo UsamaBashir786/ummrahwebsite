@@ -53,41 +53,56 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html lang="en">
 
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Umrah Journey</title>
+  <!-- Include Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <?php include 'includes/css-links.php'; ?>
-  <link rel="stylesheet" href="assets/css/style.css">
-  <style>
-    body{
-      margin-top: 100px !important;
-    }
-  </style>
 </head>
 
-<body>
+<body class="bg-gray-50 pt-24">
   <?php include 'includes/navbar.php'; ?>
 
-  <div class="login-container my-5 m-auto">
-    <h2>Login</h2>
+  <div class="max-w-md mx-auto my-10 bg-white p-8 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Login</h2>
 
     <?php if (!empty($errors)): ?>
-      <div class="error">
+      <div class="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
         <?php foreach ($errors as $error): ?>
-          <p><?php echo $error; ?></p>
+          <p class="text-sm"><?php echo $error; ?></p>
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
 
     <form method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>">
-      <div class="mb-3">
-        <label for="email" class="form-label">Email Address</label>
-        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+      <div class="mb-4">
+        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+        <input type="email"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          id="email"
+          name="email"
+          placeholder="Enter your email"
+          required>
       </div>
-      <div class="mb-3">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+
+      <div class="mb-6">
+        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <input type="password"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          id="password"
+          name="password"
+          placeholder="Enter your password"
+          required>
       </div>
-      <button type="submit" class="btn-login">Login</button>
-      <div class="register-link">
-        <p>Don't have an account? <a href="register.php">Register here</a></p>
+
+      <button type="submit"
+        class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-300 ease-in-out">
+        Login
+      </button>
+
+      <div class="mt-4 text-center text-gray-600">
+        <p>Don't have an account? <a href="register.php" class="text-green-600 hover:text-green-800 font-medium">Register here</a></p>
       </div>
     </form>
   </div>

@@ -141,7 +141,18 @@ body {
   color: #2c3e50;
   margin-bottom: 40px;
 }
-
+.bg-green-600{
+  background-color: #17a2b8 !important;
+}
+.bg-green-700{
+  background-color: #096574 !important;
+}
+.text-green-600{
+  color: #17a2b8 !important;
+}
+.text-green-500{
+  color: #17a2b8 !important;
+}
 .section-subtitle {
   color: #17a2b8;
   font-size: 1.2rem;
