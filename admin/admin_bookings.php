@@ -16,6 +16,7 @@ $bookings = [];
 $search_term = isset($_GET['search']) ? trim($_GET['search']) : '';
 $date_filter = isset($_GET['date_filter']) ? $_GET['date_filter'] : '';
 $status_filter = isset($_GET['status_filter']) ? $_GET['status_filter'] : '';
+$assignment_filter = isset($_GET['assignment_filter']) ? $_GET['assignment_filter'] : ''; // New filter
 $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $per_page = 10;
 $offset = ($current_page - 1) * $per_page;
@@ -75,6 +76,29 @@ if (!empty($status_filter)) {
   $count_query .= " AND b.booking_status = ?";
   $params[] = $status_filter;
   $types .= "s";
+}
+
+// Apply assignment filter
+if (!empty($assignment_filter)) {
+  if ($assignment_filter === 'fully_assigned') {
+    $query .= " AND EXISTS (SELECT 1 FROM hotel_bookings hb WHERE hb.user_id = b.user_id)
+                AND EXISTS (SELECT 1 FROM flight_bookings fb WHERE fb.user_id = b.user_id)
+                AND EXISTS (SELECT 1 FROM transportation_bookings tb WHERE tb.user_id = b.user_id)";
+    $count_query .= " AND EXISTS (SELECT 1 FROM hotel_bookings hb WHERE hb.user_id = b.user_id)
+                      AND EXISTS (SELECT 1 FROM flight_bookings fb WHERE fb.user_id = b.user_id)
+                      AND EXISTS (SELECT 1 FROM transportation_bookings tb WHERE tb.user_id = b.user_id)";
+  } elseif ($assignment_filter === 'not_fully_assigned') {
+    $query .= " AND (
+                  NOT EXISTS (SELECT 1 FROM hotel_bookings hb WHERE hb.user_id = b.user_id)
+                  OR NOT EXISTS (SELECT 1 FROM flight_bookings fb WHERE fb.user_id = b.user_id)
+                  OR NOT EXISTS (SELECT 1 FROM transportation_bookings tb WHERE tb.user_id = b.user_id)
+                )";
+    $count_query .= " AND (
+                        NOT EXISTS (SELECT 1 FROM hotel_bookings hb WHERE hb.user_id = b.user_id)
+                        OR NOT EXISTS (SELECT 1 FROM flight_bookings fb WHERE fb.user_id = b.user_id)
+                        OR NOT EXISTS (SELECT 1 FROM transportation_bookings tb WHERE tb.user_id = b.user_id)
+                      )";
+  }
 }
 
 // Order by most recent
@@ -193,7 +217,7 @@ $stmt->close();
 <body class="bg-gray-100 min-h-screen">
   <?php include 'includes/sidebar.php'; ?>
 
-  <div class="ml-0 md:ml-64 p-6">
+  <div class="ml-0 mt-10 p-6">
     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-gray-800">
@@ -206,7 +230,7 @@ $stmt->close();
 
       <!-- Filters and Search -->
       <div class="mb-6">
-        <form action="" method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <form action="" method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($search_term); ?>" placeholder="ID, Name or Email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
@@ -228,6 +252,14 @@ $stmt->close();
               <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>Pending</option>
               <option value="confirmed" <?php echo $status_filter === 'confirmed' ? 'selected' : ''; ?>>Confirmed</option>
               <option value="cancelled" <?php echo $status_filter === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
+            </select>
+          </div>
+          <div>
+            <label for="assignment_filter" class="block text-sm font-medium text-gray-700 mb-1">Assignment Status</label>
+            <select id="assignment_filter" name="assignment_filter" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+              <option value="">All Assignments</option>
+              <option value="fully_assigned" <?php echo $assignment_filter === 'fully_assigned' ? 'selected' : ''; ?>>Fully Assigned</option>
+              <option value="not_fully_assigned" <?php echo $assignment_filter === 'not_fully_assigned' ? 'selected' : ''; ?>>Not Fully Assigned</option>
             </select>
           </div>
           <div class="flex items-end">
@@ -376,7 +408,7 @@ $stmt->close();
           </div>
           <div class="flex space-x-2">
             <?php if ($current_page > 1): ?>
-              <a href="?page=<?php echo $current_page - 1; ?><?php echo !empty($search_term) ? '&search=' . urlencode($search_term) : ''; ?><?php echo !empty($date_filter) ? '&date_filter=' . urlencode($date_filter) : ''; ?><?php echo !empty($status_filter) ? '&status_filter=' . urlencode($status_filter) : ''; ?>" class="btn-secondary py-1 px-3">
+              <a href="?page=<?php echo $current_page - 1; ?><?php echo !empty($search_term) ? '&search=' . urlencode($search_term) : ''; ?><?php echo !empty($date_filter) ? '&date_filter=' . urlencode($date_filter) : ''; ?><?php echo !empty($status_filter) ? '&status_filter=' . urlencode($status_filter) : ''; ?><?php echo !empty($assignment_filter) ? '&assignment_filter=' . urlencode($assignment_filter) : ''; ?>" class="btn-secondary py-1 px-3">
                 <i class="fas fa-chevron-left mr-1"></i> Previous
               </a>
             <?php endif; ?>
@@ -386,7 +418,7 @@ $stmt->close();
             $end_page = min($total_pages, $current_page + 2);
 
             if ($start_page > 1) {
-              echo '<a href="?page=1' . (!empty($search_term) ? '&search=' . urlencode($search_term) : '') . (!empty($date_filter) ? '&date_filter=' . urlencode($date_filter) : '') . (!empty($status_filter) ? '&status_filter=' . urlencode($status_filter) : '') . '" class="btn-secondary py-1 px-3">1</a>';
+              echo '<a href="?page=1' . (!empty($search_term) ? '&search=' . urlencode($search_term) : '') . (!empty($date_filter) ? '&date_filter=' . urlencode($date_filter) : '') . (!empty($status_filter) ? '&status_filter=' . urlencode($status_filter) : '') . (!empty($assignment_filter) ? '&assignment_filter=' . urlencode($assignment_filter) : '') . '" class="btn-secondary py-1 px-3">1</a>';
               if ($start_page > 2) {
                 echo '<span class="px-2">...</span>';
               }
@@ -394,19 +426,19 @@ $stmt->close();
 
             for ($i = $start_page; $i <= $end_page; $i++) {
               $active_class = $i === $current_page ? 'bg-blue-500 text-white' : '';
-              echo '<a href="?page=' . $i . (!empty($search_term) ? '&search=' . urlencode($search_term) : '') . (!empty($date_filter) ? '&date_filter=' . urlencode($date_filter) : '') . (!empty($status_filter) ? '&status_filter=' . urlencode($status_filter) : '') . '" class="btn-secondary py-1 px-3 ' . $active_class . '">' . $i . '</a>';
+              echo '<a href="?page=' . $i . (!empty($search_term) ? '&search=' . urlencode($search_term) : '') . (!empty($date_filter) ? '&date_filter=' . urlencode($date_filter) : '') . (!empty($status_filter) ? '&status_filter=' . urlencode($status_filter) : '') . (!empty($assignment_filter) ? '&assignment_filter=' . urlencode($assignment_filter) : '') . '" class="btn-secondary py-1 px-3 ' . $active_class . '">' . $i . '</a>';
             }
 
             if ($end_page < $total_pages) {
               if ($end_page < $total_pages - 1) {
                 echo '<span class="px-2">...</span>';
               }
-              echo '<a href="?page=' . $total_pages . (!empty($search_term) ? '&search=' . urlencode($search_term) : '') . (!empty($date_filter) ? '&date_filter=' . urlencode($date_filter) : '') . (!empty($status_filter) ? '&status_filter=' . urlencode($status_filter) : '') . '" class="btn-secondary py-1 px-3">' . $total_pages . '</a>';
+              echo '<a href="?page=' . $total_pages . (!empty($search_term) ? '&search=' . urlencode($search_term) : '') . (!empty($date_filter) ? '&date_filter=' . urlencode($date_filter) : '') . (!empty($status_filter) ? '&status_filter=' . urlencode($status_filter) : '') . (!empty($assignment_filter) ? '&assignment_filter=' . urlencode($assignment_filter) : '') . '" class="btn-secondary py-1 px-3">' . $total_pages . '</a>';
             }
             ?>
 
             <?php if ($current_page < $total_pages): ?>
-              <a href="?page=<?php echo $current_page + 1; ?><?php echo !empty($search_term) ? '&search=' . urlencode($search_term) : ''; ?><?php echo !empty($date_filter) ? '&date_filter=' . urlencode($date_filter) : ''; ?><?php echo !empty($status_filter) ? '&status_filter=' . urlencode($status_filter) : ''; ?>" class="btn-secondary py-1 px-3">
+              <a href="?page=<?php echo $current_page + 1; ?><?php echo !empty($search_term) ? '&search=' . urlencode($search_term) : ''; ?><?php echo !empty($date_filter) ? '&date_filter=' . urlencode($date_filter) : ''; ?><?php echo !empty($status_filter) ? '&status_filter=' . urlencode($status_filter) : ''; ?><?php echo !empty($assignment_filter) ? '&assignment_filter=' . urlencode($assignment_filter) : ''; ?>" class="btn-secondary py-1 px-3">
                 Next <i class="fas fa-chevron-right ml-1"></i>
               </a>
             <?php endif; ?>
@@ -416,19 +448,6 @@ $stmt->close();
     </div>
   </div>
 
-  <script>
-    // Toggle mobile sidebar
-    document.addEventListener('DOMContentLoaded', function() {
-      const sidebarToggle = document.getElementById('sidebar-toggle');
-      const sidebar = document.getElementById('sidebar');
-
-      if (sidebarToggle && sidebar) {
-        sidebarToggle.addEventListener('click', function() {
-          sidebar.classList.toggle('hidden');
-        });
-      }
-    });
-  </script>
 </body>
 
 </html>

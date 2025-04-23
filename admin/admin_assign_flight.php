@@ -26,6 +26,15 @@ $booking = null;
 $flights = [];
 $booking_details = [];
 
+// Store form values to maintain state after submission
+$form_flight_id = isset($_POST['flight_id']) ? intval($_POST['flight_id']) : 0;
+$form_cabin_class = isset($_POST['cabin_class']) ? $_POST['cabin_class'] : '';
+$form_adult_count = isset($_POST['adult_count']) ? intval($_POST['adult_count']) : 1;
+$form_children_count = isset($_POST['children_count']) ? intval($_POST['children_count']) : 0;
+$form_passenger_name = isset($_POST['passenger_name']) ? $_POST['passenger_name'] : '';
+$form_passenger_email = isset($_POST['passenger_email']) ? $_POST['passenger_email'] : '';
+$form_passenger_phone = isset($_POST['passenger_phone']) ? $_POST['passenger_phone'] : '';
+
 // Fetch booking details
 $stmt = $conn->prepare("SELECT b.id, b.user_id, b.package_id, b.created_at, u.full_name 
                        FROM package_bookings b 
@@ -49,6 +58,29 @@ if ($booking) {
   $result = $stmt->get_result();
   if ($result->num_rows > 0) {
     $booking_details = $result->fetch_assoc();
+
+    // Use booking details as default form values if not already set
+    if (empty($form_flight_id)) {
+      $form_flight_id = $booking_details['flight_id'];
+    }
+    if (empty($form_cabin_class)) {
+      $form_cabin_class = $booking_details['cabin_class'];
+    }
+    if (empty($form_adult_count)) {
+      $form_adult_count = $booking_details['adult_count'];
+    }
+    if (empty($form_children_count)) {
+      $form_children_count = $booking_details['children_count'];
+    }
+    if (empty($form_passenger_name)) {
+      $form_passenger_name = $booking_details['passenger_name'];
+    }
+    if (empty($form_passenger_email)) {
+      $form_passenger_email = $booking_details['passenger_email'];
+    }
+    if (empty($form_passenger_phone)) {
+      $form_passenger_phone = $booking_details['passenger_phone'];
+    }
   }
   $stmt->close();
 }
@@ -69,13 +101,13 @@ $stmt->close();
 
 // Process form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
-  $flight_id = isset($_POST['flight_id']) ? intval($_POST['flight_id']) : 0;
-  $cabin_class = isset($_POST['cabin_class']) ? $_POST['cabin_class'] : '';
-  $adult_count = isset($_POST['adult_count']) ? intval($_POST['adult_count']) : 1;
-  $children_count = isset($_POST['children_count']) ? intval($_POST['children_count']) : 0;
-  $passenger_name = isset($_POST['passenger_name']) ? $_POST['passenger_name'] : '';
-  $passenger_email = isset($_POST['passenger_email']) ? $_POST['passenger_email'] : '';
-  $passenger_phone = isset($_POST['passenger_phone']) ? $_POST['passenger_phone'] : '';
+  $flight_id = $form_flight_id;
+  $cabin_class = $form_cabin_class;
+  $adult_count = $form_adult_count;
+  $children_count = $form_children_count;
+  $passenger_name = $form_passenger_name;
+  $passenger_email = $form_passenger_email;
+  $passenger_phone = $form_passenger_phone;
 
   // Validate inputs
   if ($flight_id <= 0) {
@@ -115,6 +147,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
       $booked_seats = $result->fetch_assoc()['booked_seats'] ?? 0;
       $remaining_seats = $available_seats - $booked_seats;
 
+      // If this is an existing booking, add back the seats from the current booking
+      if (!empty($booking_details) && $booking_details['flight_id'] == $flight_id && $booking_details['cabin_class'] == $cabin_class) {
+        $remaining_seats += ($booking_details['adult_count'] + $booking_details['children_count']);
+      }
+
       if ($remaining_seats < $total_seats) {
         $error_message = "Not enough seats available. Only $remaining_seats seats left in $cabin_class class.";
       } else {
@@ -128,11 +165,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
                                   SET flight_id = ?, cabin_class = ?, 
                                       adult_count = ?, children_count = ?,
                                       total_price = ?, passenger_name = ?,
-                                      passenger_email = ?, passenger_phone = ?,
-                                      updated_at = NOW() 
+                                      passenger_email = ?, passenger_phone = ?
                                   WHERE user_id = ?");
+            $user_id = $booking['user_id'];
             $stmt->bind_param(
-              "isiidsssi",
+              "issidssi",
               $flight_id,
               $cabin_class,
               $adult_count,
@@ -148,14 +185,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
             }
           } else {
             // Create new booking
-            $booking_reference = 'FB' . strtoupper(uniqid());
             $user_id = $booking['user_id'];
             $stmt = $conn->prepare("INSERT INTO flight_bookings 
                                   (user_id, flight_id, cabin_class, 
                                    adult_count, children_count, total_price, 
                                    passenger_name, passenger_email, passenger_phone,
-                                   booking_status, payment_status, booking_reference) 
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', 'pending', ?)");
+                                   booking_status, payment_status) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', 'pending')");
             $stmt->bind_param(
               "iisiidsss",
               $user_id,
@@ -166,8 +202,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
               $total_price,
               $passenger_name,
               $passenger_email,
-              $passenger_phone,
-              $booking_reference
+              $passenger_phone
             );
             if (!$stmt->execute()) {
               throw new Exception("Error creating flight booking: " . $stmt->error);
@@ -179,8 +214,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
           $success_message = "Flight assigned successfully to booking #$booking_id.";
 
           // Refresh booking details
-          $stmt = $conn->prepare("SELECT * FROM flight_bookings WHERE booking_id = ?");
-          $stmt->bind_param("i", $booking_id);
+          $stmt = $conn->prepare("SELECT * FROM flight_bookings WHERE user_id = ?");
+          $stmt->bind_param("i", $booking['user_id']);
           $stmt->execute();
           $result = $stmt->get_result();
           if ($result->num_rows > 0) {
@@ -273,7 +308,7 @@ if ($booking) {
               <select name="flight_id" id="flight_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
                 <option value="">-- Select Flight --</option>
                 <?php foreach ($flights as $flight): ?>
-                  <option value="<?php echo $flight['id']; ?>" <?php echo (!empty($booking_details) && $booking_details['flight_id'] == $flight['id']) ? 'selected' : ''; ?> data-flight='<?php echo json_encode($flight); ?>'>
+                  <option value="<?php echo $flight['id']; ?>" <?php echo ($form_flight_id == $flight['id']) ? 'selected' : ''; ?> data-flight='<?php echo json_encode($flight); ?>'>
                     <?php echo htmlspecialchars($flight['airline_name']); ?> (<?php echo htmlspecialchars($flight['flight_number']); ?>) -
                     <?php echo htmlspecialchars($flight['departure_city']); ?> to <?php echo htmlspecialchars($flight['arrival_city']); ?> -
                     <?php echo date('M j, Y', strtotime($flight['departure_date'])); ?> <?php echo date('H:i', strtotime($flight['departure_time'])); ?>
@@ -286,9 +321,9 @@ if ($booking) {
               <label for="cabin_class" class="block text-sm font-medium text-gray-700 mb-1">Cabin Class</label>
               <select name="cabin_class" id="cabin_class" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
                 <option value="">-- Select Cabin Class --</option>
-                <option value="economy" <?php echo (!empty($booking_details) && $booking_details['cabin_class'] == 'economy') ? 'selected' : ''; ?>>Economy</option>
-                <option value="business" <?php echo (!empty($booking_details) && $booking_details['cabin_class'] == 'business') ? 'selected' : ''; ?>>Business</option>
-                <option value="first_class" <?php echo (!empty($booking_details) && $booking_details['cabin_class'] == 'first_class') ? 'selected' : ''; ?>>First Class</option>
+                <option value="economy" <?php echo ($form_cabin_class == 'economy') ? 'selected' : ''; ?>>Economy</option>
+                <option value="business" <?php echo ($form_cabin_class == 'business') ? 'selected' : ''; ?>>Business</option>
+                <option value="first_class" <?php echo ($form_cabin_class == 'first_class') ? 'selected' : ''; ?>>First Class</option>
               </select>
             </div>
 
@@ -298,14 +333,14 @@ if ($booking) {
                   <label for="adult_count" class="block text-sm font-medium text-gray-700 mb-1">Adults</label>
                   <input type="number" name="adult_count" id="adult_count" min="1" max="10"
                     class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    value="<?php echo !empty($booking_details) ? $booking_details['adult_count'] : 1; ?>"
+                    value="<?php echo $form_adult_count; ?>"
                     required>
                 </div>
                 <div class="flex-1">
                   <label for="children_count" class="block text-sm font-medium text-gray-700 mb-1">Children</label>
                   <input type="number" name="children_count" id="children_count" min="0" max="10"
                     class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    value="<?php echo !empty($booking_details) ? $booking_details['children_count'] : 0; ?>">
+                    value="<?php echo $form_children_count; ?>">
                 </div>
               </div>
             </div>
@@ -318,27 +353,27 @@ if ($booking) {
                 <label for="passenger_name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                 <input type="text" name="passenger_name" id="passenger_name"
                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  value="<?php echo !empty($booking_details) ? htmlspecialchars($booking_details['passenger_name']) : htmlspecialchars($user_info['full_name'] ?? ''); ?>"
+                  value="<?php echo !empty($form_passenger_name) ? htmlspecialchars($form_passenger_name) : htmlspecialchars($user_info['full_name'] ?? ''); ?>"
                   required>
               </div>
               <div>
                 <label for="passenger_email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input type="email" name="passenger_email" id="passenger_email"
                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  value="<?php echo !empty($booking_details) ? htmlspecialchars($booking_details['passenger_email']) : htmlspecialchars($user_info['email'] ?? ''); ?>"
+                  value="<?php echo !empty($form_passenger_email) ? htmlspecialchars($form_passenger_email) : htmlspecialchars($user_info['email'] ?? ''); ?>"
                   required>
               </div>
               <div>
                 <label for="passenger_phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                 <input type="text" name="passenger_phone" id="passenger_phone"
                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  value="<?php echo !empty($booking_details) ? htmlspecialchars($booking_details['passenger_phone']) : htmlspecialchars($user_info['phone'] ?? ''); ?>"
+                  value="<?php echo !empty($form_passenger_phone) ? htmlspecialchars($form_passenger_phone) : htmlspecialchars($user_info['phone'] ?? ''); ?>"
                   required>
               </div>
             </div>
           </div>
 
-          <div id="flightDetails" class="bg-gray-50 p-4 rounded-lg border border-gray-200 <?php echo empty($booking_details) ? 'hidden' : ''; ?>">
+          <div id="flightDetails" class="bg-gray-50 p-4 rounded-lg border border-gray-200 <?php echo empty($form_flight_id) ? 'hidden' : ''; ?>">
             <h3 class="text-lg font-medium text-gray-800 mb-4">Flight Summary</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -373,7 +408,7 @@ if ($booking) {
 
           <div class="flex justify-end">
             <button type="submit" name="assign_flight" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-              <i class="fas fa-check mr-2"></i>Assign Flight
+              <i class="fas fa-check mr-2"></i><?php echo !empty($booking_details) ? 'Update Flight Assignment' : 'Assign Flight'; ?>
             </button>
           </div>
         </form>
@@ -433,6 +468,45 @@ if ($booking) {
         e.preventDefault();
       }
     });
+
+    // Show pricing based on cabin class and passenger count
+    function updatePricing() {
+      const flightSelect = document.getElementById('flight_id');
+      const cabinClassSelect = document.getElementById('cabin_class');
+      const adultCountInput = document.getElementById('adult_count');
+      const childrenCountInput = document.getElementById('children_count');
+
+      if (flightSelect.value && cabinClassSelect.value) {
+        const option = flightSelect.options[flightSelect.selectedIndex];
+        const flight = JSON.parse(option.getAttribute('data-flight'));
+        const cabinClass = cabinClassSelect.value;
+        const pricePerSeat = flight[cabinClass + '_price'];
+        const totalSeats = parseInt(adultCountInput.value) + parseInt(childrenCountInput.value);
+        const totalPrice = pricePerSeat * totalSeats;
+
+        // Highlight the selected cabin class
+        document.querySelectorAll('.bg-blue-50, .bg-purple-50, .bg-amber-50').forEach(el => {
+          el.classList.remove('ring-2', 'ring-blue-500');
+        });
+
+        if (cabinClass === 'economy') {
+          document.querySelector('.bg-blue-50').classList.add('ring-2', 'ring-blue-500');
+        } else if (cabinClass === 'business') {
+          document.querySelector('.bg-purple-50').classList.add('ring-2', 'ring-blue-500');
+        } else if (cabinClass === 'first_class') {
+          document.querySelector('.bg-amber-50').classList.add('ring-2', 'ring-blue-500');
+        }
+      }
+    }
+
+    document.getElementById('cabin_class').addEventListener('change', updatePricing);
+    document.getElementById('adult_count').addEventListener('change', updatePricing);
+    document.getElementById('children_count').addEventListener('change', updatePricing);
+
+    // Initialize pricing if values are already selected
+    if (document.getElementById('flight_id').value && document.getElementById('cabin_class').value) {
+      updatePricing();
+    }
   </script>
 </body>
 
