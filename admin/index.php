@@ -274,9 +274,10 @@ $stmt->close();
             <button class="btn position-relative" id="notificationBtn">
               <i class="fas fa-bell fs-5"></i>
               <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                <?php echo $pending_bookings; ?>
+                <?php echo $notificationCounts['total_pending']; ?>
               </span>
             </button>
+            <?php include 'includes/notification.php'; ?>
           </div>
 
           <div class="dropdown">
