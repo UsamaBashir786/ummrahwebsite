@@ -29,6 +29,59 @@ if ($result && $result->num_rows > 0) {
   $totalFlights = count($flights);
 }
 
+// Calculate additional statistics
+$totalEconomySeats = 0;
+$totalBusinessSeats = 0;
+$totalFirstClassSeats = 0;
+$totalEconomyRevenue = 0;
+$totalBusinessRevenue = 0;
+$totalFirstClassRevenue = 0;
+$avgEconomyPrice = 0;
+$avgBusinessPrice = 0;
+$avgFirstClassPrice = 0;
+$totalStops = 0;
+$totalDistance = 0;
+
+if (!empty($flights)) {
+  foreach ($flights as $flight) {
+    // Seat counts
+    $totalEconomySeats += $flight['economy_seats'];
+    $totalBusinessSeats += $flight['business_seats'];
+    $totalFirstClassSeats += $flight['first_class_seats'];
+
+    // Revenue potential (price * seats)
+    $totalEconomyRevenue += $flight['economy_price'] * $flight['economy_seats'];
+    $totalBusinessRevenue += $flight['business_price'] * $flight['business_seats'];
+    $totalFirstClassRevenue += $flight['first_class_price'] * $flight['first_class_seats'];
+
+    // Stops
+    if ($flight['has_stops']) {
+      $stops = json_decode($flight['stops'], true);
+      $totalStops += is_array($stops) ? count($stops) : 0;
+    }
+    if ($flight['has_return'] && $flight['has_return_stops']) {
+      $returnStops = json_decode($flight['return_stops'], true);
+      $totalStops += is_array($returnStops) ? count($returnStops) : 0;
+    }
+
+    // Distance
+    $totalDistance += $flight['distance'];
+  }
+
+  // Calculate averages (avoid division by zero)
+  $totalFlightsNonZero = $totalFlights > 0 ? $totalFlights : 1;
+  $avgEconomyPrice = $totalFlights ? array_sum(array_column($flights, 'economy_price')) / $totalFlightsNonZero : 0;
+  $avgBusinessPrice = $totalFlights ? array_sum(array_column($flights, 'business_price')) / $totalFlightsNonZero : 0;
+  $avgFirstClassPrice = $totalFlights ? array_sum(array_column($flights, 'first_class_price')) / $totalFlightsNonZero : 0;
+  $avgDistance = $totalFlights ? $totalDistance / $totalFlightsNonZero : 0;
+}
+
+// Total revenue potential
+$totalRevenuePotential = $totalEconomyRevenue + $totalBusinessRevenue + $totalFirstClassRevenue;
+
+// Total seats
+$totalSeats = $totalEconomySeats + $totalBusinessSeats + $totalFirstClassSeats;
+
 // Handle success/error messages
 $message = '';
 $messageType = '';
