@@ -538,7 +538,7 @@ if (isset($_POST['update_profile'])) {
             <label class="block text-gray-700 font-medium mb-2" for="profile_image">Profile Image</label>
             <input type="file" name="profile_image" id="profile_image" accept="image/*" class="form-control border border-gray-200 rounded-xl p-3 w-full">
             <?php if ($user['profile_image']): ?>
-              <img src="<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile Image" class="mt-3 w-28 h-28 object-cover rounded-full border-2 border-cyan-500">
+              <img src="../<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile Image" class="mt-3 w-28 h-28 object-cover rounded-full border-2 border-cyan-500">
             <?php endif; ?>
           </div>
           <button type="submit" name="update_profile" class="bg-cyan-500 hover:bg-cyan-600 text-white py-3 px-6 rounded-xl font-semibold w-full">Update Profile</button>

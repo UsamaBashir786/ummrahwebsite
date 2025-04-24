@@ -140,8 +140,13 @@ if ($booking_stats_result && $booking_stats_result->num_rows > 0) {
     </div>
     <div>
       <h3 class="text-gray-500 text-sm font-medium">Average Price</h3>
-      <p class="text-xl font-bold text-gray-800">PKR<?php echo number_format(round($stats['avg_price'])); ?></p>
-      <p class="text-xs text-gray-600">Min: PKR<?php echo number_format($stats['min_price']); ?> | Max: PKR<?php echo number_format($stats['max_price']); ?></p>
+      <p class="text-xl font-bold text-gray-800">
+        <?php echo $stats['avg_price'] !== null ? 'PKR' . number_format(round($stats['avg_price'])) : 'N/A'; ?>
+      </p>
+      <p class="text-xs text-gray-600">
+        Min: <?php echo $stats['min_price'] !== null ? 'PKR' . number_format($stats['min_price']) : 'N/A'; ?> |
+        Max: <?php echo $stats['max_price'] !== null ? 'PKR' . number_format($stats['max_price']) : 'N/A'; ?>
+      </p>
     </div>
   </div>
 
@@ -196,7 +201,7 @@ if ($booking_stats_result && $booking_stats_result->num_rows > 0) {
     </div>
     <div>
       <h3 class="text-gray-500 text-sm font-medium">Est. Revenue</h3>
-      <p class="text-xl font-bold text-gray-800">PKR<?php echo number_format($stats['estimated_revenue']); ?></p>
+      <p class="text-xl font-bold text-gray-800">PKR<?php echo number_format($stats['estimated_revenue'] ?? 0); ?></p>
     </div>
   </div>
 </div>

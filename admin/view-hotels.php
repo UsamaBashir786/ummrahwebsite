@@ -13,11 +13,10 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
 
 // Check if delete parameter is present but empty or invalid
 if (isset($_GET['delete']) && (empty($_GET['delete']) || !is_numeric($_GET['delete']))) {
-  // Redirect to the same page without the delete parameter
   $redirect_url = 'view-hotels.php';
   if (!empty($_GET)) {
     $params = $_GET;
-    unset($params['delete']); // Remove the delete parameter
+    unset($params['delete']);
     if (!empty($params)) {
       $redirect_url .= '?' . http_build_query($params);
     }
@@ -32,19 +31,16 @@ $total_hotels = 0;
 $total_rooms = 0;
 $message = '';
 $message_type = '';
-$filter = isset($_GET['filter']) ? $_GET['filter'] : '';
-$location = isset($_GET['location']) ? $_GET['location'] : '';
-$rating = isset($_GET['rating']) ? $_GET['rating'] : '';
-$search = isset($_GET['search']) ? $_GET['search'] : '';
-$sort = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
+$filter = isset($_GET['filter']) ? filter_var($_GET['filter'], FILTER_SANITIZE_STRING) : '';
+$location = isset($_GET['location']) ? filter_var($_GET['location'], FILTER_SANITIZE_STRING) : '';
+$rating = isset($_GET['rating']) ? filter_var($_GET['rating'], FILTER_VALIDATE_INT) : '';
+$search = isset($_GET['search']) ? filter_var($_GET['search'], FILTER_SANITIZE_STRING) : '';
+$sort = isset($_GET['sort']) ? filter_var($_GET['sort'], FILTER_SANITIZE_STRING) : 'newest';
 
 // Handle hotel deletion if requested
 if (isset($_GET['delete']) && !empty($_GET['delete'])) {
-  $hotel_id = mysqli_real_escape_string($conn, $_GET['delete']);
-
-  // Start transaction
+  $hotel_id = filter_var($_GET['delete'], FILTER_VALIDATE_INT);
   $conn->begin_transaction();
-
   try {
     // Check if hotel exists
     $check_query = "SELECT id FROM hotels WHERE id = ?";
@@ -52,13 +48,12 @@ if (isset($_GET['delete']) && !empty($_GET['delete'])) {
     $check_stmt->bind_param("i", $hotel_id);
     $check_stmt->execute();
     $check_result = $check_stmt->get_result();
-
     if ($check_result->num_rows === 0) {
-      // Silently redirect back to view-hotels without an error message
       $conn->rollback();
       header('Location: view-hotels.php');
       exit;
     }
+    $check_stmt->close();
 
     // Get image paths to delete files
     $images_query = "SELECT image_path FROM hotel_images WHERE hotel_id = ?";
@@ -66,20 +61,38 @@ if (isset($_GET['delete']) && !empty($_GET['delete'])) {
     $images_stmt->bind_param("i", $hotel_id);
     $images_stmt->execute();
     $images_result = $images_stmt->get_result();
-
     $image_paths = [];
     while ($image = $images_result->fetch_assoc()) {
       $image_paths[] = '../' . $image['image_path'];
     }
+    $images_stmt->close();
+
+    // Count bookings to be deleted for success message
+    $bookings_count_query = "SELECT COUNT(*) as booking_count FROM hotel_bookings WHERE hotel_id = ?";
+    $bookings_count_stmt = $conn->prepare($bookings_count_query);
+    $bookings_count_stmt->bind_param("i", $hotel_id);
+    $bookings_count_stmt->execute();
+    $bookings_count_result = $bookings_count_stmt->get_result();
+    $bookings_count = $bookings_count_result->fetch_assoc()['booking_count'];
+    $bookings_count_stmt->close();
+
+    // Delete related bookings
+    $delete_bookings_query = "DELETE FROM hotel_bookings WHERE hotel_id = ?";
+    $delete_bookings_stmt = $conn->prepare($delete_bookings_query);
+    $delete_bookings_stmt->bind_param("i", $hotel_id);
+    if (!$delete_bookings_stmt->execute()) {
+      throw new Exception("Error deleting hotel bookings: " . $delete_bookings_stmt->error);
+    }
+    $delete_bookings_stmt->close();
 
     // Delete hotel (cascades to rooms and images due to foreign key)
     $delete_query = "DELETE FROM hotels WHERE id = ?";
     $delete_stmt = $conn->prepare($delete_query);
     $delete_stmt->bind_param("i", $hotel_id);
-
     if (!$delete_stmt->execute()) {
       throw new Exception("Error deleting hotel: " . $delete_stmt->error);
     }
+    $delete_stmt->close();
 
     // Commit transaction
     $conn->commit();
@@ -90,23 +103,21 @@ if (isset($_GET['delete']) && !empty($_GET['delete'])) {
         unlink($path);
       }
     }
-
-    // Try to remove hotel directory
-    $hotel_dir = '../uploads/hotels/' . $hotel_id;
+    $hotel_dir = '../Uploads/hotels/' . $hotel_id;
     if (is_dir($hotel_dir)) {
       @rmdir($hotel_dir);
     }
 
-    $message = "Hotel deleted successfully!";
+    $message = "Hotel and $bookings_count booking(s) deleted successfully!";
     $message_type = "success";
   } catch (Exception $e) {
-    // Rollback on error
     $conn->rollback();
-    // Log the error but don't display the exact message to users
     error_log("Error deleting hotel: " . $e->getMessage());
-    $message = "An error occurred while processing your request.";
+    $message = "An error occurred while deleting the hotel and its bookings.";
     $message_type = "error";
   }
+  header('Location: view-hotels.php');
+  exit;
 }
 
 // Prepare base query to fetch hotels
@@ -233,7 +244,7 @@ if ($result && $result->num_rows > 0) {
   }
 }
 
-// Get stats for dashboard
+// Get stats for dashboard (optional, as hotel-stats.php handles this)
 $stats = [
   'makkah_hotels' => 0,
   'madinah_hotels' => 0,
@@ -253,6 +264,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
   $stats = $stats_result->fetch_assoc();
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -299,7 +311,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
   <?php include 'includes/sidebar.php'; ?>
 
   <!-- Main Content -->
-  <div class="mt-10  p-6">
+  <div class="mt-10 p-6">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
       <div>
@@ -315,34 +327,15 @@ if ($stats_result && $stats_result->num_rows > 0) {
       </div>
     </div>
 
-
+    <!-- Stats Section -->
     <?php include 'includes/hotel-stats.php'; ?>
-
-    <!-- Location Stats -->
-    <div class="bg-white rounded-lg shadow mb-6 p-4">
-      <h2 class="text-lg font-bold text-gray-800 mb-3">Hotels by Location</h2>
-      <div class="flex items-center">
-        <div class="w-full bg-gray-200 rounded-full h-4">
-          <?php
-          $total_location = $stats['makkah_hotels'] + $stats['madinah_hotels'];
-          $makkah_percent = $total_location > 0 ? ($stats['makkah_hotels'] / $total_location) * 100 : 0;
-          ?>
-          <div class="bg-blue-600 h-4 rounded-full" style="width: <?php echo $makkah_percent; ?>%"></div>
-        </div>
-        <div class="ml-4 text-sm">
-          <span class="text-blue-600 font-bold"><?php echo $stats['makkah_hotels']; ?></span> Makkah
-          <span class="mx-2">|</span>
-          <span class="text-green-600 font-bold"><?php echo $stats['madinah_hotels']; ?></span> Madinah
-        </div>
-      </div>
-    </div>
 
     <!-- Alert Messages -->
     <?php if (!empty($message)): ?>
       <div class="mb-6">
         <div class="rounded-lg p-4 <?php echo $message_type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?> flex items-center">
           <i class="fas <?php echo $message_type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'; ?> mr-3"></i>
-          <?php echo $message; ?>
+          <?php echo htmlspecialchars($message); ?>
         </div>
       </div>
     <?php endif; ?>
@@ -559,7 +552,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
   <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
     <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
       <h2 class="text-xl font-bold text-gray-800 mb-4">Confirm Deletion</h2>
-      <p class="text-gray-600 mb-6">Are you sure you want to delete <span id="hotelName" class="font-semibold"></span>? This action cannot be undone and will remove all associated data.</p>
+      <p class="text-gray-600 mb-6">Are you sure you want to delete <span id="hotelName" class="font-semibold"></span>? This action cannot be undone and will remove all associated data, including bookings.</p>
       <div class="flex justify-end space-x-3">
         <button id="cancelDelete" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors">
           Cancel
@@ -588,6 +581,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
     document.getElementById('cancelDelete').addEventListener('click', function() {
       document.getElementById('deleteModal').classList.add('hidden');
     });
+
     // Close modal when clicking outside
     document.getElementById('deleteModal').addEventListener('click', function(e) {
       if (e.target === this) {

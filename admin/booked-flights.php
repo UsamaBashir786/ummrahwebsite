@@ -170,6 +170,132 @@ if ($result) {
   $message = "Error fetching statistics: " . $conn->error;
   $message_type = "error";
 }
+
+
+// Initialize variables
+$flights = [];
+$filteredFlights = [];
+$filter = isset($_GET['filter']) ? $_GET['filter'] : '';
+$search = isset($_GET['search']) ? $_GET['search'] : '';
+$totalFlights = 0;
+
+// Get all flights
+$query = "SELECT * FROM flights ORDER BY departure_date DESC";
+$result = $conn->query($query);
+
+if ($result && $result->num_rows > 0) {
+  while ($row = $result->fetch_assoc()) {
+    $flights[] = $row;
+  }
+  $totalFlights = count($flights);
+}
+
+// Calculate additional statistics
+$totalEconomySeats = 0;
+$totalBusinessSeats = 0;
+$totalFirstClassSeats = 0;
+$totalEconomyRevenue = 0;
+$totalBusinessRevenue = 0;
+$totalFirstClassRevenue = 0;
+$avgEconomyPrice = 0;
+$avgBusinessPrice = 0;
+$avgFirstClassPrice = 0;
+$totalStops = 0;
+$totalDistance = 0;
+
+if (!empty($flights)) {
+  foreach ($flights as $flight) {
+    // Seat counts
+    $totalEconomySeats += $flight['economy_seats'];
+    $totalBusinessSeats += $flight['business_seats'];
+    $totalFirstClassSeats += $flight['first_class_seats'];
+
+    // Revenue potential (price * seats)
+    $totalEconomyRevenue += $flight['economy_price'] * $flight['economy_seats'];
+    $totalBusinessRevenue += $flight['business_price'] * $flight['business_seats'];
+    $totalFirstClassRevenue += $flight['first_class_price'] * $flight['first_class_seats'];
+
+    // Stops
+    if ($flight['has_stops']) {
+      $stops = json_decode($flight['stops'], true);
+      $totalStops += is_array($stops) ? count($stops) : 0;
+    }
+    if ($flight['has_return'] && $flight['has_return_stops']) {
+      $returnStops = json_decode($flight['return_stops'], true);
+      $totalStops += is_array($returnStops) ? count($returnStops) : 0;
+    }
+
+    // Distance
+    $totalDistance += $flight['distance'];
+  }
+
+  // Calculate averages (avoid division by zero)
+  $totalFlightsNonZero = $totalFlights > 0 ? $totalFlights : 1;
+  $avgEconomyPrice = $totalFlights ? array_sum(array_column($flights, 'economy_price')) / $totalFlightsNonZero : 0;
+  $avgBusinessPrice = $totalFlights ? array_sum(array_column($flights, 'business_price')) / $totalFlightsNonZero : 0;
+  $avgFirstClassPrice = $totalFlights ? array_sum(array_column($flights, 'first_class_price')) / $totalFlightsNonZero : 0;
+  $avgDistance = $totalFlights ? $totalDistance / $totalFlightsNonZero : 0;
+}
+
+// Total revenue potential
+$totalRevenuePotential = $totalEconomyRevenue + $totalBusinessRevenue + $totalFirstClassRevenue;
+
+// Total seats
+$totalSeats = $totalEconomySeats + $totalBusinessSeats + $totalFirstClassSeats;
+
+// Handle success/error messages
+$message = '';
+$messageType = '';
+
+if (isset($_SESSION['success'])) {
+  $message = $_SESSION['success'];
+  $messageType = 'success';
+  unset($_SESSION['success']);
+} elseif (isset($_SESSION['error'])) {
+  $message = $_SESSION['error'];
+  $messageType = 'error';
+  unset($_SESSION['error']);
+}
+
+// Apply filters
+$filteredFlights = $flights;
+
+if (!empty($search)) {
+  $filteredFlights = array_filter($flights, function ($flight) use ($search) {
+    $search = strtolower($search);
+    return (
+      stripos($flight['airline_name'], $search) !== false ||
+      stripos($flight['flight_number'], $search) !== false ||
+      stripos($flight['departure_city'], $search) !== false ||
+      stripos($flight['arrival_city'], $search) !== false
+    );
+  });
+}
+
+if (!empty($filter)) {
+  switch ($filter) {
+    case 'one-way':
+      $filteredFlights = array_filter($filteredFlights, function ($flight) {
+        return $flight['has_return'] == 0;
+      });
+      break;
+    case 'round-trip':
+      $filteredFlights = array_filter($filteredFlights, function ($flight) {
+        return $flight['has_return'] == 1;
+      });
+      break;
+    case 'direct':
+      $filteredFlights = array_filter($filteredFlights, function ($flight) {
+        return $flight['has_stops'] == 0;
+      });
+      break;
+    case 'with-stops':
+      $filteredFlights = array_filter($filteredFlights, function ($flight) {
+        return $flight['has_stops'] == 1;
+      });
+      break;
+  }
+}
 ?>
 
 <!DOCTYPE html>
@@ -306,7 +432,7 @@ if ($result) {
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <!-- <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div class="bg-white rounded-lg shadow p-4 flex items-start">
         <div class="bg-blue-100 rounded-lg p-3 mr-4">
           <i class="fas fa-calendar-check text-blue-600 text-xl"></i>
@@ -346,8 +472,8 @@ if ($result) {
           <p class="text-2xl font-bold text-gray-800">PKR <?php echo number_format($stats['total_revenue'] ?? 0, 0); ?></p>
         </div>
       </div>
-    </div>
-
+    </div> -->
+    <?php include 'includes/sums-flight.php'; ?>
     <!-- Messages -->
     <?php if ($message): ?>
       <div class="mb-6">

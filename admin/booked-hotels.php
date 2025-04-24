@@ -367,7 +367,7 @@ if ($result) {
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <!-- <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div class="bg-white rounded-lg shadow p-4 flex items-start">
         <div class="bg-blue-100 rounded-lg p-3 mr-4">
           <i class="fas fa-calendar-check text-blue-600 text-xl"></i>
@@ -407,8 +407,8 @@ if ($result) {
           <p class="text-md font-medium text-gray-800">Makkah: <?php echo $stats['makkah_bookings'] ?? 0; ?>, Madinah: <?php echo $stats['madinah_bookings'] ?? 0; ?></p>
         </div>
       </div>
-    </div>
-
+    </div> -->
+    <?php include 'includes/hotel-stats.php'; ?>
     <!-- Messages -->
     <?php if ($message): ?>
       <div class="mb-6">
