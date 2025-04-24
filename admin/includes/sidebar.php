@@ -131,6 +131,12 @@
           <i class="fas fa-users"></i> <span>Users</span>
         </a>
       </li>
+      <!-- Contact -->
+      <li>
+        <a href="contact-us.php" class="flex items-center2 space-x-3 text-gray-700 hover:bg-blue-100 rounded-lg p-2">
+          <i class="fas fa-users"></i> <span>Contact</span>
+        </a>
+      </li>
     </ul>
 
     <div class="text-gray-500 text-sm font-semibold uppercase mt-6">Settings</div>

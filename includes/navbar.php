@@ -18,8 +18,9 @@ if (session_status() == PHP_SESSION_NONE) {
       <div class="hidden md:flex items-center">
         <div class="ml-10 flex items-baseline space-x-4">
           <a href="index.php" class="text-gray-700 hover:text-teal-500 px-3 py-2 rounded-md text-sm font-medium">Home</a>
-          <a href="packages.php" class="text-gray-700 hover:text-teal-500 px-3 py-2 rounded-md text-sm font-medium">Packages</a>
           <a href="about-us.php" class="text-gray-700 hover:text-teal-500 px-3 py-2 rounded-md text-sm font-medium">About Us</a>
+          <a href="contact-us.php" class="text-gray-700 hover:text-teal-500 px-3 py-2 rounded-md text-sm font-medium">Contact Us</a>
+          <a href="packages.php" class="text-gray-700 hover:text-teal-500 px-3 py-2 rounded-md text-sm font-medium">Packages</a>
 
           <!-- Dropdown - FIXED -->
           <div class="relative group">
