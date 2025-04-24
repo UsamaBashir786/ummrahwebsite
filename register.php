@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $ext = pathinfo($_FILES['profileImage']['name'], PATHINFO_EXTENSION);
 
     if (in_array(strtolower($ext), $allowed)) {
-      $uploadDir = 'assets/uploads/profile_images/';
+      $uploadDir = 'uploads/profile_images/';
       if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0777, true);
       }

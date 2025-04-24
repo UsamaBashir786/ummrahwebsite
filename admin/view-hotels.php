@@ -315,7 +315,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
       </div>
     </div>
 
-    
+
     <?php include 'includes/hotel-stats.php'; ?>
 
     <!-- Location Stats -->
