@@ -68,11 +68,10 @@ $transport_query->bind_param("i", $user_id);
 $transport_query->execute();
 $transports = $transport_query->get_result()->fetch_all(MYSQLI_ASSOC);
 $transport_query->close();
-
 // Handle booking cancellation
 if (isset($_POST['cancel_booking'])) {
-  $booking_type = $_POST['booking_type'];
-  $booking_id = $_POST['booking_id'];
+  $booking_type = $_POST['booking_type'] ?? '';
+  $booking_id = $_POST['booking_id'] ?? 0;
 
   $table_map = [
     'flight' => 'flight_bookings',
@@ -82,10 +81,48 @@ if (isset($_POST['cancel_booking'])) {
   ];
 
   if (isset($table_map[$booking_type])) {
-    $stmt = $conn->prepare("UPDATE {$table_map[$booking_type]} SET booking_status = 'cancelled' WHERE id = ? AND user_id = ? AND booking_status = 'pending'");
-    $stmt->bind_param("ii", $booking_id, $user_id);
-    $stmt->execute();
-    $stmt->close();
+    $table = $table_map[$booking_type];
+
+    // Validate that the booking belongs to the user
+    $check_stmt = $conn->prepare("SELECT id FROM {$table} WHERE id = ? AND user_id = ? AND booking_status = 'pending'");
+    $check_stmt->bind_param("ii", $booking_id, $user_id);
+    $check_stmt->execute();
+    $check_result = $check_stmt->get_result();
+
+    if ($check_result->num_rows > 0) {
+      // Booking exists and belongs to user, proceed with cancellation
+      $cancel_stmt = $conn->prepare("UPDATE {$table} SET booking_status = 'cancelled' WHERE id = ? AND user_id = ?");
+      $cancel_stmt->bind_param("ii", $booking_id, $user_id);
+
+      if ($cancel_stmt->execute()) {
+        // Special handling for hotel bookings to update room status
+        if ($booking_type === 'hotel') {
+          $room_update_stmt = $conn->prepare("
+            UPDATE hotel_rooms hr
+            JOIN hotel_bookings hb ON hr.hotel_id = hb.hotel_id AND hr.room_id = hb.room_id
+            SET hr.status = 'available'
+            WHERE hb.id = ? AND hb.user_id = ?
+          ");
+          $room_update_stmt->bind_param("ii", $booking_id, $user_id);
+          $room_update_stmt->execute();
+          $room_update_stmt->close();
+        }
+
+        $_SESSION['booking_message'] = "Booking successfully cancelled.";
+        $_SESSION['booking_message_type'] = "success";
+      } else {
+        $_SESSION['booking_message'] = "Error cancelling booking. Please try again.";
+        $_SESSION['booking_message_type'] = "error";
+      }
+
+      $cancel_stmt->close();
+    } else {
+      $_SESSION['booking_message'] = "Invalid booking or booking cannot be cancelled.";
+      $_SESSION['booking_message_type'] = "error";
+    }
+
+    $check_stmt->close();
+
     header("Location: index.php");
     exit();
   }
@@ -93,8 +130,8 @@ if (isset($_POST['cancel_booking'])) {
 
 // Handle booking deletion
 if (isset($_POST['delete_booking'])) {
-  $booking_type = $_POST['booking_type'];
-  $booking_id = $_POST['booking_id'];
+  $booking_type = $_POST['booking_type'] ?? '';
+  $booking_id = $_POST['booking_id'] ?? 0;
 
   $table_map = [
     'flight' => 'flight_bookings',
@@ -104,10 +141,35 @@ if (isset($_POST['delete_booking'])) {
   ];
 
   if (isset($table_map[$booking_type])) {
-    $stmt = $conn->prepare("DELETE FROM {$table_map[$booking_type]} WHERE id = ? AND user_id = ?");
-    $stmt->bind_param("ii", $booking_id, $user_id);
-    $stmt->execute();
-    $stmt->close();
+    $table = $table_map[$booking_type];
+
+    // First, check if the booking belongs to the user
+    $check_stmt = $conn->prepare("SELECT id FROM {$table} WHERE id = ? AND user_id = ?");
+    $check_stmt->bind_param("ii", $booking_id, $user_id);
+    $check_stmt->execute();
+    $check_result = $check_stmt->get_result();
+
+    if ($check_result->num_rows > 0) {
+      // Booking exists and belongs to user, proceed with deletion
+      $delete_stmt = $conn->prepare("DELETE FROM {$table} WHERE id = ? AND user_id = ?");
+      $delete_stmt->bind_param("ii", $booking_id, $user_id);
+
+      if ($delete_stmt->execute()) {
+        $_SESSION['booking_message'] = "Booking successfully deleted.";
+        $_SESSION['booking_message_type'] = "success";
+      } else {
+        $_SESSION['booking_message'] = "Error deleting booking. Please try again.";
+        $_SESSION['booking_message_type'] = "error";
+      }
+
+      $delete_stmt->close();
+    } else {
+      $_SESSION['booking_message'] = "Invalid booking or booking cannot be deleted.";
+      $_SESSION['booking_message_type'] = "error";
+    }
+
+    $check_stmt->close();
+
     header("Location: index.php");
     exit();
   }
@@ -572,7 +634,7 @@ if (isset($_POST['update_profile'])) {
         e.preventDefault();
         Swal.fire({
           title: 'Are you sure?',
-          text: 'This booking will be cancelled.',
+          text: 'This booking will be cancelled and cannot be undone.',
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#f59e0b',
@@ -580,7 +642,26 @@ if (isset($_POST['update_profile'])) {
           confirmButtonText: 'Yes, cancel it!'
         }).then((result) => {
           if (result.isConfirmed) {
-            form.submit();
+            // Create a FormData object 
+            const formData = new FormData(form);
+
+            // Add cancel_booking input to ensure correct action
+            formData.append('cancel_booking', '1');
+
+            // Use fetch for form submission
+            fetch('index.php', {
+              method: 'POST',
+              body: formData
+            }).then(response => {
+              // Reload the page to reflect changes
+              window.location.reload();
+            }).catch(error => {
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while cancelling the booking.'
+              });
+            });
           }
         });
       });
@@ -592,7 +673,7 @@ if (isset($_POST['update_profile'])) {
         e.preventDefault();
         Swal.fire({
           title: 'Are you sure?',
-          text: 'This booking will be permanently deleted.',
+          text: 'This booking will be permanently deleted and cannot be recovered.',
           icon: 'error',
           showCancelButton: true,
           confirmButtonColor: '#dc2626',
@@ -600,12 +681,30 @@ if (isset($_POST['update_profile'])) {
           confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
           if (result.isConfirmed) {
-            form.submit();
+            // Create a FormData object 
+            const formData = new FormData(form);
+
+            // Add delete_booking input to ensure correct action
+            formData.append('delete_booking', '1');
+
+            // Use fetch for form submission
+            fetch('index.php', {
+              method: 'POST',
+              body: formData
+            }).then(response => {
+              // Reload the page to reflect changes
+              window.location.reload();
+            }).catch(error => {
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while deleting the booking.'
+              });
+            });
           }
         });
       });
     });
-
     // Filter and search
     const statusFilter = document.getElementById('statusFilter');
     const searchInput = document.getElementById('searchInput');
