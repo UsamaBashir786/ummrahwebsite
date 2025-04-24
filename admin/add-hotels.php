@@ -395,6 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <!-- Scripts -->
+   <script src="assets/js/hotels-validate.js"></script>
   <script>
     // File Upload Handling
     document.getElementById('hotel_images').addEventListener('change', function(e) {
