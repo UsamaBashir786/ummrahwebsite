@@ -586,45 +586,69 @@ $stmt->close();
 
           Swal.fire({
             title: 'Are you sure?',
-            text: "You won't be able to revert this!",
+            text: "This will delete the route and all associated bookings!",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonText: 'Yes, delete everything!'
           }).then((result) => {
             if (result.isConfirmed) {
+              // Prepare form data for deletion
               const formData = new FormData();
               formData.append('delete_route', '1');
               formData.append('route_id', routeId);
               formData.append('service_type', serviceType);
 
-              fetch('', {
+              // Send delete request
+              fetch('delete-transportation-route.php', {
                   method: 'POST',
                   body: formData
-                }).then(response => response.text())
-                .then(() => {
-                  Swal.fire({
-                    icon: 'success',
-                    title: 'Deleted!',
-                    text: `${serviceType.charAt(0).toUpperCase() + serviceType.slice(1)} route has been deleted.`,
-                    showConfirmButton: false,
-                    timer: 1500
-                  }).then(() => {
-                    location.reload();
-                  });
-                }).catch(error => {
+                })
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                  }
+                  return response.json(); // Assuming the PHP script returns JSON
+                })
+                .then(data => {
+                  if (data.success) {
+                    // Customize success message based on number of bookings deleted
+                    const bookingsDeletedText = data.bookings_deleted > 0 ?
+                      `${data.bookings_deleted} associated booking(s) were also removed.` :
+                      'No associated bookings found.';
+
+                    Swal.fire({
+                      icon: 'success',
+                      title: 'Deleted!',
+                      html: `${serviceType.charAt(0).toUpperCase() + serviceType.slice(1)} route has been deleted.<br>${bookingsDeletedText}`,
+                      showConfirmButton: false,
+                      timer: 2000
+                    }).then(() => {
+                      // Reload the page or remove the row dynamically
+                      location.reload();
+                    });
+                  } else {
+                    // Handle server-side error
+                    Swal.fire({
+                      icon: 'error',
+                      title: 'Deletion Failed',
+                      text: data.error || 'An error occurred while deleting the route.'
+                    });
+                  }
+                })
+                .catch(error => {
+                  console.error('Deletion error:', error);
                   Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'An error occurred while deleting the route.'
+                    text: 'An unexpected error occurred while deleting the route.'
                   });
                 });
             }
           });
         });
       });
-
       // Sidebar and Dropdown Handlers
       document.getElementById('sidebarToggle').addEventListener('click', function() {
         document.querySelector('aside').classList.toggle('hidden');
