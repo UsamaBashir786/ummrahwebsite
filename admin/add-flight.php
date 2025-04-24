@@ -257,6 +257,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="flight_number" class="form-label">Flight Number <span class="text-danger">*</span></label>
                     <input type="text" name="flight_number" id="flight_number" class="form-control" placeholder="e.g., PK-309" required maxlength="9">
                   </div>
+                  <script>
+
+                  </script>
                 </div>
 
                 <!-- Route Information -->
@@ -496,16 +499,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                           </div>
                         </div>
-
                         <div id="return-stops-container" class="d-none">
                           <div class="return-stop-row row mb-3">
                             <div class="col-md-6 mb-3 mb-md-0">
                               <label class="form-label">Return Stop City</label>
-                              <input type="text" name="return_stop_city[]" class="form-control" placeholder="e.g., Dubai" maxlength="12">
+                              <input type="text" name="return_stop_city[]" class="form-control" placeholder="e.g., Dubai" maxlength="50">
+                              <div class="invalid-feedback"></div>
                             </div>
                             <div class="col-md-6">
                               <label class="form-label">Return Stop Duration (hours)</label>
                               <input type="text" name="return_stop_duration[]" class="form-control" placeholder="e.g., 2">
+                              <div class="invalid-feedback"></div>
                             </div>
                           </div>
                           <div class="text-end">
@@ -593,6 +597,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <!-- Bootstrap Bundle with Popper -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Simple script for toggling sections and adding stops -->
+  <script src="assets/js/validate.js"></script>
   <script>
     // Toggle stops section
     function toggleStopsSection(show) {
@@ -609,18 +614,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       document.getElementById('return-stops-container').classList.toggle('d-none', !show);
     }
 
-    // Add stop row
+    // Add stop row (for outbound stops)
     document.getElementById('add-stop').addEventListener('click', function() {
       const stopRow = document.querySelector('.stop-row').cloneNode(true);
       stopRow.querySelectorAll('input').forEach(input => input.value = '');
       this.closest('.text-end').before(stopRow);
-    });
-
-    // Add return stop row
-    document.getElementById('add-return-stop').addEventListener('click', function() {
-      const returnStopRow = document.querySelector('.return-stop-row').cloneNode(true);
-      returnStopRow.querySelectorAll('input').forEach(input => input.value = '');
-      this.closest('.text-end').before(returnStopRow);
+      // Re-initialize validation for new inputs (from validate.js)
+      const newCityInput = stopRow.querySelector('input[name="stop_city[]"]');
+      const newDurationInput = stopRow.querySelector('input[name="stop_duration[]"]');
+      window.addNewStopCity(newCityInput); // Assumes validate.js exposes this
+      window.initStopDurationValidation(newDurationInput); // From validate.js
     });
 
     // Bind radio buttons
