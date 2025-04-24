@@ -1,117 +1,64 @@
 <?php
-require_once '../config/db.php';
-session_name('admin_session');
-session_start();
+require_once '../config/db.php'; // Include your database connection
 
-// Set JSON header to ensure proper content type
-header('Content-Type: application/json');
+// Set JSON response header
+// header('Content-Type: application/json');
 
-// Function to send error response
-function sendErrorResponse($message, $code = 400) {
-    http_response_code($code);
-    echo json_encode([
-        'success' => false, 
-        'error' => $message
-    ]);
-    exit;
+$response = ['success' => false, 'error' => '', 'bookings_deleted' => 0];
+
+try {
+  // Validate POST data
+  if (!isset($_POST['delete_route'], $_POST['route_id'], $_POST['service_type'])) {
+    throw new Exception('Invalid request parameters.');
+  }
+
+  $route_id = (int)$_POST['route_id'];
+  $service_type = $conn->real_escape_string($_POST['service_type']);
+
+  // Validate service type
+  if (!in_array($service_type, ['taxi', 'rentacar'])) {
+    throw new Exception('Invalid service type.');
+  }
+
+  // Start transaction to ensure atomicity
+  $conn->begin_transaction();
+
+  // Count associated bookings
+  $stmt = $conn->prepare("SELECT COUNT(*) as booking_count FROM transportation_bookings WHERE route_id = ? AND transport_type = ?");
+  $stmt->bind_param("is", $route_id, $service_type);
+  $stmt->execute();
+  $result = $stmt->get_result();
+  $booking_count = $result->fetch_assoc()['booking_count'];
+  $stmt->close();
+
+  // Delete associated bookings
+  $stmt = $conn->prepare("DELETE FROM transportation_bookings WHERE route_id = ? AND transport_type = ?");
+  $stmt->bind_param("is", $route_id, $service_type);
+  $stmt->execute();
+  $stmt->close();
+
+  // Delete the route
+  $table = ($service_type === 'taxi') ? 'taxi_routes' : 'rentacar_routes';
+  $stmt = $conn->prepare("DELETE FROM $table WHERE id = ?");
+  $stmt->bind_param("i", $route_id);
+  $stmt->execute();
+  $route_deleted = $stmt->affected_rows > 0;
+  $stmt->close();
+
+  if ($route_deleted) {
+    // Commit transaction
+    $conn->commit();
+    $response['success'] = true;
+    $response['bookings_deleted'] = $booking_count;
+  } else {
+    throw new Exception('Route not found or already deleted.');
+  }
+} catch (Exception $e) {
+  // Rollback transaction on error
+  $conn->rollback();
+  $response['error'] = $e->getMessage();
 }
 
-// Check admin login
-if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true) {
-    sendErrorResponse('Unauthorized access', 403);
-}
-
-function deleteTransportationRoute($conn, $route_id, $service_type) {
-    // Start a transaction to ensure data integrity
-    $conn->begin_transaction();
-
-    try {
-        // Variables to track deletion
-        $bookings_deleted = 0;
-        $route_deleted = false;
-
-        // Determine vehicle types and deletion queries based on service type
-        if ($service_type == 'taxi') {
-            // Vehicle types for taxi routes
-            $vehicle_types = "'Camry/Sonata', 'Starex/Staria', 'Hiace'";
-            $delete_route_query = "DELETE FROM taxi_routes WHERE id = ?";
-            $transport_type = 'taxi';
-        } elseif ($service_type == 'rentacar') {
-            // Vehicle types for rent-a-car routes
-            $vehicle_types = "'GMC 16-19', 'GMC 22-23', 'Coaster'";
-            $delete_route_query = "DELETE FROM rentacar_routes WHERE id = ?";
-            $transport_type = 'rentacar';
-        } else {
-            throw new Exception("Invalid service type");
-        }
-
-        // Delete associated transportation bookings
-        $delete_bookings_query = "
-            DELETE FROM transportation_bookings 
-            WHERE route_id = ? 
-            AND transport_type = ?
-            AND vehicle_type IN ($vehicle_types)
-        ";
-        $delete_bookings_stmt = $conn->prepare($delete_bookings_query);
-        $delete_bookings_stmt->bind_param("is", $route_id, $transport_type);
-        $delete_bookings_stmt->execute();
-        $bookings_deleted = $delete_bookings_stmt->affected_rows;
-        $delete_bookings_stmt->close();
-
-        // Delete the specific route
-        $delete_route_stmt = $conn->prepare($delete_route_query);
-        $delete_route_stmt->bind_param("i", $route_id);
-        $delete_route_stmt->execute();
-        $route_deleted = $delete_route_stmt->affected_rows > 0;
-        $delete_route_stmt->close();
-
-        // Commit the transaction
-        $conn->commit();
-
-        // Return detailed deletion information
-        return [
-            'success' => true,
-            'bookings_deleted' => $bookings_deleted,
-            'route_deleted' => $route_deleted
-        ];
-
-    } catch (Exception $e) {
-        // Rollback the transaction in case of any error
-        $conn->rollback();
-
-        // Log the error
-        error_log("Transportation Route Deletion Error: " . $e->getMessage());
-
-        return [
-            'success' => false,
-            'error' => $e->getMessage()
-        ];
-    }
-}
-
-// Handle Delete Requests
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_route'])) {
-    // Validate and sanitize input
-    $route_id = filter_input(INPUT_POST, 'route_id', FILTER_VALIDATE_INT);
-    $service_type = filter_input(INPUT_POST, 'service_type', FILTER_SANITIZE_STRING);
-
-    // Validate inputs
-    if ($route_id === false || $route_id === null) {
-        sendErrorResponse('Invalid route ID');
-    }
-
-    if (!in_array($service_type, ['taxi', 'rentacar'])) {
-        sendErrorResponse('Invalid service type');
-    }
-
-    // Call the deletion function
-    $result = deleteTransportationRoute($conn, $route_id, $service_type);
-
-    // Send JSON response
-    echo json_encode($result);
-    exit;
-}
-
-// Prevent direct access
-sendErrorResponse('Access denied', 403);
-?>
+// Output JSON response
+echo json_encode($response);
+exit;
