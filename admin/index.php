@@ -259,6 +259,7 @@ $stmt->close();
 
 <body>
   <?php include 'includes/sidebar.php'; ?>
+
   <!-- Main Content -->
   <div class="mt-10 main-content col-md-12">
     <!-- Top Navbar -->
@@ -270,15 +271,14 @@ $stmt->close();
         <h4 class="mb-0 ms-2">Dashboard</h4>
 
         <div class="d-flex align-items-center">
-          <div class="position-relative me-3">
+          <!-- <div class="position-relative me-3">
             <button class="btn position-relative" id="notificationBtn">
               <i class="fas fa-bell fs-5"></i>
               <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                <?php echo $notificationCounts['total_pending']; ?>
+                <?php echo $pending_bookings; ?>
               </span>
             </button>
-            <?php include 'includes/notification.php'; ?>
-          </div>
+          </div> -->
 
           <div class="dropdown">
             <button class="btn dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
