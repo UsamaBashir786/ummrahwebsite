@@ -8,12 +8,12 @@ $success_message = $error_message = '';
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
-  // Get and sanitize form data
-  $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING);
+  // Get and sanitize form data (using newer methods instead of deprecated FILTER_SANITIZE_STRING)
+  $name = htmlspecialchars(trim($_POST['name'] ?? ''), ENT_QUOTES, 'UTF-8');
   $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
-  $message = filter_input(INPUT_POST, 'message', FILTER_SANITIZE_STRING);
-  $phone = filter_input(INPUT_POST, 'phone', FILTER_SANITIZE_STRING);
-  $subject = filter_input(INPUT_POST, 'subject', FILTER_SANITIZE_STRING);
+  $message = htmlspecialchars(trim($_POST['message'] ?? ''), ENT_QUOTES, 'UTF-8');
+  $phone = htmlspecialchars(trim($_POST['phone'] ?? ''), ENT_QUOTES, 'UTF-8');
+  $subject = htmlspecialchars(trim($_POST['subject'] ?? ''), ENT_QUOTES, 'UTF-8');
   $ip_address = $_SERVER['REMOTE_ADDR'];
   $created_at = date('Y-m-d H:i:s');
   $status = 'unread'; // Default status

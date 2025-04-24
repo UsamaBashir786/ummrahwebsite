@@ -29,17 +29,17 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_status' && isset($_P
   $message_id = (int)$_POST['message_id'];
   $status = $_POST['status'];
   $admin_notes = isset($_POST['admin_notes']) ? $_POST['admin_notes'] : '';
-
+  
   if (in_array($status, ['unread', 'read', 'replied', 'archived'])) {
     $stmt = $conn->prepare("UPDATE contact_messages SET status = ?, admin_notes = ?, updated_at = NOW() WHERE id = ?");
     $stmt->bind_param("ssi", $status, $admin_notes, $message_id);
-
+    
     if ($stmt->execute()) {
       $success_message = "Message status updated successfully.";
     } else {
       $error_message = "Error updating message status: " . $conn->error;
     }
-
+    
     $stmt->close();
   } else {
     $error_message = "Invalid status value.";
@@ -49,16 +49,16 @@ if (isset($_POST['action']) && $_POST['action'] === 'update_status' && isset($_P
 // Handle message deletion
 if (isset($_POST['action']) && $_POST['action'] === 'delete' && isset($_POST['message_id'])) {
   $message_id = (int)$_POST['message_id'];
-
+  
   $stmt = $conn->prepare("DELETE FROM contact_messages WHERE id = ?");
   $stmt->bind_param("i", $message_id);
-
+  
   if ($stmt->execute()) {
     $success_message = "Message deleted successfully.";
   } else {
     $error_message = "Error deleting message: " . $conn->error;
   }
-
+  
   $stmt->close();
 }
 
@@ -134,32 +134,32 @@ $stmt->close();
     .message-card {
       transition: all 0.2s ease;
     }
-
+    
     .message-card:hover {
       box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
       transform: translateY(-3px);
     }
-
+    
     .status-badge {
       font-size: 0.75rem;
     }
-
+    
     .status-unread {
       background-color: #dc3545;
     }
-
+    
     .status-read {
       background-color: #0d6efd;
     }
-
+    
     .status-replied {
       background-color: #198754;
     }
-
+    
     .status-archived {
       background-color: #6c757d;
     }
-
+    
     .message-preview {
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -167,15 +167,15 @@ $stmt->close();
       overflow: hidden;
       text-overflow: ellipsis;
     }
-
+    
     .table-responsive {
       overflow-x: auto;
     }
-
+    
     .table th {
       white-space: nowrap;
     }
-
+    
     .pagination {
       justify-content: center;
     }
@@ -185,7 +185,7 @@ $stmt->close();
 <body>
   <?php include 'includes/sidebar.php'; ?>
   <!-- Main Content -->
-  <div class="main-content">
+  <div class="main-content p-5">
     <!-- Top Navbar -->
     <nav class="navbar navbar-expand-lg top-navbar mb-4">
       <div class="container-fluid">
@@ -199,9 +199,7 @@ $stmt->close();
             <button class="btn position-relative" id="notificationBtn">
               <i class="fas fa-bell fs-5"></i>
               <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                <?php echo count(array_filter($messages, function ($msg) {
-                  return $msg['status'] === 'unread';
-                })); ?>
+                <?php echo count(array_filter($messages, function($msg) { return $msg['status'] === 'unread'; })); ?>
               </span>
             </button>
           </div>
@@ -291,7 +289,7 @@ $stmt->close();
         'replied' => 0,
         'archived' => 0
       ];
-
+      
       $stmt = $conn->query("SELECT status, COUNT(*) as count FROM contact_messages GROUP BY status");
       while ($row = $stmt->fetch_assoc()) {
         if (isset($status_counts[$row['status']])) {
@@ -315,7 +313,7 @@ $stmt->close();
           </div>
         </div>
       </div>
-
+      
       <div class="col-xl-3 col-md-6">
         <div class="card bg-success text-white mb-4">
           <div class="card-body">
@@ -331,7 +329,7 @@ $stmt->close();
           </div>
         </div>
       </div>
-
+      
       <div class="col-xl-3 col-md-6">
         <div class="card bg-secondary text-white mb-4">
           <div class="card-body">
@@ -413,7 +411,7 @@ $stmt->close();
               </tbody>
             </table>
           </div>
-
+          
           <!-- Pagination -->
           <?php if ($total_pages > 1): ?>
             <nav aria-label="Page navigation">
@@ -423,7 +421,7 @@ $stmt->close();
                     <span aria-hidden="true">&laquo;</span>
                   </a>
                 </li>
-
+                
                 <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                   <li class="page-item <?php echo $current_page == $i ? 'active' : ''; ?>">
                     <a class="page-link" href="?page=<?php echo $i; ?>&status=<?php echo urlencode($filter_status); ?>&search=<?php echo urlencode($search_term); ?>">
@@ -431,7 +429,7 @@ $stmt->close();
                     </a>
                   </li>
                 <?php endfor; ?>
-
+                
                 <li class="page-item <?php echo $current_page >= $total_pages ? 'disabled' : ''; ?>">
                   <a class="page-link" href="?page=<?php echo $current_page + 1; ?>&status=<?php echo urlencode($filter_status); ?>&search=<?php echo urlencode($search_term); ?>" aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
@@ -459,7 +457,7 @@ $stmt->close();
               <div class="mb-3">
                 <h5 class="subject-display">Subject Title</h5>
                 <div class="text-muted">
-                  From: <span class="name-display">Sender Name</span>
+                  From: <span class="name-display">Sender Name</span> 
                   &lt;<span class="email-display">email@example.com</span>&gt;
                   <?php if (!empty($message['phone'])): ?>
                     | <span class="phone-display">Phone Number</span>
@@ -467,13 +465,13 @@ $stmt->close();
                 </div>
                 <div class="text-muted small date-display">Date and Time</div>
               </div>
-
+              
               <div class="card mb-3">
                 <div class="card-body">
                   <p class="message-display">Message content will appear here...</p>
                 </div>
               </div>
-
+              
               <div class="mb-3">
                 <h6>Additional Information</h6>
                 <div class="small text-muted">
@@ -481,12 +479,12 @@ $stmt->close();
                 </div>
               </div>
             </div>
-
+            
             <div class="col-md-4">
               <form method="POST" id="statusUpdateForm">
                 <input type="hidden" name="action" value="update_status">
                 <input type="hidden" name="message_id" id="message_id_input" value="">
-
+                
                 <div class="mb-3">
                   <label for="status_select" class="form-label">Update Status</label>
                   <select class="form-select" id="status_select" name="status">
@@ -496,18 +494,18 @@ $stmt->close();
                     <option value="archived">Archived</option>
                   </select>
                 </div>
-
+                
                 <div class="mb-3">
                   <label for="admin_notes" class="form-label">Admin Notes</label>
                   <textarea class="form-control" id="admin_notes" name="admin_notes" rows="4" placeholder="Add private notes about this contact"></textarea>
                 </div>
-
+                
                 <div class="d-grid">
                   <button type="submit" class="btn btn-primary">Update Status</button>
                 </div>
-
+                
                 <hr>
-
+                
                 <div class="d-grid">
                   <a href="#" class="btn btn-outline-primary reply-email">
                     <i class="fas fa-reply me-2"></i> Reply via Email
@@ -551,7 +549,7 @@ $stmt->close();
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Custom JavaScript -->
   <script src="assets/js/index.js"></script>
-
+  
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // View Message Modal
@@ -559,29 +557,29 @@ $stmt->close();
       viewMessageButtons.forEach(button => {
         button.addEventListener('click', function() {
           const messageData = JSON.parse(this.getAttribute('data-message'));
-
+          
           // Update modal content
           document.querySelector('.subject-display').textContent = messageData.subject || 'No Subject';
           document.querySelector('.name-display').textContent = messageData.name;
           document.querySelector('.email-display').textContent = messageData.email;
-
+          
           if (document.querySelector('.phone-display')) {
             document.querySelector('.phone-display').textContent = messageData.phone || 'No phone provided';
           }
-
+          
           document.querySelector('.date-display').textContent = new Date(messageData.created_at).toLocaleString();
           document.querySelector('.message-display').textContent = messageData.message;
           document.querySelector('.ip-display').textContent = messageData.ip_address || 'Not recorded';
-
+          
           // Set form values
           document.getElementById('message_id_input').value = messageData.id;
           document.getElementById('status_select').value = messageData.status;
           document.getElementById('admin_notes').value = messageData.admin_notes || '';
-
+          
           // Set reply email link
           const replyLink = document.querySelector('.reply-email');
           replyLink.href = 'mailto:' + messageData.email + '?subject=Re: ' + (messageData.subject || 'Your Contact Form Submission');
-
+          
           // Automatically mark as read if it was unread
           if (messageData.status === 'unread') {
             document.getElementById('status_select').value = 'read';
@@ -590,7 +588,7 @@ $stmt->close();
           }
         });
       });
-
+      
       // Delete Message Modal
       const deleteButtons = document.querySelectorAll('.delete-message');
       deleteButtons.forEach(button => {
