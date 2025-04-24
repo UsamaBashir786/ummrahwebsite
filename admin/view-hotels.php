@@ -315,48 +315,8 @@ if ($stats_result && $stats_result->num_rows > 0) {
       </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white rounded-lg shadow p-4 flex items-start">
-        <div class="bg-blue-100 rounded-lg p-3 mr-4">
-          <i class="fas fa-hotel text-blue-600 text-xl"></i>
-        </div>
-        <div>
-          <h3 class="text-gray-500 text-sm font-medium">Total Hotels</h3>
-          <p class="text-2xl font-bold text-gray-800"><?php echo $total_hotels; ?></p>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-4 flex items-start">
-        <div class="bg-green-100 rounded-lg p-3 mr-4">
-          <i class="fas fa-door-open text-green-600 text-xl"></i>
-        </div>
-        <div>
-          <h3 class="text-gray-500 text-sm font-medium">Total Rooms</h3>
-          <p class="text-2xl font-bold text-gray-800"><?php echo $total_rooms; ?></p>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-4 flex items-start">
-        <div class="bg-purple-100 rounded-lg p-3 mr-4">
-          <i class="fas fa-dollar-sign text-purple-600 text-xl"></i>
-        </div>
-        <div>
-          <h3 class="text-gray-500 text-sm font-medium">Average Price</h3>
-          <p class="text-2xl font-bold text-gray-800">PKR<?php echo !is_null($stats['avg_price']) ? number_format(round($stats['avg_price'])) : 0; ?></p>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-4 flex items-start">
-        <div class="bg-yellow-100 rounded-lg p-3 mr-4">
-          <i class="fas fa-star text-yellow-600 text-xl"></i>
-        </div>
-        <div>
-          <h3 class="text-gray-500 text-sm font-medium">5-Star Hotels</h3>
-          <p class="text-2xl font-bold text-gray-800"><?php echo $stats['five_star']; ?></p>
-        </div>
-      </div>
-    </div>
+    
+    <?php include 'includes/hotel-stats.php'; ?>
 
     <!-- Location Stats -->
     <div class="bg-white rounded-lg shadow mb-6 p-4">
