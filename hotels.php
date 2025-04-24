@@ -4,15 +4,17 @@ require_once 'config/db.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-  header('Location: login.php');
-  exit;
+  $error_message = "You must be logged in to book a hotel. <a href='login.php' class='text-blue-600 hover:underline'>Log in here</a>.";
+  $is_logged_in = false;
+} else {
+  $is_logged_in = true;
 }
 
 // Initialize variables
 $hotels = [];
 $available_rooms = [];
 $search_performed = false;
-$error_message = "";
+$error_message = isset($error_message) ? $error_message : "";
 $success_message = "";
 $filters = [
   'search' => $_POST['search'] ?? '',
@@ -114,7 +116,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->close();
       }
     }
-  } elseif (isset($_POST['book_room']) && !empty($hotel_id) && !empty($_POST['room_id']) && !empty($check_in_date) && !empty($check_out_date)) {
+  } elseif ($is_logged_in && isset($_POST['book_room']) && !empty($hotel_id) && !empty($_POST['room_id']) && !empty($check_in_date) && !empty($check_out_date)) {
     // Process booking
     $room_id = $_POST['room_id'];
     $special_requests = $_POST['special_requests'] ?? '';
@@ -351,7 +353,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <!-- Error/Success Messages -->
     <?php if (!empty($error_message)): ?>
       <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg">
-        <p><?php echo htmlspecialchars($error_message); ?></p>
+        <p><?php echo $error_message; ?></p>
       </div>
     <?php endif; ?>
     <?php if (!empty($success_message)): ?>
@@ -375,7 +377,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <p class="font-medium text-lg">No rooms available for the selected dates.</p>
             <p class="mt-2">Try adjusting your dates or selecting another hotel.</p>
           </div>
-        <?php else: ?>
+        <?php elseif ($is_logged_in): ?>
           <form method="POST" id="booking-form">
             <input type="hidden" name="hotel_id" value="<?php echo htmlspecialchars($hotel_id); ?>">
             <input type="hidden" name="check_in_date" value="<?php echo htmlspecialchars($check_in_date); ?>">
@@ -399,6 +401,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               <i class="fas fa-book mr-2"></i> Book Room
             </button>
           </form>
+        <?php else: ?>
+          <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg">
+            <p>You must be logged in to book a room. <a href="login.php" class="text-blue-600 hover:underline">Log in here</a>.</p>
+          </div>
         <?php endif; ?>
       </div>
     <?php endif; ?>
