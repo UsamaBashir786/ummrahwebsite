@@ -11,6 +11,31 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
   exit;
 }
 
+// Function to format large numbers into K, M, B suffixes
+function formatNumber($number)
+{
+  if ($number === null || $number == 0) {
+    return '0';
+  }
+
+  $number = (float)$number; // Ensure it's a number
+  $suffixes = ['', 'K', 'M', 'B', 'T'];
+  $index = 0;
+
+  while ($number >= 1000 && $index < count($suffixes) - 1) {
+    $number /= 1000;
+    $index++;
+  }
+
+  // Round to 1 decimal place if needed, remove decimal if it's .0
+  $formattedNumber = round($number, 1);
+  if ($formattedNumber == round($formattedNumber)) {
+    $formattedNumber = (int)$formattedNumber; // Remove .0
+  }
+
+  return $formattedNumber . $suffixes[$index];
+}
+
 // Initialize variables
 $bookings = [];
 $filters = [
@@ -375,7 +400,7 @@ if ($result) {
         </div>
         <div>
           <h3 class="text-gray-500 text-sm font-medium">Total Revenue</h3>
-          <p class="text-2xl font-bold text-gray-800">PKR <?php echo number_format($stats['total_revenue'] ?? 0, 0); ?></p>
+          <p class="text-2xl font-bold text-gray-800">PKR <?php echo formatNumber($stats['total_revenue'] ?? 0); ?></p>
         </div>
       </div>
 
@@ -494,7 +519,7 @@ if ($result) {
                     <div><?php echo date('M d, Y', strtotime($booking['pickup_date'])); ?></div>
                     <div class="text-sm text-gray-500"><?php echo date('h:i A', strtotime($booking['pickup_time'] ?? '00:00:00')); ?></div>
                   </td>
-                  <td class="font-medium">PKR <?php echo number_format($booking['price'] ?? 0, 0); ?></td>
+                  <td class="font-medium">PKR <?php echo formatNumber($booking['price'] ?? 0); ?></td>
                   <td>
                     <span class="status-badge <?php echo 'status-' . $booking['booking_status']; ?>">
                       <?php echo ucfirst($booking['booking_status']); ?>

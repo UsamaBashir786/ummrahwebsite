@@ -11,6 +11,31 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
   exit;
 }
 
+// Function to format large numbers into K, M, B suffixes
+function formatNumber($number)
+{
+  if ($number === null || $number == 0) {
+    return '0';
+  }
+
+  $number = (float)$number; // Ensure it's a number
+  $suffixes = ['', 'K', 'M', 'B', 'T'];
+  $index = 0;
+
+  while ($number >= 1000 && $index < count($suffixes) - 1) {
+    $number /= 1000;
+    $index++;
+  }
+
+  // Round to 1 decimal place if needed, remove decimal if it's .0
+  $formattedNumber = round($number, 1);
+  if ($formattedNumber == round($formattedNumber)) {
+    $formattedNumber = (int)$formattedNumber; // Remove .0
+  }
+
+  return $formattedNumber . $suffixes[$index];
+}
+
 // Initialize variables
 $bookings = [];
 $filters = [
@@ -170,7 +195,6 @@ if ($result) {
   $message = "Error fetching statistics: " . $conn->error;
   $message_type = "error";
 }
-
 
 // Initialize variables
 $flights = [];

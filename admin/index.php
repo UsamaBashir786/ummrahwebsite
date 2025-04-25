@@ -297,6 +297,61 @@ $stmt->close();
 
     <!-- Stats Cards -->
     <div class="row g-4 mb-4 p-5">
+
+
+      <!-- Total Revenue -->
+      <div class="col-12 col-md-6 col-lg-12">
+        <div class="card stat-card border-start border-success border-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h3 class="fw-bold mb-1">Rs.<?php echo number_format($total_revenue, 2); ?></h3>
+                <div class="text-muted">Total Revenue</div>
+              </div>
+              <div class="stat-card-icon bg-success bg-opacity-10 text-success">
+                <i class="fas fa-wallet"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Average Package Booking Value -->
+      <div class="col-12 col-md-6 col-lg-12">
+        <div class="card stat-card border-start border-warning border-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h3 class="fw-bold mb-1">Rs.<?php echo number_format($avg_package_booking, 2); ?></h3>
+                <div class="text-muted">Avg Package Booking</div>
+              </div>
+              <div class="stat-card-icon bg-warning bg-opacity-10 text-warning">
+                <i class="fas fa-box-open"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Average Flight Booking Value -->
+      <div class="col-12 col-md-6 col-lg-12">
+        <div class="card stat-card border-start border-primary border-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h3 class="fw-bold mb-1">Rs.<?php echo number_format($avg_flight_booking, 2); ?></h3>
+                <div class="text-muted">Avg Flight Booking</div>
+              </div>
+              <div class="stat-card-icon bg-primary bg-opacity-10 text-primary">
+                <i class="fas fa-plane-departure"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
       <!-- Total Bookings -->
       <div class="col-12 col-md-6 col-lg-3">
         <div class="card stat-card border-start border-primary border-4">
@@ -308,23 +363,6 @@ $stmt->close();
               </div>
               <div class="stat-card-icon bg-primary bg-opacity-10 text-primary">
                 <i class="fas fa-calendar-check"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Total Revenue -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-success border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1">Rs.<?php echo number_format($total_revenue, 2); ?></h3>
-                <div class="text-muted">Total Revenue</div>
-              </div>
-              <div class="stat-card-icon bg-success bg-opacity-10 text-success">
-                <i class="fas fa-wallet"></i>
               </div>
             </div>
           </div>
@@ -603,39 +641,6 @@ $stmt->close();
         </div>
       </div>
 
-      <!-- Average Package Booking Value -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-warning border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1">Rs.<?php echo number_format($avg_package_booking, 2); ?></h3>
-                <div class="text-muted">Avg Package Booking</div>
-              </div>
-              <div class="stat-card-icon bg-warning bg-opacity-10 text-warning">
-                <i class="fas fa-box-open"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Average Flight Booking Value -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-primary border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1">Rs.<?php echo number_format($avg_flight_booking, 2); ?></h3>
-                <div class="text-muted">Avg Flight Booking</div>
-              </div>
-              <div class="stat-card-icon bg-primary bg-opacity-10 text-primary">
-                <i class="fas fa-plane-departure"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Recent Activity Section -->

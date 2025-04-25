@@ -195,6 +195,181 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
   <!-- Footer -->
   <?php include 'includes/js-links.php' ?>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get form and input elements
+      const form = document.querySelector('form');
+      const fullNameInput = document.getElementById('fullName');
+      const emailInput = document.getElementById('email');
+      const phoneInput = document.getElementById('phone');
+      const passwordInput = document.getElementById('password');
+      const dobInput = document.getElementById('dob');
+      const profileImageInput = document.getElementById('profileImage');
+
+      // Function to create or update error messages
+      function showError(input, message) {
+        // Remove existing error message if any
+        const existingError = input.nextElementSibling;
+        if (existingError && existingError.classList.contains('error-message')) {
+          existingError.remove();
+        }
+
+        // Create new error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message text-red-500 text-xs mt-1';
+        errorDiv.textContent = message;
+        input.parentElement.appendChild(errorDiv);
+
+        // Add error styling to input
+        input.classList.add('border-red-500');
+        input.classList.remove('focus:border-green-500');
+      }
+
+      // Function to clear error messages
+      function clearError(input) {
+        const existingError = input.nextElementSibling;
+        if (existingError && existingError.classList.contains('error-message')) {
+          existingError.remove();
+        }
+        input.classList.remove('border-red-500');
+        input.classList.add('focus:border-green-500');
+      }
+
+      // Validation functions
+      function validateFullName() {
+        const value = fullNameInput.value.trim();
+        if (value === '') {
+          showError(fullNameInput, 'Full name is required');
+          return false;
+        } else if (!/^[A-Za-z\s]{1,100}$/.test(value)) {
+          showError(fullNameInput, 'Only letters and spaces allowed (max 100 characters)');
+          return false;
+        }
+        clearError(fullNameInput);
+        return true;
+      }
+
+      function validateEmail() {
+        const value = emailInput.value.trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (value === '') {
+          showError(emailInput, 'Email is required');
+          return false;
+        } else if (!emailRegex.test(value)) {
+          showError(emailInput, 'Enter a valid email address');
+          return false;
+        }
+        clearError(emailInput);
+        return true;
+      }
+
+      function validatePhone() {
+        const value = phoneInput.value.trim();
+        const phoneRegex = /^[0-9+\-\(\) ]{7,20}$/;
+        if (value === '') {
+          showError(phoneInput, 'Phone number is required');
+          return false;
+        } else if (!phoneRegex.test(value)) {
+          showError(phoneInput, '7-20 characters, only numbers, +, -, (), spaces allowed');
+          return false;
+        }
+        clearError(phoneInput);
+        return true;
+      }
+
+      function validatePassword() {
+        const value = passwordInput.value;
+        if (value === '') {
+          showError(passwordInput, 'Password is required');
+          return false;
+        } else if (value.length < 6) {
+          showError(passwordInput, 'Password must be at least 6 characters');
+          return false;
+        }
+        clearError(passwordInput);
+        return true;
+      }
+
+      function validateDob() {
+        const value = dobInput.value;
+        const today = new Date();
+        const dob = new Date(value);
+        if (value === '') {
+          showError(dobInput, 'Date of birth is required');
+          return false;
+        } else if (dob >= today) {
+          showError(dobInput, 'Date of birth must be in the past');
+          return false;
+        }
+        clearError(dobInput);
+        return true;
+      }
+
+      function validateProfileImage() {
+        const file = profileImageInput.files[0];
+        if (!file) {
+          clearError(profileImageInput);
+          return true; // Image is optional
+        }
+
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (!allowedTypes.includes(file.type)) {
+          showError(profileImageInput, 'Only JPG, JPEG, PNG, GIF allowed');
+          return false;
+        } else if (file.size > maxSize) {
+          showError(profileImageInput, 'File size must be less than 5MB');
+          return false;
+        }
+        clearError(profileImageInput);
+        return true;
+      }
+
+      // Real-time validation on input
+      fullNameInput.addEventListener('input', validateFullName);
+      emailInput.addEventListener('input', validateEmail);
+      phoneInput.addEventListener('input', validatePhone);
+      passwordInput.addEventListener('input', validatePassword);
+      dobInput.addEventListener('input', validateDob);
+      profileImageInput.addEventListener('change', validateProfileImage);
+
+      // Form submission validation
+      form.addEventListener('submit', function(e) {
+        const isValid =
+          validateFullName() &&
+          validateEmail() &&
+          validatePhone() &&
+          validatePassword() &&
+          validateDob() &&
+          validateProfileImage();
+
+        if (!isValid) {
+          e.preventDefault(); // Prevent form submission if validation fails
+        }
+      });
+
+      // Optional: Check if email exists in real-time using AJAX
+      emailInput.addEventListener('blur', function() {
+        const email = emailInput.value.trim();
+        if (!validateEmail()) return; // Skip if email is invalid
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', 'check_email.php', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onload = function() {
+          if (xhr.status === 200) {
+            const response = xhr.responseText;
+            if (response === 'exists') {
+              showError(emailInput, 'Email already registered');
+            } else {
+              clearError(emailInput);
+            }
+          }
+        };
+        xhr.send('email=' + encodeURIComponent(email));
+      });
+    });
+  </script>
 </body>
 
 </html>

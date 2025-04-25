@@ -1,7 +1,30 @@
 <?php
 // Ensure database connection is available
-if (!isset($conn)) {
-  require_once '../config/db.php';
+require_once '../config/db.php';
+
+// Function to format large numbers into K, M, B suffixes
+function formatNumber($number)
+{
+  if ($number === null || $number == 0) {
+    return 'N/A';
+  }
+
+  $number = (float)$number; // Ensure it's a number
+  $suffixes = ['', 'K', 'M', 'B', 'T'];
+  $index = 0;
+
+  while ($number >= 1000 && $index < count($suffixes) - 1) {
+    $number /= 1000;
+    $index++;
+  }
+
+  // Round to 1 decimal place if needed, remove decimal if it's .0
+  $formattedNumber = round($number, 1);
+  if ($formattedNumber == round($formattedNumber)) {
+    $formattedNumber = (int)$formattedNumber; // Remove .0
+  }
+
+  return $formattedNumber . $suffixes[$index];
 }
 
 // Initialize stats array
@@ -105,201 +128,234 @@ if ($booking_stats_result && $booking_stats_result->num_rows > 0) {
 }
 ?>
 
-<!-- Stats Section -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  <!-- Total Hotels -->
-  <div class="bg-white rounded-lg shadow p-4 flex items-center">
-    <div class="bg-blue-100 rounded-lg p-3 mr-4">
-      <i class="fas fa-hotel text-blue-600 text-xl"></i>
-    </div>
-    <div>
-      <h3 class="text-gray-500 text-sm font-medium">Total Hotels</h3>
-      <p class="text-xl font-bold text-gray-800"><?php echo $stats['total_hotels']; ?></p>
-    </div>
-  </div>
+<!DOCTYPE html>
+<html lang="en">
 
-  <!-- Total Rooms -->
-  <div class="bg-white rounded-lg shadow p-4 flex items-center">
-    <div class="bg-green-100 rounded-lg p-3 mr-4">
-      <i class="fas fa-door-open text-green-600 text-xl"></i>
-    </div>
-    <div>
-      <h3 class="text-gray-500 text-sm font-medium">Total Rooms</h3>
-      <p class="text-xl font-bold text-gray-800"><?php echo $stats['total_rooms']; ?></p>
-      <p class="text-xs text-gray-600">
-        <span class="text-green-600"><?php echo $stats['available_rooms']; ?> Available</span> |
-        <span class="text-red-600"><?php echo $stats['booked_rooms']; ?> Booked</span>
-      </p>
-    </div>
-  </div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hotel Statistics - UmrahFlights</title>
+  <!-- Include Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Include Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    /* Optional custom styles */
+    .stat-card {
+      transition: transform 0.2s;
+    }
 
-  <!-- Average Price -->
-  <div class="bg-white rounded-lg shadow p-4 flex items-center">
-    <div class="bg-purple-100 rounded-lg p-3 mr-4">
-      <i class="fas fa-dollar-sign text-purple-600 text-xl"></i>
-    </div>
-    <div>
-      <h3 class="text-gray-500 text-sm font-medium">Average Price</h3>
-      <p class="text-xl font-bold text-gray-800">
-        <?php echo $stats['avg_price'] !== null ? 'PKR' . number_format(round($stats['avg_price'])) : 'N/A'; ?>
-      </p>
-      <p class="text-xs text-gray-600">
-        Min: <?php echo $stats['min_price'] !== null ? 'PKR' . number_format($stats['min_price']) : 'N/A'; ?> |
-        Max: <?php echo $stats['max_price'] !== null ? 'PKR' . number_format($stats['max_price']) : 'N/A'; ?>
-      </p>
-    </div>
-  </div>
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+  </style>
+</head>
 
-  <!-- 5-Star Hotels -->
-  <div class="bg-white rounded-lg shadow p-4 flex items-center">
-    <div class="bg-yellow-100 rounded-lg p-3 mr-4">
-      <i class="fas fa-star text-yellow-600 text-xl"></i>
-    </div>
-    <div>
-      <h3 class="text-gray-500 text-sm font-medium">5-Star Hotels</h3>
-      <p class="text-xl font-bold text-gray-800"><?php echo $stats['rating_5']; ?></p>
-    </div>
-  </div>
+<body class="bg-gray-100 font-sans">
+  <main class="p-6 min-h-screen">
+    <h1 class="text-2xl font-bold text-gray-800 mb-6">Hotel Statistics</h1>
 
-  <!-- Makkah Hotels -->
-  <div class="bg-white rounded-lg shadow p-4 flex items-center">
-    <div class="bg-blue-100 rounded-lg p-3 mr-4">
-      <i class="fas fa-mosque text-blue-600 text-xl"></i>
-    </div>
-    <div>
-      <h3 class="text-gray-500 text-sm font-medium">Makkah Hotels</h3>
-      <p class="text-xl font-bold text-gray-800"><?php echo $stats['makkah_hotels']; ?></p>
-    </div>
-  </div>
+    <!-- Stats Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <!-- Total Hotels -->
+      <div class="bg-white rounded-lg shadow p-4 flex items-center stat-card">
+        <div class="bg-blue-100 rounded-lg p-3 mr-4">
+          <i class="fas fa-hotel text-blue-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-gray-500 text-sm font-medium">Total Hotels</h3>
+          <p class="text-xl font-bold text-gray-800"><?php echo $stats['total_hotels']; ?></p>
+        </div>
+      </div>
 
-  <!-- Madinah Hotels -->
-  <div class="bg-white rounded-lg shadow p-4 flex items-center">
-    <div class="bg-green-100 rounded-lg p-3 mr-4">
-      <i class="fas fa-mosque text-green-600 text-xl"></i>
-    </div>
-    <div>
-      <h3 class="text-gray-500 text-sm font-medium">Madinah Hotels</h3>
-      <p class="text-xl font-bold text-gray-800"><?php echo $stats['madinah_hotels']; ?></p>
-    </div>
-  </div>
+      <!-- Total Rooms -->
+      <div class="bg-white rounded-lg shadow p-4 flex items-center stat-card">
+        <div class="bg-green-100 rounded-lg p-3 mr-4">
+          <i class="fas fa-door-open text-green-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-gray-500 text-sm font-medium">Total Rooms</h3>
+          <p class="text-xl font-bold text-gray-800"><?php echo $stats['total_rooms']; ?></p>
+          <p class="text-xs text-gray-600">
+            <span class="text-green-600"><?php echo $stats['available_rooms']; ?> Available</span> |
+            <span class="text-red-600"><?php echo $stats['booked_rooms']; ?> Booked</span>
+          </p>
+        </div>
+      </div>
 
-  <!-- Total Bookings -->
-  <div class="bg-white rounded-lg shadow p-4 flex items-center">
-    <div class="bg-blue-100 rounded-lg p-3 mr-4">
-      <i class="fas fa-book text-blue-600 text-xl"></i>
-    </div>
-    <div>
-      <h3 class="text-gray-500 text-sm font-medium">Total Bookings</h3>
-      <p class="text-xl font-bold text-gray-800"><?php echo $stats['total_bookings']; ?></p>
-    </div>
-  </div>
+      <!-- Average Price -->
+      <div class="bg-white rounded-lg shadow p-4 flex items-center stat-card">
+        <div class="bg-purple-100 rounded-lg p-3 mr-4">
+          <i class="fas fa-dollar-sign text-purple-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-gray-500 text-sm font-medium">Average Price</h3>
+          <p class="text-xl font-bold text-gray-800">
+            <?php echo 'PKR' . formatNumber(round($stats['avg_price'])); ?>
+          </p>
+          <p class="text-xs text-gray-600">
+            Min: <?php echo 'PKR' . formatNumber($stats['min_price']); ?> |
+            Max: <?php echo 'PKR' . formatNumber($stats['max_price']); ?>
+          </p>
+        </div>
+      </div>
 
-  <!-- Estimated Revenue -->
-  <div class="bg-white rounded-lg shadow p-4 flex items-center">
-    <div class="bg-green-100 rounded-lg p-3 mr-4">
-      <i class="fas fa-dollar-sign text-green-600 text-xl"></i>
-    </div>
-    <div>
-      <h3 class="text-gray-500 text-sm font-medium">Est. Revenue</h3>
-      <p class="text-xl font-bold text-gray-800">PKR<?php echo number_format($stats['estimated_revenue'] ?? 0); ?></p>
-    </div>
-  </div>
-</div>
+      <!-- 5-Star Hotels -->
+      <div class="bg-white rounded-lg shadow p-4 flex items-center stat-card">
+        <div class="bg-yellow-100 rounded-lg p-3 mr-4">
+          <i class="fas fa-star text-yellow-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-gray-500 text-sm font-medium">5-Star Hotels</h3>
+          <p class="text-xl font-bold text-gray-800"><?php echo $stats['rating_5']; ?></p>
+        </div>
+      </div>
 
-<!-- Detailed Stats -->
-<div class="bg-white rounded-lg shadow p-4 mb-6">
-  <h2 class="text-lg font-bold text-gray-800 mb-4">Detailed Hotel Statistics</h2>
+      <!-- Makkah Hotels -->
+      <div class="bg-white rounded-lg shadow p-4 flex items-center stat-card">
+        <div class="bg-blue-100 rounded-lg p-3 mr-4">
+          <i class="fas fa-mosque text-blue-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-gray-500 text-sm font-medium">Makkah Hotels</h3>
+          <p class="text-xl font-bold text-gray-800"><?php echo $stats['makkah_hotels']; ?></p>
+        </div>
+      </div>
 
-  <!-- Rating Distribution -->
-  <div class="mb-6">
-    <h3 class="text-sm font-medium text-gray-700 mb-2">Rating Distribution</h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
-      <?php for ($i = 5; $i >= 1; $i--): ?>
-        <?php
-        $rating_count = $stats["rating_$i"];
-        $rating_percent = $stats['total_hotels'] > 0 ? ($rating_count / $stats['total_hotels']) * 100 : 0;
-        ?>
-        <div class="bg-gray-50 rounded-lg p-3 flex items-center">
-          <div class="bg-yellow-100 rounded-lg p-2 mr-3">
-            <i class="fas fa-star text-yellow-600 text-sm"></i>
+      <!-- Madinah Hotels -->
+      <div class="bg-white rounded-lg shadow p-4 flex items-center stat-card">
+        <div class="bg-green-100 rounded-lg p-3 mr-4">
+          <i class="fas fa-mosque text-green-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-gray-500 text-sm font-medium">Madinah Hotels</h3>
+          <p class="text-xl font-bold text-gray-800"><?php echo $stats['madinah_hotels']; ?></p>
+        </div>
+      </div>
+
+      <!-- Total Bookings -->
+      <div class="bg-white rounded-lg shadow p-4 flex items-center stat-card">
+        <div class="bg-blue-100 rounded-lg p-3 mr-4">
+          <i class="fas fa-book text-blue-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-gray-500 text-sm font-medium">Total Bookings</h3>
+          <p class="text-xl font-bold text-gray-800"><?php echo $stats['total_bookings']; ?></p>
+        </div>
+      </div>
+
+      <!-- Estimated Revenue -->
+      <div class="bg-white rounded-lg shadow p-4 flex items-center stat-card">
+        <div class="bg-green-100 rounded-lg p-3 mr-4">
+          <i class="fas fa-dollar-sign text-green-600 text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-gray-500 text-sm font-medium">Est. Revenue</h3>
+          <p class="text-xl font-bold text-gray-800">
+            <?php echo 'PKR' . formatNumber($stats['estimated_revenue'] ?? 0); ?>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Stats -->
+    <div class="bg-white rounded-lg shadow p-4 mb-6">
+      <h2 class="text-lg font-bold text-gray-800 mb-4">Detailed Hotel Statistics</h2>
+
+      <!-- Rating Distribution -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Rating Distribution</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2">
+          <?php for ($i = 5; $i >= 1; $i--): ?>
+            <?php
+            $rating_count = $stats["rating_$i"];
+            $rating_percent = $stats['total_hotels'] > 0 ? ($rating_count / $stats['total_hotels']) * 100 : 0;
+            ?>
+            <div class="bg-gray-50 rounded-lg p-3 flex items-center">
+              <div class="bg-yellow-100 rounded-lg p-2 mr-3">
+                <i class="fas fa-star text-yellow-600 text-sm"></i>
+              </div>
+              <div>
+                <h4 class="text-xs font-medium text-gray-600"><?php echo $i; ?> Stars</h4>
+                <p class="text-sm font-bold text-gray-800"><?php echo $rating_count; ?></p>
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                  <div class="bg-yellow-500 h-2 rounded-full" style="width: <?php echo $rating_percent; ?>%"></div>
+                </div>
+              </div>
+            </div>
+          <?php endfor; ?>
+        </div>
+      </div>
+
+      <!-- Amenities Distribution -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Amenities Distribution</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <?php foreach ($stats['amenities'] as $amenity => $count): ?>
+            <div class="bg-gray-50 rounded-lg p-3 flex items-center">
+              <div class="bg-blue-100 rounded-lg p-2 mr-3">
+                <?php
+                $icon = match ($amenity) {
+                  'wifi' => 'fa-wifi',
+                  'parking' => 'fa-car',
+                  'restaurant' => 'fa-utensils',
+                  'gym' => 'fa-dumbbell',
+                  'pool' => 'fa-swimming-pool',
+                  'ac' => 'fa-snowflake',
+                  'room_service' => 'fa-concierge-bell',
+                  'spa' => 'fa-spa',
+                  default => 'fa-check'
+                };
+                ?>
+                <i class="fas <?php echo $icon; ?> text-blue-600 text-sm"></i>
+              </div>
+              <div>
+                <h4 class="text-xs font-medium text-gray-600 capitalize"><?php echo str_replace('_', ' ', $amenity); ?></h4>
+                <p class="text-sm font-bold text-gray-800"><?php echo $count; ?></p>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      </div>
+
+      <!-- Image Coverage -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Image Coverage</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div class="bg-gray-50 rounded-lg p-3 flex items-center">
+            <div class="bg-green-100 rounded-lg p-2 mr-3">
+              <i class="fas fa-image text-green-600 text-sm"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-medium text-gray-600">With Images</h4>
+              <p class="text-sm font-bold text-gray-800"><?php echo $stats['with_images']; ?></p>
+              <?php
+              $image_percent = $stats['total_hotels'] > 0 ? ($stats['with_images'] / $stats['total_hotels']) * 100 : 0;
+              ?>
+              <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                <div class="bg-green-600 h-2 rounded-full" style="width: <?php echo $image_percent; ?>%"></div>
+              </div>
+            </div>
           </div>
-          <div>
-            <h4 class="text-xs font-medium text-gray-600"><?php echo $i; ?> Stars</h4>
-            <p class="text-sm font-bold text-gray-800"><?php echo $rating_count; ?></p>
-            <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-              <div class="bg-yellow-500 h-2 rounded-full" style="width: <?php echo $rating_percent; ?>%"></div>
+          <div class="bg-gray-50 rounded-lg p-3 flex items-center">
+            <div class="bg-red-100 rounded-lg p-2 mr-3">
+              <i class="fas fa-times text-red-600 text-sm"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-medium text-gray-600">Without Images</h4>
+              <p class="text-sm font-bold text-gray-800"><?php echo $stats['without_images']; ?></p>
+              <?php
+              $no_image_percent = $stats['total_hotels'] > 0 ? ($stats['without_images'] / $stats['total_hotels']) * 100 : 0;
+              ?>
+              <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                <div class="bg-red-600 h-2 rounded-full" style="width: <?php echo $no_image_percent; ?>%"></div>
+              </div>
             </div>
           </div>
         </div>
-      <?php endfor; ?>
-    </div>
-  </div>
-
-  <!-- Amenities Distribution -->
-  <div class="mb-6">
-    <h3 class="text-sm font-medium text-gray-700 mb-2">Amenities Distribution</h3>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-      <?php foreach ($stats['amenities'] as $amenity => $count): ?>
-        <div class="bg-gray-50 rounded-lg p-3 flex items-center">
-          <div class="bg-blue-100 rounded-lg p-2 mr-3">
-            <?php
-            $icon = match ($amenity) {
-              'wifi' => 'fa-wifi',
-              'parking' => 'fa-car',
-              'restaurant' => 'fa-utensils',
-              'gym' => 'fa-dumbbell',
-              'pool' => 'fa-swimming-pool',
-              'ac' => 'fa-snowflake',
-              'room_service' => 'fa-concierge-bell',
-              'spa' => 'fa-spa',
-              default => 'fa-check'
-            };
-            ?>
-            <i class="fas <?php echo $icon; ?> text-blue-600 text-sm"></i>
-          </div>
-          <div>
-            <h4 class="text-xs font-medium text-gray-600 capitalize"><?php echo str_replace('_', ' ', $amenity); ?></h4>
-            <p class="text-sm font-bold text-gray-800"><?php echo $count; ?></p>
-          </div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  </div>
-
-  <!-- Image Coverage -->
-  <div class="mb-6">
-    <h3 class="text-sm font-medium text-gray-700 mb-2">Image Coverage</h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-      <div class="bg-gray-50 rounded-lg p-3 flex items-center">
-        <div class="bg-green-100 rounded-lg p-2 mr-3">
-          <i class="fas fa-image text-green-600 text-sm"></i>
-        </div>
-        <div>
-          <h4 class="text-xs font-medium text-gray-600">With Images</h4>
-          <p class="text-sm font-bold text-gray-800"><?php echo $stats['with_images']; ?></p>
-          <?php
-          $image_percent = $stats['total_hotels'] > 0 ? ($stats['with_images'] / $stats['total_hotels']) * 100 : 0;
-          ?>
-          <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-            <div class="bg-green-600 h-2 rounded-full" style="width: <?php echo $image_percent; ?>%"></div>
-          </div>
-        </div>
-      </div>
-      <div class="bg-gray-50 rounded-lg p-3 flex items-center">
-        <div class="bg-red-100 rounded-lg p-2 mr-3">
-          <i class="fas fa-times text-red-600 text-sm"></i>
-        </div>
-        <div>
-          <h4 class="text-xs font-medium text-gray-600">Without Images</h4>
-          <p class="text-sm font-bold text-gray-800"><?php echo $stats['without_images']; ?></p>
-          <?php
-          $no_image_percent = $stats['total_hotels'] > 0 ? ($stats['without_images'] / $stats['total_hotels']) * 100 : 0;
-          ?>
-          <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
-            <div class="bg-red-600 h-2 rounded-full" style="width: <?php echo $no_image_percent; ?>%"></div>
-          </div>
-        </div>
       </div>
     </div>
-  </div>
-</div>
+  </main>
+</body>
+
+</html>
