@@ -359,8 +359,8 @@ $stmt->close();
                   <td class="p-3"><?php echo htmlspecialchars($user['email']); ?></td>
                   <td class="p-3 text-center"><?php echo htmlspecialchars($user['dob']); ?></td>
                   <td class="p-3 text-center">
-                    <?php if ($user['profile_image'] && file_exists($user['profile_image'])): ?>
-                      <img src="<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile" class="w-8 h-8 rounded-full mx-auto">
+                    <?php if ($user['profile_image'] && file_exists('../' . $user['profile_image'])): ?>
+                      <img src="../<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile" class="w-8 h-8 rounded-full mx-auto">
                     <?php else: ?>
                       <span class="text-gray-500">None</span>
                     <?php endif; ?>
