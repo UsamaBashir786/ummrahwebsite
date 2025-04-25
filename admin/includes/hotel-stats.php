@@ -191,11 +191,18 @@ if ($booking_stats_result && $booking_stats_result->num_rows > 0) {
         <div>
           <h3 class="text-gray-500 text-sm font-medium">Average Price</h3>
           <p class="text-xl font-bold text-gray-800">
-            <?php echo 'PKR' . formatNumber(round($stats['avg_price'])); ?>
+            <?php
+            // Handle null avg_price
+            if ($stats['avg_price'] === null) {
+              echo 'PKR N/A';
+            } else {
+              echo 'PKR' . formatNumber(round($stats['avg_price']));
+            }
+            ?>
           </p>
           <p class="text-xs text-gray-600">
-            Min: <?php echo 'PKR' . formatNumber($stats['min_price']); ?> |
-            Max: <?php echo 'PKR' . formatNumber($stats['max_price']); ?>
+            Min: <?php echo $stats['min_price'] === null ? 'PKR N/A' : 'PKR' . formatNumber($stats['min_price']); ?> |
+            Max: <?php echo $stats['max_price'] === null ? 'PKR N/A' : 'PKR' . formatNumber($stats['max_price']); ?>
           </p>
         </div>
       </div>
