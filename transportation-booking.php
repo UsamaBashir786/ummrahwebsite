@@ -343,6 +343,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
       }
     });
   </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const pickupTimeInput = document.getElementById('pickup_time');
+
+      // Add event listener for form submission or input validation
+      pickupTimeInput.addEventListener('change', validateTime);
+      pickupTimeInput.addEventListener('input', validateTime);
+
+      function validateTime() {
+        const timeValue = pickupTimeInput.value;
+
+        if (!timeValue) {
+          pickupTimeInput.setCustomValidity('Please enter a pickup time');
+          return;
+        }
+
+        // Split the time into hours and minutes
+        const [hours, minutes] = timeValue.split(':').map(Number);
+
+        // Validate hours (0-23) and minutes (0-59)
+        if (isNaN(hours) || hours < 0 || hours > 23) {
+          pickupTimeInput.setCustomValidity('Please enter a valid hour (0-23)');
+        } else if (isNaN(minutes) || minutes < 0 || minutes > 59) {
+          pickupTimeInput.setCustomValidity('Please enter valid minutes (0-59)');
+        } else {
+          pickupTimeInput.setCustomValidity('');
+        }
+
+        // For immediate feedback
+        pickupTimeInput.reportValidity();
+      }
+
+      // You can also add this to your form submission handler
+      const form = pickupTimeInput.closest('form');
+      if (form) {
+        form.addEventListener('submit', function(event) {
+          validateTime();
+          if (!pickupTimeInput.checkValidity()) {
+            event.preventDefault();
+          }
+        });
+      }
+    });
+  </script>
 </body>
 
 </html>
