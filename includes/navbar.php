@@ -10,7 +10,6 @@ if (session_status() == PHP_SESSION_NONE) {
     <div class="flex justify-between h-16">
       <div class="flex items-center">
         <a class="flex-shrink-0 flex items-center text-2xl font-bold text-gray-800" href="index.php">
-          <!-- <img class="h-8 w-auto mr-2" src="path/to/logo.png" alt="Umrah Logo"> -->
           UMRAH
         </a>
       </div>
