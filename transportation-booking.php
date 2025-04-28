@@ -305,9 +305,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
               <input type="date" name="pickup_date" id="pickup_date" value="<?php echo isset($_POST['pickup_date']) ? htmlspecialchars($_POST['pickup_date']) : ''; ?>" min="<?php echo date('Y-m-d'); ?>" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 form-input" required>
             </div>
             <div>
-              <label for="pickup_time" class="block text-sm font-medium text-gray-700 mb-2">Pickup Time</label>
-              <input type="time" name="pickup_time" id="pickup_time" value="<?php echo isset($_POST['pickup_time']) ? htmlspecialchars($_POST['pickup_time']) : ''; ?>" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 form-input" required>
+              <label for="pickup_time" class="block text-sm font-medium text-gray-700 mb-2">Pickup Time (24-hour format)</label>
+              <input
+                type="text"
+                name="pickup_time"
+                id="pickup_time"
+                placeholder="HH:MM"
+                value="<?php echo isset($_POST['pickup_time']) ? htmlspecialchars($_POST['pickup_time']) : ''; ?>"
+                class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 form-input"
+                maxlength="5"
+                required>
+              <p id="time-error" class="text-red-500 text-xs mt-1 hidden">Please enter a valid time (Hours: 00-23, Minutes: 00-59)</p>
+              <input type="hidden" name="formatted_pickup_time" id="formatted_pickup_time">
             </div>
+
+            <script>
+              // Get references to the elements
+              const pickupTimeInput = document.getElementById('pickup_time');
+              const formattedTimeInput = document.getElementById('formatted_pickup_time');
+              const timeError = document.getElementById('time-error');
+
+              // Auto-format as user types
+              pickupTimeInput.addEventListener('input', function(e) {
+                // Get the current value and cursor position
+                let value = this.value;
+                let cursorPos = this.selectionStart;
+
+                // Remove any non-digit characters
+                const digitsOnly = value.replace(/\D/g, '');
+
+                // Handle backspace
+                if (e.inputType === 'deleteContentBackward' && value.length < this.oldValue?.length) {
+                  this.oldValue = value;
+                  return;
+                }
+
+                // Format the time
+                let formattedValue = '';
+
+                if (digitsOnly.length > 0) {
+                  // First two digits (hours)
+                  const hours = digitsOnly.substring(0, Math.min(2, digitsOnly.length));
+
+                  // Validate hours (00-23)
+                  if (hours.length === 2 && parseInt(hours) > 23) {
+                    formattedValue = '23';
+                  } else {
+                    formattedValue = hours;
+                  }
+
+                  // Add colon after 2 digits automatically
+                  if (digitsOnly.length >= 2) {
+                    formattedValue += ':';
+
+                    // Add minutes if they exist
+                    if (digitsOnly.length > 2) {
+                      const minutes = digitsOnly.substring(2, Math.min(4, digitsOnly.length));
+
+                      // Validate minutes (00-59)
+                      if (minutes.length === 2 && parseInt(minutes) > 59) {
+                        formattedValue += '59';
+                      } else {
+                        formattedValue += minutes;
+                      }
+                    }
+                  }
+                }
+
+                // Update the field value
+                this.value = formattedValue;
+
+                // Adjust cursor position if a colon was automatically added
+                if (value.length === 2 && formattedValue.length === 3 && cursorPos === 2) {
+                  this.setSelectionRange(3, 3);
+                }
+
+                this.oldValue = formattedValue;
+              });
+
+              // Final validation on blur
+              pickupTimeInput.addEventListener('blur', function() {
+                const timeValue = this.value;
+                // Regular expression for proper 24-hour time format
+                const timeRegex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
+
+                if (timeValue && !timeRegex.test(timeValue)) {
+                  timeError.classList.remove('hidden');
+                  this.classList.add('border-red-500');
+                } else if (timeValue) {
+                  timeError.classList.add('hidden');
+                  this.classList.remove('border-red-500');
+
+                  // Format to ensure HH:MM format (add leading zeros if needed)
+                  const [hours, minutes] = timeValue.split(':');
+                  const formattedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+                  this.value = formattedTime;
+                  formattedTimeInput.value = formattedTime;
+                }
+              });
+
+              // Validate on form submission
+              pickupTimeInput.closest('form').addEventListener('submit', function(event) {
+                const timeValue = pickupTimeInput.value;
+                const timeRegex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
+
+                if (!timeRegex.test(timeValue)) {
+                  event.preventDefault();
+                  timeError.classList.remove('hidden');
+                  pickupTimeInput.classList.add('border-red-500');
+                  pickupTimeInput.focus();
+                } else {
+                  // Format to ensure HH:MM format (add leading zeros if needed)
+                  const [hours, minutes] = timeValue.split(':');
+                  const formattedTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+                  pickupTimeInput.value = formattedTime;
+                  formattedTimeInput.value = formattedTime;
+                }
+              });
+            </script>
             <div>
               <label for="pickup_location" class="block text-sm font-medium text-gray-700 mb-2">Pickup Location</label>
               <input type="text" name="pickup_location" id="pickup_location" value="<?php echo isset($_POST['pickup_location']) ? htmlspecialchars($_POST['pickup_location']) : ''; ?>" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 form-input" required>
