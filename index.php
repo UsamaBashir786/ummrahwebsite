@@ -38,7 +38,8 @@ if ($packages_result && $packages_result->num_rows > 0) {
   </a>
 
   <!-- Hero Section -->
-  <section class="hero-section">
+  <section class="hero-section" style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    url('/assets/img/hero.jpg');">
     <div class="container mx-auto px-4 text-center">
       <div data-aos="fade-up" data-aos-duration="1000" class="max-w-4xl mx-auto text-white">
         <h1 class="text-5xl md:text-6xl font-bold mb-6">Begin Your Sacred Journey to Umrah</h1>

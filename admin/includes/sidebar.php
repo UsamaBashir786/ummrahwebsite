@@ -1,6 +1,7 @@
 <style>
   a {
     text-decoration: none;
+    color: black;
   }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -9,9 +10,7 @@
 <div class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" id="sidebar-overlay"></div>
 
 <!-- Sidebar -->
-<nav style="    height: 100vh;
-    position: fixed;
-    overflow-y: scroll;" class=" fixed top-0 left-0 w-64 h-full bg-white shadow-lg transform -translate-x-full transition-transform duration-300 z-50" id="sidebar">
+<nav style="height: 100vh; position: fixed; overflow-y: scroll;" class="fixed top-0 left-0 w-64 h-full bg-white shadow-lg transform -translate-x-full transition-transform duration-300 z-50" id="sidebar">
   <div class="flex items-center justify-between p-4 bg-blue-500 text-white">
     <div class="flex items-center space-x-2">
       <i class="fas fa-plane-departure text-xl"></i>
@@ -166,17 +165,23 @@
   sidebarToggle.addEventListener('click', () => {
     sidebar.classList.remove('-translate-x-full');
     sidebarOverlay.classList.remove('hidden');
+    // Hide the hamburger button when sidebar is open
+    sidebarToggle.classList.add('hidden');
   });
 
   // Close Sidebar
   sidebarClose.addEventListener('click', () => {
     sidebar.classList.add('-translate-x-full');
     sidebarOverlay.classList.add('hidden');
+    // Show the hamburger button when sidebar is closed
+    sidebarToggle.classList.remove('hidden');
   });
 
   sidebarOverlay.addEventListener('click', () => {
     sidebar.classList.add('-translate-x-full');
     sidebarOverlay.classList.add('hidden');
+    // Show the hamburger button when sidebar is closed via overlay click
+    sidebarToggle.classList.remove('hidden');
   });
 
   // Dropdown Toggle
