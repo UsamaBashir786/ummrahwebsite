@@ -37,7 +37,7 @@ $inclusions = json_decode($package['inclusions'], true) ?: [];
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?php echo htmlspecialchars($package['title']); ?> - UmrahFlights</title>
   <!-- Include Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="src/output.css">
   <!-- Include Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <?php include 'includes/css-links.php' ?>

@@ -8,7 +8,7 @@ session_start();
 <head>
   <?php include 'includes/css-links.php' ?>
   <link rel="stylesheet" href="assets/css/style.css">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="src/output.css">
   <!-- Add AOS (Animate on Scroll) Library -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
