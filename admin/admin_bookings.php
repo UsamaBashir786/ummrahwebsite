@@ -180,9 +180,13 @@ $stmt->close();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manage Bookings | Admin Panel</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Manage Bookings | UmrahFlights</title>
+  <!-- Tailwind CSS (same as other pages) -->
+  <link rel="stylesheet" href="../src/output.css">
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- SweetAlert2 (for potential future interactivity, not currently used) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     .badge {
       @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
@@ -200,29 +204,66 @@ $stmt->close();
       @apply bg-red-100 text-red-800;
     }
 
+    .badge-secondary {
+      @apply bg-gray-100 text-gray-800;
+    }
+
     .btn-primary {
-      @apply bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition-colors;
+      @apply bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors;
     }
 
     .btn-success {
-      @apply bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded transition-colors;
+      @apply bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md transition-colors;
     }
 
     .btn-secondary {
-      @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded transition-colors;
+      @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md transition-colors;
     }
   </style>
 </head>
 
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 font-sans min-h-screen">
   <?php include 'includes/sidebar.php'; ?>
+  <main class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300" role="main" aria-label="Main content">
+    <!-- Top Navbar (aligned with other pages) -->
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden" aria-label="Toggle sidebar">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <h4 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">Manage Bookings</h4>
+        </div>
+        <div class="flex items-center space-x-4">
+          <!-- User Dropdown -->
+          <div class="relative">
+            <button id="userDropdownButton" class="flex items-center space-x-2 text-gray-700 hover:bg-indigo-50 rounded-lg px-3 py-2 focus:outline-none" aria-label="User menu" aria-expanded="false">
+              <div class="rounded-full overflow-hidden" style="width: 32px; height: 32px;">
+                <div class="bg-gray-200 w-full h-full"></div>
+              </div>
+              <span class="hidden md:inline text-sm font-medium">Admin User</span>
+              <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
+              <li>
+                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </nav>
 
-  <div class="ml-0 mt-10 p-6">
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <!-- Main Content Section -->
+    <section class="bg-white shadow-lg rounded-lg p-6" aria-label="Manage bookings">
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">
-          <i class="fas fa-clipboard-list text-blue-500 mr-2"></i>Manage Bookings
-        </h1>
+        <h2 class="text-2xl font-bold text-gray-800">
+          <i class="fas fa-clipboard-list text-indigo-600 mr-2"></i>Manage Bookings
+        </h2>
         <a href="index.php" class="btn-secondary">
           <i class="fas fa-home mr-2"></i>Dashboard
         </a>
@@ -233,11 +274,11 @@ $stmt->close();
         <form action="" method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-            <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($search_term); ?>" placeholder="ID, Name or Email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+            <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($search_term); ?>" placeholder="ID, Name or Email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
           </div>
           <div>
             <label for="date_filter" class="block text-sm font-medium text-gray-700 mb-1">Date Filter</label>
-            <select id="date_filter" name="date_filter" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+            <select id="date_filter" name="date_filter" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
               <option value="">All Time</option>
               <option value="today" <?php echo $date_filter === 'today' ? 'selected' : ''; ?>>Today</option>
               <option value="last7days" <?php echo $date_filter === 'last7days' ? 'selected' : ''; ?>>Last 7 Days</option>
@@ -247,7 +288,7 @@ $stmt->close();
           </div>
           <div>
             <label for="status_filter" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select id="status_filter" name="status_filter" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+            <select id="status_filter" name="status_filter" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
               <option value="">All Statuses</option>
               <option value="pending" <?php echo $status_filter === 'pending' ? 'selected' : ''; ?>>Pending</option>
               <option value="confirmed" <?php echo $status_filter === 'confirmed' ? 'selected' : ''; ?>>Confirmed</option>
@@ -256,7 +297,7 @@ $stmt->close();
           </div>
           <div>
             <label for="assignment_filter" class="block text-sm font-medium text-gray-700 mb-1">Assignment Status</label>
-            <select id="assignment_filter" name="assignment_filter" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+            <select id="assignment_filter" name="assignment_filter" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
               <option value="">All Assignments</option>
               <option value="fully_assigned" <?php echo $assignment_filter === 'fully_assigned' ? 'selected' : ''; ?>>Fully Assigned</option>
               <option value="not_fully_assigned" <?php echo $assignment_filter === 'not_fully_assigned' ? 'selected' : ''; ?>>Not Fully Assigned</option>
@@ -275,7 +316,7 @@ $stmt->close();
 
       <!-- Bookings Count -->
       <div class="mb-6">
-        <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4">
+        <div class="bg-indigo-50 border-l-4 border-indigo-500 text-indigo-700 p-4 rounded-lg">
           <div class="flex justify-between items-center">
             <p class="font-bold">Total Bookings: <?php echo $total_bookings; ?></p>
             <p class="text-sm">Showing <?php echo min($per_page, count($bookings)); ?> of <?php echo $total_bookings; ?> bookings</p>
@@ -285,7 +326,7 @@ $stmt->close();
 
       <!-- Bookings Table -->
       <div class="overflow-x-auto">
-        <table class="min-w-full bg-white border border-gray-200">
+        <table class="min-w-full bg-white border border-gray-200 rounded-lg">
           <thead>
             <tr class="bg-gray-100">
               <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">ID</th>
@@ -425,7 +466,7 @@ $stmt->close();
             }
 
             for ($i = $start_page; $i <= $end_page; $i++) {
-              $active_class = $i === $current_page ? 'bg-blue-500 text-white' : '';
+              $active_class = $i === $current_page ? 'bg-indigo-600 text-white' : '';
               echo '<a href="?page=' . $i . (!empty($search_term) ? '&search=' . urlencode($search_term) : '') . (!empty($date_filter) ? '&date_filter=' . urlencode($date_filter) : '') . (!empty($status_filter) ? '&status_filter=' . urlencode($status_filter) : '') . (!empty($assignment_filter) ? '&assignment_filter=' . urlencode($assignment_filter) : '') . '" class="btn-secondary py-1 px-3 ' . $active_class . '">' . $i . '</a>';
             }
 
@@ -445,9 +486,72 @@ $stmt->close();
           </div>
         </div>
       <?php endif; ?>
-    </div>
-  </div>
+    </section>
+  </main>
 
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Sidebar elements (aligned with other pages)
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const dashboardHeader = document.getElementById('dashboardHeader');
+
+      // User dropdown elements
+      const userDropdownButton = document.getElementById('userDropdownButton');
+      const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+      // Error handling for missing elements
+      if (!sidebar || !sidebarOverlay || !sidebarToggle || !sidebarClose) {
+        console.warn('One or more sidebar elements are missing.');
+        return;
+      }
+      if (!userDropdownButton || !userDropdownMenu) {
+        console.warn('User dropdown elements are missing.');
+        return;
+      }
+      if (!dashboardHeader) {
+        console.warn('Dashboard header element is missing.');
+        return;
+      }
+
+      // Sidebar toggle function
+      const toggleSidebar = () => {
+        sidebar.classList.toggle('-translate-x-full');
+        sidebarOverlay.classList.toggle('hidden');
+        sidebarToggle.classList.toggle('hidden');
+      };
+
+      // Open sidebar
+      sidebarToggle.addEventListener('click', toggleSidebar);
+
+      // Close sidebar
+      sidebarClose.addEventListener('click', toggleSidebar);
+
+      // Close sidebar via overlay
+      sidebarOverlay.addEventListener('click', toggleSidebar);
+
+      // Open sidebar on Dashboard header click
+      dashboardHeader.addEventListener('click', () => {
+        if (sidebar.classList.contains('-translate-x-full')) {
+          toggleSidebar();
+        }
+      });
+
+      // User dropdown toggle
+      userDropdownButton.addEventListener('click', () => {
+        userDropdownMenu.classList.toggle('hidden');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (event) => {
+        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+          userDropdownMenu.classList.add('hidden');
+        }
+      });
+    });
+  </script>
 </body>
 
 </html>

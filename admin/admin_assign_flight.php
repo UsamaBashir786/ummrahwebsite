@@ -249,39 +249,83 @@ if ($booking) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Assign Flight | Admin Panel</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Assign Flight | UmrahFlights</title>
+  <!-- Tailwind CSS (same as index.php and add-transportation.php) -->
+  <link rel="stylesheet" href="../src/output.css">
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- SweetAlert2 (for consistency with add-transportation.php) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 font-sans min-h-screen">
   <?php include 'includes/sidebar.php'; ?>
+  <main class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300" role="main" aria-label="Main content">
+    <!-- Top Navbar (aligned with index.php and add-transportation.php) -->
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden" aria-label="Toggle sidebar">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <h4 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">Assign Flight</h4>
+        </div>
+        <div class="flex items-center space-x-4">
+          <!-- User Dropdown -->
+          <div class="relative">
+            <button id="userDropdownButton" class="flex items-center space-x-2 text-gray-700 hover:bg-indigo-50 rounded-lg px-3 py-2 focus:outline-none" aria-label="User menu" aria-expanded="false">
+              <div class="rounded-full overflow-hidden" style="width: 32px; height: 32px;">
+                <div class="bg-gray-200 w-full h-full"></div>
+              </div>
+              <span class="hidden md:inline text-sm font-medium">Admin User</span>
+              <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
+              <li>
+                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </nav>
 
-  <div class="ml-0 md:ml-64 p-6">
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <!-- Main Content Section -->
+    <section class="bg-white shadow-lg rounded-lg p-6" aria-label="Flight assignment">
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">
-          <i class="fas fa-plane text-blue-500 mr-2"></i>Assign Flight
-        </h1>
-        <a href="index.php" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+        <h2 class="text-2xl font-bold text-gray-800">
+          <i class="fas fa-plane text-indigo-600 mr-2"></i>Assign Flight
+        </h2>
+        <a href="index.php" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
           <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
         </a>
       </div>
 
+      <!-- Alerts (aligned with index.php and add-transportation.php) -->
       <?php if ($error_message): ?>
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-          <p><?php echo $error_message; ?></p>
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
+          <span><?php echo htmlspecialchars($error_message); ?></span>
+          <button class="text-red-700 hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-red-500" onclick="this.parentElement.remove()" aria-label="Close alert">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       <?php endif; ?>
 
       <?php if ($success_message): ?>
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
-          <p><?php echo $success_message; ?></p>
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
+          <span><?php echo htmlspecialchars($success_message); ?></span>
+          <button class="text-green-700 hover:text-green-900 focus:outline-none focus:ring-2 focus:ring-green-500" onclick="this.parentElement.remove()" aria-label="Close alert">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       <?php endif; ?>
 
       <?php if ($booking): ?>
-        <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-6">
+        <div class="bg-indigo-50 border-l-4 border-indigo-500 text-indigo-700 p-4 rounded-lg mb-6">
           <p><strong>Booking #<?php echo $booking['id']; ?></strong></p>
           <p>User: <?php echo htmlspecialchars($booking['full_name']); ?> (ID: <?php echo $booking['user_id']; ?>)</p>
           <p>Package: <?php echo $booking['package_id']; ?></p>
@@ -289,8 +333,8 @@ if ($booking) {
         </div>
 
         <?php if (!empty($booking_details)): ?>
-          <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6">
-            <h3 class="font-bold">Current Flight Assignment</h3>
+          <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6">
+            <h3 class="font-bold text-lg text-gray-800">Current Flight Assignment</h3>
             <p>Flight ID: <?php echo $booking_details['flight_id']; ?></p>
             <p>Cabin Class: <?php echo ucfirst(str_replace('_', ' ', $booking_details['cabin_class'])); ?></p>
             <p>Passengers: <?php echo $booking_details['adult_count']; ?> Adult(s), <?php echo $booking_details['children_count']; ?> Child(ren)</p>
@@ -305,7 +349,7 @@ if ($booking) {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="md:col-span-2">
               <label for="flight_id" class="block text-sm font-medium text-gray-700 mb-1">Select Flight</label>
-              <select name="flight_id" id="flight_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
+              <select name="flight_id" id="flight_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" required>
                 <option value="">-- Select Flight --</option>
                 <?php foreach ($flights as $flight): ?>
                   <option value="<?php echo $flight['id']; ?>" <?php echo ($form_flight_id == $flight['id']) ? 'selected' : ''; ?> data-flight='<?php echo json_encode($flight); ?>'>
@@ -319,7 +363,7 @@ if ($booking) {
 
             <div>
               <label for="cabin_class" class="block text-sm font-medium text-gray-700 mb-1">Cabin Class</label>
-              <select name="cabin_class" id="cabin_class" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
+              <select name="cabin_class" id="cabin_class" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" required>
                 <option value="">-- Select Cabin Class --</option>
                 <option value="economy" <?php echo ($form_cabin_class == 'economy') ? 'selected' : ''; ?>>Economy</option>
                 <option value="business" <?php echo ($form_cabin_class == 'business') ? 'selected' : ''; ?>>Business</option>
@@ -332,14 +376,14 @@ if ($booking) {
                 <div class="flex-1">
                   <label for="adult_count" class="block text-sm font-medium text-gray-700 mb-1">Adults</label>
                   <input type="number" name="adult_count" id="adult_count" min="1" max="10"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                     value="<?php echo $form_adult_count; ?>"
                     required>
                 </div>
                 <div class="flex-1">
                   <label for="children_count" class="block text-sm font-medium text-gray-700 mb-1">Children</label>
                   <input type="number" name="children_count" id="children_count" min="0" max="10"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                     value="<?php echo $form_children_count; ?>">
                 </div>
               </div>
@@ -352,21 +396,21 @@ if ($booking) {
               <div>
                 <label for="passenger_name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                 <input type="text" name="passenger_name" id="passenger_name"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   value="<?php echo !empty($form_passenger_name) ? htmlspecialchars($form_passenger_name) : htmlspecialchars($user_info['full_name'] ?? ''); ?>"
                   required>
               </div>
               <div>
                 <label for="passenger_email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input type="email" name="passenger_email" id="passenger_email"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   value="<?php echo !empty($form_passenger_email) ? htmlspecialchars($form_passenger_email) : htmlspecialchars($user_info['email'] ?? ''); ?>"
                   required>
               </div>
               <div>
                 <label for="passenger_phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                 <input type="text" name="passenger_phone" id="passenger_phone"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   value="<?php echo !empty($form_passenger_phone) ? htmlspecialchars($form_passenger_phone) : htmlspecialchars($user_info['phone'] ?? ''); ?>"
                   required>
               </div>
@@ -388,7 +432,7 @@ if ($booking) {
               </div>
             </div>
             <div class="mt-4 grid grid-cols-3 gap-4">
-              <div class="bg-blue-50 p-3 rounded-lg">
+              <div class="bg-indigo-50 p-3 rounded-lg">
                 <p class="text-sm text-gray-600">Economy</p>
                 <p class="font-semibold"><span id="economyPrice"></span> PKR</p>
                 <p class="text-xs text-gray-500"><span id="economySeats"></span> seats available</p>
@@ -407,106 +451,180 @@ if ($booking) {
           </div>
 
           <div class="flex justify-end">
-            <button type="submit" name="assign_flight" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+            <button type="submit" name="assign_flight" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
               <i class="fas fa-check mr-2"></i><?php echo !empty($booking_details) ? 'Update Flight Assignment' : 'Assign Flight'; ?>
             </button>
           </div>
         </form>
       <?php else: ?>
-        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4">
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg">
           <p>Booking not found or invalid booking ID.</p>
         </div>
       <?php endif; ?>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <script>
-    // Show flight details when a flight is selected
-    document.getElementById('flight_id').addEventListener('change', function() {
-      const flightDetails = document.getElementById('flightDetails');
-      const option = this.options[this.selectedIndex];
+    document.addEventListener('DOMContentLoaded', function() {
+      // Sidebar elements (aligned with index.php and add-transportation.php)
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const dashboardHeader = document.getElementById('dashboardHeader');
 
-      if (this.value) {
-        const flight = JSON.parse(option.getAttribute('data-flight'));
+      // User dropdown elements
+      const userDropdownButton = document.getElementById('userDropdownButton');
+      const userDropdownMenu = document.getElementById('userDropdownMenu');
 
-        document.getElementById('airlineName').textContent = flight.airline_name;
-        document.getElementById('flightNumber').textContent = flight.flight_number;
-        document.getElementById('flightRoute').textContent = flight.departure_city + ' to ' + flight.arrival_city;
-
-        const departureDate = new Date(flight.departure_date);
-        document.getElementById('flightDate').textContent = departureDate.toLocaleDateString('en-US', {
-          weekday: 'short',
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        });
-        document.getElementById('flightTime').textContent = flight.departure_time;
-        document.getElementById('flightDuration').textContent = flight.flight_duration;
-
-        document.getElementById('economyPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.economy_price);
-        document.getElementById('businessPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.business_price);
-        document.getElementById('firstClassPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.first_class_price);
-
-        document.getElementById('economySeats').textContent = flight.economy_seats;
-        document.getElementById('businessSeats').textContent = flight.business_seats;
-        document.getElementById('firstClassSeats').textContent = flight.first_class_seats;
-
-        flightDetails.classList.remove('hidden');
-      } else {
-        flightDetails.classList.add('hidden');
+      // Error handling for missing elements
+      if (!sidebar || !sidebarOverlay || !sidebarToggle || !sidebarClose) {
+        console.warn('One or more sidebar elements are missing.');
+        return;
       }
-    });
+      if (!userDropdownButton || !userDropdownMenu) {
+        console.warn('User dropdown elements are missing.');
+        return;
+      }
+      if (!dashboardHeader) {
+        console.warn('Dashboard header element is missing.');
+        return;
+      }
 
-    // Trigger the change event if a flight is already selected
-    if (document.getElementById('flight_id').value) {
-      document.getElementById('flight_id').dispatchEvent(new Event('change'));
-    }
+      // Sidebar toggle function
+      const toggleSidebar = () => {
+        sidebar.classList.toggle('-translate-x-full');
+        sidebarOverlay.classList.toggle('hidden');
+        sidebarToggle.classList.toggle('hidden');
+      };
 
-    // Form submission confirmation
-    document.getElementById('assignFlightForm').addEventListener('submit', function(e) {
-      if (!confirm('Are you sure you want to assign this flight to the booking?')) {
+      // Open sidebar
+      sidebarToggle.addEventListener('click', toggleSidebar);
+
+      // Close sidebar
+      sidebarClose.addEventListener('click', toggleSidebar);
+
+      // Close sidebar via overlay
+      sidebarOverlay.addEventListener('click', toggleSidebar);
+
+      // Open sidebar on Dashboard header click
+      dashboardHeader.addEventListener('click', () => {
+        if (sidebar.classList.contains('-translate-x-full')) {
+          toggleSidebar();
+        }
+      });
+
+      // User dropdown toggle
+      userDropdownButton.addEventListener('click', () => {
+        userDropdownMenu.classList.toggle('hidden');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (event) => {
+        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+          userDropdownMenu.classList.add('hidden');
+        }
+      });
+
+      // Show flight details when a flight is selected
+      document.getElementById('flight_id').addEventListener('change', function() {
+        const flightDetails = document.getElementById('flightDetails');
+        const option = this.options[this.selectedIndex];
+
+        if (this.value) {
+          const flight = JSON.parse(option.getAttribute('data-flight'));
+
+          document.getElementById('airlineName').textContent = flight.airline_name;
+          document.getElementById('flightNumber').textContent = flight.flight_number;
+          document.getElementById('flightRoute').textContent = flight.departure_city + ' to ' + flight.arrival_city;
+
+          const departureDate = new Date(flight.departure_date);
+          document.getElementById('flightDate').textContent = departureDate.toLocaleDateString('en-US', {
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+          document.getElementById('flightTime').textContent = flight.departure_time;
+          document.getElementById('flightDuration').textContent = flight.flight_duration;
+
+          document.getElementById('economyPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.economy_price);
+          document.getElementById('businessPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.business_price);
+          document.getElementById('firstClassPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.first_class_price);
+
+          document.getElementById('economySeats').textContent = flight.economy_seats;
+          document.getElementById('businessSeats').textContent = flight.business_seats;
+          document.getElementById('firstClassSeats').textContent = flight.first_class_seats;
+
+          flightDetails.classList.remove('hidden');
+        } else {
+          flightDetails.classList.add('hidden');
+        }
+      });
+
+      // Trigger the change event if a flight is already selected
+      if (document.getElementById('flight_id').value) {
+        document.getElementById('flight_id').dispatchEvent(new Event('change'));
+      }
+
+      // Form submission confirmation with SweetAlert2
+      document.getElementById('assignFlightForm').addEventListener('submit', function(e) {
         e.preventDefault();
-      }
-    });
-
-    // Show pricing based on cabin class and passenger count
-    function updatePricing() {
-      const flightSelect = document.getElementById('flight_id');
-      const cabinClassSelect = document.getElementById('cabin_class');
-      const adultCountInput = document.getElementById('adult_count');
-      const childrenCountInput = document.getElementById('children_count');
-
-      if (flightSelect.value && cabinClassSelect.value) {
-        const option = flightSelect.options[flightSelect.selectedIndex];
-        const flight = JSON.parse(option.getAttribute('data-flight'));
-        const cabinClass = cabinClassSelect.value;
-        const pricePerSeat = flight[cabinClass + '_price'];
-        const totalSeats = parseInt(adultCountInput.value) + parseInt(childrenCountInput.value);
-        const totalPrice = pricePerSeat * totalSeats;
-
-        // Highlight the selected cabin class
-        document.querySelectorAll('.bg-blue-50, .bg-purple-50, .bg-amber-50').forEach(el => {
-          el.classList.remove('ring-2', 'ring-blue-500');
+        Swal.fire({
+          title: 'Are you sure?',
+          text: 'Do you want to assign this flight to the booking?',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#4f46e5',
+          cancelButtonColor: '#6b7280',
+          confirmButtonText: 'Yes, assign it!',
+          cancelButtonText: 'Cancel'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            this.submit();
+          }
         });
+      });
 
-        if (cabinClass === 'economy') {
-          document.querySelector('.bg-blue-50').classList.add('ring-2', 'ring-blue-500');
-        } else if (cabinClass === 'business') {
-          document.querySelector('.bg-purple-50').classList.add('ring-2', 'ring-blue-500');
-        } else if (cabinClass === 'first_class') {
-          document.querySelector('.bg-amber-50').classList.add('ring-2', 'ring-blue-500');
+      // Show pricing based on cabin class and passenger count
+      function updatePricing() {
+        const flightSelect = document.getElementById('flight_id');
+        const cabinClassSelect = document.getElementById('cabin_class');
+        const adultCountInput = document.getElementById('adult_count');
+        const childrenCountInput = document.getElementById('children_count');
+
+        if (flightSelect.value && cabinClassSelect.value) {
+          const option = flightSelect.options[flightSelect.selectedIndex];
+          const flight = JSON.parse(option.getAttribute('data-flight'));
+          const cabinClass = cabinClassSelect.value;
+          const pricePerSeat = flight[cabinClass + '_price'];
+          const totalSeats = parseInt(adultCountInput.value) + parseInt(childrenCountInput.value);
+          const totalPrice = pricePerSeat * totalSeats;
+
+          // Highlight the selected cabin class
+          document.querySelectorAll('.bg-indigo-50, .bg-purple-50, .bg-amber-50').forEach(el => {
+            el.classList.remove('ring-2', 'ring-indigo-500');
+          });
+
+          if (cabinClass === 'economy') {
+            document.querySelector('.bg-indigo-50').classList.add('ring-2', 'ring-indigo-500');
+          } else if (cabinClass === 'business') {
+            document.querySelector('.bg-purple-50').classList.add('ring-2', 'ring-indigo-500');
+          } else if (cabinClass === 'first_class') {
+            document.querySelector('.bg-amber-50').classList.add('ring-2', 'ring-indigo-500');
+          }
         }
       }
-    }
 
-    document.getElementById('cabin_class').addEventListener('change', updatePricing);
-    document.getElementById('adult_count').addEventListener('change', updatePricing);
-    document.getElementById('children_count').addEventListener('change', updatePricing);
+      document.getElementById('cabin_class').addEventListener('change', updatePricing);
+      document.getElementById('adult_count').addEventListener('change', updatePricing);
+      document.getElementById('children_count').addEventListener('change', updatePricing);
 
-    // Initialize pricing if values are already selected
-    if (document.getElementById('flight_id').value && document.getElementById('cabin_class').value) {
-      updatePricing();
-    }
+      // Initialize pricing if values are already selected
+      if (document.getElementById('flight_id').value && document.getElementById('cabin_class').value) {
+        updatePricing();
+      }
+    });
   </script>
 </body>
 

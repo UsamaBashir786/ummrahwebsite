@@ -8,6 +8,11 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
   exit;
 }
 
+// Check database connection
+if ($conn->connect_error) {
+  die("Connection failed: " . $conn->connect_error);
+}
+
 // Create transportation_settings table if it doesn't exist
 $create_settings_table_sql = "
 CREATE TABLE IF NOT EXISTS transportation_settings (
@@ -15,25 +20,71 @@ CREATE TABLE IF NOT EXISTS transportation_settings (
     service_type VARCHAR(20) NOT NULL,
     service_title VARCHAR(255) NOT NULL,
     year INT NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_service_type (service_type)
 )";
-$conn->query($create_settings_table_sql);
+if (!$conn->query($create_settings_table_sql)) {
+  die("Error creating transportation_settings table: " . $conn->error);
+}
+
+// Create taxi_routes table if it doesn't exist
+$create_taxi_routes_table_sql = "
+CREATE TABLE IF NOT EXISTS taxi_routes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    service_title VARCHAR(255) NOT NULL,
+    year INT NOT NULL,
+    route_number INT NOT NULL,
+    route_name VARCHAR(255) NOT NULL,
+    camry_sonata_price DECIMAL(10,2) NOT NULL,
+    starex_staria_price DECIMAL(10,2) NOT NULL,
+    hiace_price DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)";
+if (!$conn->query($create_taxi_routes_table_sql)) {
+  die("Error creating taxi_routes table: " . $conn->error);
+}
+
+// Create rentacar_routes table if it doesn't exist
+$create_rentacar_routes_table_sql = "
+CREATE TABLE IF NOT EXISTS rentacar_routes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    service_title VARCHAR(255) NOT NULL,
+    year INT NOT NULL,
+    route_number INT NOT NULL,
+    route_name VARCHAR(255) NOT NULL,
+    gmc_16_19_price DECIMAL(10,2) NOT NULL,
+    gmc_22_23_price DECIMAL(10,2) NOT NULL,
+    coaster_price DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)";
+if (!$conn->query($create_rentacar_routes_table_sql)) {
+  die("Error creating rentacar_routes table: " . $conn->error);
+}
 
 // Initialize variables
 $success_message = '';
 $error_message = '';
 
+// Get the current year dynamically
+$current_year = date('Y'); // Will be 2025 as of April 29, 2025
+
 // Handle Taxi Routes Submission
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_taxi_routes'])) {
+  // Log the received POST data for debugging
+  error_log("Taxi Routes POST Data: " . print_r($_POST, true));
+
   $service_title = $conn->real_escape_string($_POST['serviceTitle']);
   $year = (int)$_POST['year'];
 
   // Update or insert into transportation_settings
   $stmt = $conn->prepare("INSERT INTO transportation_settings (service_type, service_title, year) VALUES ('taxi', ?, ?) 
-                            ON DUPLICATE KEY UPDATE service_title = ?, year = ?, updated_at = NOW()");
+                          ON DUPLICATE KEY UPDATE service_title = ?, year = ?, updated_at = NOW()");
   $stmt->bind_param("sisi", $service_title, $year, $service_title, $year);
   if (!$stmt->execute()) {
-    $error_message = "Error updating taxi settings: " . $conn->error;
+    $error_message = "Error updating taxi settings: " . $stmt->error;
+    error_log("Taxi Settings Error: " . $stmt->error);
+  } else {
+    error_log("Taxi settings updated successfully for service_title: $service_title, year: $year");
   }
   $stmt->close();
 
@@ -59,23 +110,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_taxi_routes']))
                       VALUES " . implode(',', $new_routes);
     if (!$conn->query($insert_sql)) {
       $error_message = "Error adding taxi routes: " . $conn->error;
+      error_log("Taxi Routes Insert Error: " . $conn->error);
     } else {
       $success_message = "Taxi routes added successfully!";
+      error_log("Taxi routes inserted successfully: " . implode(',', $new_routes));
     }
+  } else {
+    $success_message = "Taxi settings updated, but no new routes were added.";
+    error_log("No new taxi routes to insert.");
   }
 }
 
 // Handle Rent-a-Car Routes Submission
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_rentacar_routes'])) {
+  // Log the received POST data for debugging
+  error_log("Rent-a-Car Routes POST Data: " . print_r($_POST, true));
+
   $service_title = $conn->real_escape_string($_POST['serviceTitle']);
   $year = (int)$_POST['year'];
 
   // Update or insert into transportation_settings
   $stmt = $conn->prepare("INSERT INTO transportation_settings (service_type, service_title, year) VALUES ('rentacar', ?, ?) 
-                            ON DUPLICATE KEY UPDATE service_title = ?, year = ?, updated_at = NOW()");
+                          ON DUPLICATE KEY UPDATE service_title = ?, year = ?, updated_at = NOW()");
   $stmt->bind_param("sisi", $service_title, $year, $service_title, $year);
   if (!$stmt->execute()) {
-    $error_message = "Error updating rent-a-car settings: " . $conn->error;
+    $error_message = "Error updating rent-a-car settings: " . $stmt->error;
+    error_log("Rent-a-Car Settings Error: " . $stmt->error);
+  } else {
+    error_log("Rent-a-Car settings updated successfully for service_title: $service_title, year: $year");
   }
   $stmt->close();
 
@@ -101,29 +163,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_rentacar_routes
                       VALUES " . implode(',', $new_routes);
     if (!$conn->query($insert_sql)) {
       $error_message = "Error adding rent-a-car routes: " . $conn->error;
+      error_log("Rent-a-Car Routes Insert Error: " . $conn->error);
     } else {
       $success_message = "Rent-a-car routes added successfully!";
+      error_log("Rent-a-Car routes inserted successfully: " . implode(',', $new_routes));
     }
+  } else {
+    $success_message = "Rent-a-car settings updated, but no new routes were added.";
+    error_log("No new rent-a-car routes to insert.");
   }
 }
 
-// Get default service info
-$taxi_service_info = ['service_title' => 'Best Taxi Service for Umrah and Hajj', 'year' => 2024];
-$rentacar_service_info = ['service_title' => 'Best Umrah and Hajj Rent A Car', 'year' => 2024];
+// Get service info from the database, set default year to current year
+$taxi_service_info = ['service_title' => 'Best Taxi Service for Umrah and Hajj', 'year' => $current_year];
+$rentacar_service_info = ['service_title' => 'Best Umrah and Hajj Rent A Car', 'year' => $current_year];
 
+// Fetch taxi service info
 $stmt = $conn->prepare("SELECT service_title, year FROM transportation_settings WHERE service_type = ? LIMIT 1");
 $stmt->bind_param("s", $service_type);
+
 $service_type = 'taxi';
 $stmt->execute();
 $result = $stmt->get_result();
 if ($data = $result->fetch_assoc()) {
-  $taxi_service_info = $data;
+  $taxi_service_info['service_title'] = $data['service_title'];
+  $taxi_service_info['year'] = $data['year'] < $current_year ? $current_year : $data['year']; // Force current year if database year is outdated
 }
+
+// Fetch rentacar service info
 $service_type = 'rentacar';
 $stmt->execute();
 $result = $stmt->get_result();
 if ($data = $result->fetch_assoc()) {
-  $rentacar_service_info = $data;
+  $rentacar_service_info['service_title'] = $data['service_title'];
+  $rentacar_service_info['year'] = $data['year'] < $current_year ? $current_year : $data['year']; // Force current year if database year is outdated
 }
 $stmt->close();
 ?>
@@ -135,9 +208,11 @@ $stmt->close();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Add Transportation | UmrahFlights</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind CSS (same as index.php) -->
+  <link rel="stylesheet" href="../src/output.css">
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <link rel="stylesheet" href="assets/css/index.css">
+  <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     .tab-buttons {
@@ -212,28 +287,41 @@ $stmt->close();
 
 <body class="bg-gray-100 font-sans">
   <?php include 'includes/sidebar.php'; ?>
-  <main class="ml-0 md:ml-64 p-6 min-h-screen" role="main" aria-label="Main content">
-    <nav class="flex items-center justify-between bg-white shadow-md p-4 rounded-lg mb-6">
-      <div class="flex items-center">
-        <button id="sidebarToggle" class="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle sidebar">
-          <i class="fas fa-bars text-xl"></i>
-        </button>
-        <h1 class="text-xl font-semibold text-gray-800 ml-4">Add Transportation</h1>
-      </div>
-      <div class="flex items-center space-x-4">
-        <div class="relative">
-          <button id="userDropdown" class="flex items-center text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="User menu" aria-expanded="false">
-            <!-- <img src="../assets/img/admin.jpg" alt="Admin User" class="w-8 h-8 rounded-full mr-2"> -->
-            <span class="hidden md:inline text-gray-800">Admin User</span>
-            <i class="fas fa-chevron-down ml-1"></i>
+  <main class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300" role="main" aria-label="Main content">
+    <!-- Top Navbar (aligned with index.php) -->
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden" aria-label="Toggle sidebar">
+            <i class="fas fa-bars text-xl"></i>
           </button>
-          <div id="userDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg py-2 z-10">
-            <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-gray-100"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+          <h4 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">Add Transportation</h4>
+        </div>
+        <div class="flex items-center space-x-4">
+          <!-- User Dropdown -->
+          <div class="relative">
+            <button id="userDropdownButton" class="flex items-center space-x-2 text-gray-700 hover:bg-indigo-50 rounded-lg px-3 py-2 focus:outline-none" aria-label="User menu" aria-expanded="false">
+              <div class="rounded-full overflow-hidden" style="width: 32px; height: 32px;">
+                <div class="bg-gray-200 w-full h-full"></div>
+              </div>
+              <span class="hidden md:inline text-sm font-medium">Admin User</span>
+              <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
+              <li>
+                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
     </nav>
 
+    <!-- Alerts (aligned with index.php styling) -->
     <?php if ($success_message): ?>
       <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
         <span><?php echo htmlspecialchars($success_message); ?></span>
@@ -251,7 +339,8 @@ $stmt->close();
       </div>
     <?php endif; ?>
 
-    <section class="bg-white p-6 rounded-lg shadow-md" aria-label="Transportation management">
+    <!-- Main Content Section (aligned with index.php card styling) -->
+    <section class="bg-white shadow-lg rounded-lg p-6" aria-label="Transportation management">
       <div class="tab-buttons flex justify-center">
         <button class="tab-btn active" onclick="switchTab('taxi')">Taxi Routes</button>
         <button class="tab-btn" onclick="switchTab('rentacar')">Rent A Car Routes</button>
@@ -260,7 +349,7 @@ $stmt->close();
       <!-- Taxi Routes Tab -->
       <div id="taxi-tab" class="tab-content active">
         <div class="mb-6">
-          <h2 class="text-2xl font-bold">Add Taxi Routes</h2>
+          <h2 class="text-2xl font-bold text-gray-800">Add Taxi Routes</h2>
           <p class="text-gray-600 mt-2">Add new taxi service routes and prices</p>
         </div>
         <form action="" method="POST" id="taxi-routes-form">
@@ -268,28 +357,28 @@ $stmt->close();
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label for="taxi-service-title" class="block text-sm font-medium text-gray-700">Service Title</label>
-              <input type="text" id="taxi-service-title" name="serviceTitle" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value="<?php echo htmlspecialchars($taxi_service_info['service_title']); ?>" required>
+              <input type="text" id="taxi-service-title" name="serviceTitle" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" value="<?php echo htmlspecialchars($taxi_service_info['service_title']); ?>" required>
             </div>
             <div>
               <label for="taxi-year" class="block text-sm font-medium text-gray-700">Year</label>
-              <input type="number" id="taxi-year" name="year" min="2024" max="2030" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value="<?php echo $taxi_service_info['year']; ?>" required>
+              <input type="number" id="taxi-year" name="year" min="<?php echo $current_year; ?>" max="2030" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" value="<?php echo $taxi_service_info['year']; ?>" required>
             </div>
           </div>
           <div class="mb-6 overflow-x-auto">
-            <h3 class="font-semibold text-lg mb-3">New Routes</h3>
+            <h3 class="font-semibold text-lg text-gray-800 mb-3">New Routes</h3>
             <table class="w-full text-left border-collapse">
               <thead>
-                <tr class="bg-blue-600 text-white">
-                  <th class="p-3 w-16 text-center">#</th>
-                  <th class="p-3 text-left">Route</th>
-                  <th class="p-3 text-center">Camry / Sonata (PKR)</th>
-                  <th class="p-3 text-center">Starex / Staria (PKR)</th>
-                  <th class="p-3 text-center">Hiace (PKR)</th>
-                  <th class="p-3 w-16 text-center">Action</th>
+                <tr class="bg-indigo-600 text-white">
+                  <th class="p-3 w-16 text-center text-sm font-semibold">#</th>
+                  <th class="p-3 text-left text-sm font-semibold">Route</th>
+                  <th class="p-3 text-center text-sm font-semibold">Camry / Sonata (PKR)</th>
+                  <th class="p-3 text-center text-sm font-semibold">Starex / Staria (PKR)</th>
+                  <th class="p-3 text-center text-sm font-semibold">Hiace (PKR)</th>
+                  <th class="p-3 w-16 text-center text-sm font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody id="new-taxi-routes-body">
-                <tr class="price-validation-row">
+                <tr class="price-validation-row border-b hover:bg-indigo-50">
                   <td class="p-3 text-center">
                     <input type="number" name="new_route_number[0]" value="1" class="price-input w-16 text-center" required>
                   </td>
@@ -318,10 +407,10 @@ $stmt->close();
                 </tr>
               </tbody>
             </table>
-            <button type="button" id="add-taxi-row" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"><i class="fas fa-plus-circle mr-2"></i>Add Another Route</button>
+            <button type="button" id="add-taxi-row" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"><i class="fas fa-plus-circle mr-2"></i>Add Another Route</button>
           </div>
           <div class="flex justify-end">
-            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"><i class="fas fa-save mr-2"></i>Save Routes</button>
+            <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700"><i class="fas fa-save mr-2"></i>Save Routes</button>
           </div>
         </form>
       </div>
@@ -329,7 +418,7 @@ $stmt->close();
       <!-- Rent A Car Routes Tab -->
       <div id="rentacar-tab" class="tab-content">
         <div class="mb-6">
-          <h2 class="text-2xl font-bold">Add Rent A Car Routes</h2>
+          <h2 class="text-2xl font-bold text-gray-800">Add Rent A Car Routes</h2>
           <p class="text-gray-600 mt-2">Add new rent a car service routes and prices</p>
         </div>
         <form action="" method="POST" id="rentacar-routes-form">
@@ -337,34 +426,34 @@ $stmt->close();
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label for="rentacar-service-title" class="block text-sm font-medium text-gray-700">Service Title</label>
-              <input type="text" id="rentacar-service-title" name="serviceTitle" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value="<?php echo htmlspecialchars($rentacar_service_info['service_title']); ?>" required>
+              <input type="text" id="rentacar-service-title" name="serviceTitle" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" value="<?php echo htmlspecialchars($rentacar_service_info['service_title']); ?>" required>
             </div>
             <div>
               <label for="rentacar-year" class="block text-sm font-medium text-gray-700">Year</label>
-              <input type="number" id="rentacar-year" name="year" min="2024" max="2030" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" value="<?php echo $rentacar_service_info['year']; ?>" required>
+              <input type="number" id="rentacar-year" name="year" min="<?php echo $current_year; ?>" max="2030" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" value="<?php echo $rentacar_service_info['year']; ?>" required>
             </div>
           </div>
           <div class="mb-6 overflow-x-auto">
-            <h3 class="font-semibold text-lg mb-3">New Routes</h3>
+            <h3 class="font-semibold text-lg text-gray-800 mb-3">New Routes</h3>
             <table class="w-full text-left border-collapse">
               <thead>
-                <tr class="bg-blue-600 text-white">
-                  <th class="p-3 w-16 text-center">#</th>
-                  <th class="p-3 text-left">Route</th>
-                  <th class="p-3 text-center">GMC 16-19 (PKR)</th>
-                  <th class="p-3 text-center">GMC 22-23 (PKR)</th>
-                  <th class="p-3 text-center">COASTER (PKR)</th>
-                  <th class="p-3 w-16 text-center">Action</th>
+                <tr class="bg-indigo-600 text-white">
+                  <th class="p-3 w-16 text-center text-sm font-semibold">#</th>
+                  <th class="p-3 text-left text-sm font-semibold">Route</th>
+                  <th class="p-3 text-center text-sm font-semibold">GMC 16-19 (PKR)</th>
+                  <th class="p-3 text-center text-sm font-semibold">GMC 22-23 (PKR)</th>
+                  <th class="p-3 text-center text-sm font-semibold">COASTER (PKR)</th>
+                  <th class="p-3 w-16 text-center text-sm font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody id="new-rentacar-routes-body">
-                <tr class="price-validation-row">
+                <tr class="price-validation-row border-b hover:bg-indigo-50">
                   <td class="p-3 text-center">
                     <input type="number" name="new_route_number[0]" value="1" class="price-input rentacar-input w-16 text-center" required>
                   </td>
                   <td class="p-3">
                     <input type="text" name="new_route_name[0]" placeholder="Enter route name" class="price-input rentacar-input w-full route-name" pattern="[A-Za-z\s]+" title="Only letters are allowed" maxlength="15" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')" required>
-                    <div class="text-red-500 text-xs error-msg-name hidden">Only letters allowed (max 15 chars)</div>
+                    <div class="text-red-500 text-xs error-msg-nameldigt hidden">Only letters allowed (max 15 chars)</div>
                   </td>
                   <td class="p-3">
                     <input type="number" name="new_gmc_16_19_price[0]" placeholder="Price" min="0" step="0.01" class="price-input rentacar-input w-full text-center base-price" oninput="validateNewCarPrices(this)" required>
@@ -387,10 +476,10 @@ $stmt->close();
                 </tr>
               </tbody>
             </table>
-            <button type="button" id="add-rentacar-row" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"><i class="fas fa-plus-circle mr-2"></i>Add Another Route</button>
+            <button type="button" id="add-rentacar-row" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"><i class="fas fa-plus-circle mr-2"></i>Add Another Route</button>
           </div>
           <div class="flex justify-end">
-            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"><i class="fas fa-save mr-2"></i>Save Routes</button>
+            <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700"><i class="fas fa-save mr-2"></i>Save Routes</button>
           </div>
         </form>
       </div>
@@ -454,6 +543,67 @@ $stmt->close();
         switchTab(storedTab);
       }
 
+      // Sidebar elements (aligned with index.php)
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const dashboardHeader = document.getElementById('dashboardHeader');
+
+      // User dropdown elements
+      const userDropdownButton = document.getElementById('userDropdownButton');
+      const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+      // Error handling for missing elements
+      if (!sidebar || !sidebarOverlay || !sidebarToggle || !sidebarClose) {
+        console.warn('One or more sidebar elements are missing.');
+        return;
+      }
+      if (!userDropdownButton || !userDropdownMenu) {
+        console.warn('User dropdown elements are missing.');
+        return;
+      }
+      if (!dashboardHeader) {
+        console.warn('Dashboard header element is missing.');
+        return;
+      }
+
+      // Sidebar toggle function
+      const toggleSidebar = () => {
+        sidebar.classList.toggle('-translate-x-full');
+        sidebarOverlay.classList.toggle('hidden');
+        sidebarToggle.classList.toggle('hidden');
+      };
+
+      // Open sidebar
+      sidebarToggle.addEventListener('click', toggleSidebar);
+
+      // Close sidebar
+      sidebarClose.addEventListener('click', toggleSidebar);
+
+      // Close sidebar via overlay
+      sidebarOverlay.addEventListener('click', toggleSidebar);
+
+      // Open sidebar on Dashboard header click
+      dashboardHeader.addEventListener('click', () => {
+        if (sidebar.classList.contains('-translate-x-full')) {
+          toggleSidebar();
+        }
+      });
+
+      // User dropdown toggle
+      userDropdownButton.addEventListener('click', () => {
+        userDropdownMenu.classList.toggle('hidden');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (event) => {
+        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+          userDropdownMenu.classList.add('hidden');
+        }
+      });
+
+      // Route name validation
       document.querySelectorAll('.route-name').forEach(input => {
         input.addEventListener('input', function() {
           const errorMsg = this.closest('td').querySelector('.error-msg-name');
@@ -465,6 +615,7 @@ $stmt->close();
         });
       });
 
+      // Form validation
       document.querySelectorAll('form').forEach(form => {
         form.addEventListener('submit', function(e) {
           let isValid = true;
@@ -504,6 +655,7 @@ $stmt->close();
         });
       });
 
+      // Add taxi route row
       document.getElementById('add-taxi-row').addEventListener('click', function() {
         const tbody = document.getElementById('new-taxi-routes-body');
         const rowCount = tbody.rows.length;
@@ -511,7 +663,7 @@ $stmt->close();
         const newRowNumber = rowCount + 1;
 
         const newRow = document.createElement('tr');
-        newRow.classList.add('price-validation-row');
+        newRow.classList.add('price-validation-row', 'border-b', 'hover:bg-indigo-50');
         newRow.innerHTML = `
                     <td class="p-3 text-center">
                         <input type="number" name="new_route_number[${newIndex}]" value="${newRowNumber}" class="price-input w-16 text-center" required>
@@ -543,6 +695,7 @@ $stmt->close();
         setupDeleteHandlers();
       });
 
+      // Add rent-a-car route row
       document.getElementById('add-rentacar-row').addEventListener('click', function() {
         const tbody = document.getElementById('new-rentacar-routes-body');
         const rowCount = tbody.rows.length;
@@ -550,7 +703,7 @@ $stmt->close();
         const newRowNumber = rowCount + 1;
 
         const newRow = document.createElement('tr');
-        newRow.classList.add('price-validation-row');
+        newRow.classList.add('price-validation-row', 'border-b', 'hover:bg-indigo-50');
         newRow.innerHTML = `
                     <td class="p-3 text-center">
                         <input type="number" name="new_route_number[${newIndex}]" value="${newRowNumber}" class="price-input rentacar-input w-16 text-center" required>
@@ -580,22 +733,6 @@ $stmt->close();
                 `;
         tbody.appendChild(newRow);
         setupDeleteHandlers();
-      });
-
-      document.getElementById('sidebarToggle').addEventListener('click', function() {
-        document.querySelector('aside').classList.toggle('hidden');
-      });
-
-      document.getElementById('userDropdown').addEventListener('click', function() {
-        document.getElementById('userDropdownMenu').classList.toggle('hidden');
-      });
-
-      document.addEventListener('click', function(e) {
-        const dropdown = document.getElementById('userDropdownMenu');
-        const button = document.getElementById('userDropdown');
-        if (!dropdown.contains(e.target) && !button.contains(e.target)) {
-          dropdown.classList.add('hidden');
-        }
       });
 
       function setupDeleteHandlers() {

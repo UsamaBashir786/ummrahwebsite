@@ -19,7 +19,7 @@ if ($packages_result && $packages_result->num_rows > 0) {
 <head>
   <?php include 'includes/css-links.php' ?>
   <link rel="stylesheet" href="assets/css/style.css">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- AOS Animation Library -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" />
@@ -480,7 +480,7 @@ if ($packages_result && $packages_result->num_rows > 0) {
   <!-- Stats Section -->
   <section class="py-16 animated-bg text-white">
     <div class="container mx-auto px-4">
-      <div class="text-center mb-12" data-aos="fade-up">
+      <div class="text-center mb-12" data-aos ="fade-up">
         <span class="inline-block px-3 py-1 bg-white text-green-700 rounded-full text-sm font-semibold mb-2">OUR ACHIEVEMENTS</span>
         <h2 class="text-4xl font-bold mb-4">Trusted by Thousands of Pilgrims</h2>
         <p class="max-w-2xl mx-auto opacity-90">We have been privileged to serve numerous pilgrims over the years, helping them fulfill their spiritual journey with comfort and peace of mind.</p>

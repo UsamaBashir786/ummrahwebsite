@@ -18,7 +18,8 @@ $user_query->execute();
 $user = $user_query->get_result()->fetch_assoc();
 $user_query->close();
 
-// Fetch bookings
+// Fetch bookings with error handling
+$flights = [];
 $flight_query = $conn->prepare("
     SELECT fb.id, fb.flight_id, fb.cabin_class, fb.total_price, fb.booking_status, fb.created_at, 
            f.airline_name, f.flight_number, f.departure_city, f.arrival_city, f.departure_date
@@ -27,10 +28,15 @@ $flight_query = $conn->prepare("
     WHERE fb.user_id = ?
     ORDER BY fb.created_at DESC
 ");
-$flight_query->bind_param("i", $user_id);
-$flight_query->execute();
-$flights = $flight_query->get_result()->fetch_all(MYSQLI_ASSOC);
-$flight_query->close();
+if ($flight_query) {
+    $flight_query->bind_param("i", $user_id);
+    $flight_query->execute();
+    $result = $flight_query->get_result();
+    $flights = $result->fetch_all(MYSQLI_ASSOC);
+    $flight_query->close();
+} else {
+    error_log("Flight query preparation failed: " . $conn->error);
+}
 
 $hotel_query = $conn->prepare("
     SELECT hb.id, hb.hotel_id, hb.check_in_date, hb.check_out_date, hb.total_price, hb.booking_status, hb.booking_reference,
@@ -68,141 +74,142 @@ $transport_query->bind_param("i", $user_id);
 $transport_query->execute();
 $transports = $transport_query->get_result()->fetch_all(MYSQLI_ASSOC);
 $transport_query->close();
+
 // Handle booking cancellation
 if (isset($_POST['cancel_booking'])) {
-  $booking_type = $_POST['booking_type'] ?? '';
-  $booking_id = $_POST['booking_id'] ?? 0;
+    $booking_type = $_POST['booking_type'] ?? '';
+    $booking_id = $_POST['booking_id'] ?? 0;
 
-  $table_map = [
-    'flight' => 'flight_bookings',
-    'hotel' => 'hotel_bookings',
-    'package' => 'package_bookings',
-    'transport' => 'transportation_bookings'
-  ];
+    $table_map = [
+        'flight' => 'flight_bookings',
+        'hotel' => 'hotel_bookings',
+        'package' => 'package_bookings',
+        'transport' => 'transportation_bookings'
+    ];
 
-  if (isset($table_map[$booking_type])) {
-    $table = $table_map[$booking_type];
+    if (isset($table_map[$booking_type])) {
+        $table = $table_map[$booking_type];
 
-    // Validate that the booking belongs to the user
-    $check_stmt = $conn->prepare("SELECT id FROM {$table} WHERE id = ? AND user_id = ? AND booking_status = 'pending'");
-    $check_stmt->bind_param("ii", $booking_id, $user_id);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result();
+        // Validate that the booking belongs to the user
+        $check_stmt = $conn->prepare("SELECT id FROM {$table} WHERE id = ? AND user_id = ? AND booking_status = 'pending'");
+        $check_stmt->bind_param("ii", $booking_id, $user_id);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result();
 
-    if ($check_result->num_rows > 0) {
-      // Booking exists and belongs to user, proceed with cancellation
-      $cancel_stmt = $conn->prepare("UPDATE {$table} SET booking_status = 'cancelled' WHERE id = ? AND user_id = ?");
-      $cancel_stmt->bind_param("ii", $booking_id, $user_id);
+        if ($check_result->num_rows > 0) {
+            // Booking exists and belongs to user, proceed with cancellation
+            $cancel_stmt = $conn->prepare("UPDATE {$table} SET booking_status = 'cancelled' WHERE id = ? AND user_id = ?");
+            $cancel_stmt->bind_param("ii", $booking_id, $user_id);
 
-      if ($cancel_stmt->execute()) {
-        // Special handling for hotel bookings to update room status
-        if ($booking_type === 'hotel') {
-          $room_update_stmt = $conn->prepare("
-            UPDATE hotel_rooms hr
-            JOIN hotel_bookings hb ON hr.hotel_id = hb.hotel_id AND hr.room_id = hb.room_id
-            SET hr.status = 'available'
-            WHERE hb.id = ? AND hb.user_id = ?
-          ");
-          $room_update_stmt->bind_param("ii", $booking_id, $user_id);
-          $room_update_stmt->execute();
-          $room_update_stmt->close();
+            if ($cancel_stmt->execute()) {
+                // Special handling for hotel bookings to update room status
+                if ($booking_type === 'hotel') {
+                    $room_update_stmt = $conn->prepare("
+                        UPDATE hotel_rooms hr
+                        JOIN hotel_bookings hb ON hr.hotel_id = hb.hotel_id AND hr.room_id = hb.room_id
+                        SET hr.status = 'available'
+                        WHERE hb.id = ? AND hb.user_id = ?
+                    ");
+                    $room_update_stmt->bind_param("ii", $booking_id, $user_id);
+                    $room_update_stmt->execute();
+                    $room_update_stmt->close();
+                }
+
+                $_SESSION['booking_message'] = "Booking successfully cancelled.";
+                $_SESSION['booking_message_type'] = "success";
+            } else {
+                $_SESSION['booking_message'] = "Error cancelling booking. Please try again.";
+                $_SESSION['booking_message_type'] = "error";
+            }
+
+            $cancel_stmt->close();
+        } else {
+            $_SESSION['booking_message'] = "Invalid booking or booking cannot be cancelled.";
+            $_SESSION['booking_message_type'] = "error";
         }
 
-        $_SESSION['booking_message'] = "Booking successfully cancelled.";
-        $_SESSION['booking_message_type'] = "success";
-      } else {
-        $_SESSION['booking_message'] = "Error cancelling booking. Please try again.";
-        $_SESSION['booking_message_type'] = "error";
-      }
+        $check_stmt->close();
 
-      $cancel_stmt->close();
-    } else {
-      $_SESSION['booking_message'] = "Invalid booking or booking cannot be cancelled.";
-      $_SESSION['booking_message_type'] = "error";
+        header("Location: index.php");
+        exit();
     }
-
-    $check_stmt->close();
-
-    header("Location: index.php");
-    exit();
-  }
 }
 
 // Handle booking deletion
 if (isset($_POST['delete_booking'])) {
-  $booking_type = $_POST['booking_type'] ?? '';
-  $booking_id = $_POST['booking_id'] ?? 0;
+    $booking_type = $_POST['booking_type'] ?? '';
+    $booking_id = $_POST['booking_id'] ?? 0;
 
-  $table_map = [
-    'flight' => 'flight_bookings',
-    'hotel' => 'hotel_bookings',
-    'package' => 'package_bookings',
-    'transport' => 'transportation_bookings'
-  ];
+    $table_map = [
+        'flight' => 'flight_bookings',
+        'hotel' => 'hotel_bookings',
+        'package' => 'package_bookings',
+        'transport' => 'transportation_bookings'
+    ];
 
-  if (isset($table_map[$booking_type])) {
-    $table = $table_map[$booking_type];
+    if (isset($table_map[$booking_type])) {
+        $table = $table_map[$booking_type];
 
-    // First, check if the booking belongs to the user
-    $check_stmt = $conn->prepare("SELECT id FROM {$table} WHERE id = ? AND user_id = ?");
-    $check_stmt->bind_param("ii", $booking_id, $user_id);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result();
+        // First, check if the booking belongs to the user
+        $check_stmt = $conn->prepare("SELECT id FROM {$table} WHERE id = ? AND user_id = ?");
+        $check_stmt->bind_param("ii", $booking_id, $user_id);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result();
 
-    if ($check_result->num_rows > 0) {
-      // Booking exists and belongs to user, proceed with deletion
-      $delete_stmt = $conn->prepare("DELETE FROM {$table} WHERE id = ? AND user_id = ?");
-      $delete_stmt->bind_param("ii", $booking_id, $user_id);
+        if ($check_result->num_rows > 0) {
+            // Booking exists and belongs to user, proceed with deletion
+            $delete_stmt = $conn->prepare("DELETE FROM {$table} WHERE id = ? AND user_id = ?");
+            $delete_stmt->bind_param("ii", $booking_id, $user_id);
 
-      if ($delete_stmt->execute()) {
-        $_SESSION['booking_message'] = "Booking successfully deleted.";
-        $_SESSION['booking_message_type'] = "success";
-      } else {
-        $_SESSION['booking_message'] = "Error deleting booking. Please try again.";
-        $_SESSION['booking_message_type'] = "error";
-      }
+            if ($delete_stmt->execute()) {
+                $_SESSION['booking_message'] = "Booking successfully deleted.";
+                $_SESSION['booking_message_type'] = "success";
+            } else {
+                $_SESSION['booking_message'] = "Error deleting booking. Please try again.";
+                $_SESSION['booking_message_type'] = "error";
+            }
 
-      $delete_stmt->close();
-    } else {
-      $_SESSION['booking_message'] = "Invalid booking or booking cannot be deleted.";
-      $_SESSION['booking_message_type'] = "error";
+            $delete_stmt->close();
+        } else {
+            $_SESSION['booking_message'] = "Invalid booking or booking cannot be deleted.";
+            $_SESSION['booking_message_type'] = "error";
+        }
+
+        $check_stmt->close();
+
+        header("Location: index.php");
+        exit();
     }
-
-    $check_stmt->close();
-
-    header("Location: index.php");
-    exit();
-  }
 }
 
 // Handle profile update
 if (isset($_POST['update_profile'])) {
-  $full_name = filter_input(INPUT_POST, 'full_name', FILTER_SANITIZE_STRING);
-  $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
-  $phone = filter_input(INPUT_POST, 'phone', FILTER_SANITIZE_STRING);
-  $dob = filter_input(INPUT_POST, 'dob', FILTER_SANITIZE_STRING);
+    $full_name = filter_input(INPUT_POST, 'full_name', FILTER_SANITIZE_STRING);
+    $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+    $phone = filter_input(INPUT_POST, 'phone', FILTER_SANITIZE_STRING);
+    $dob = filter_input(INPUT_POST, 'dob', FILTER_SANITIZE_STRING);
 
-  // Handle profile image upload
-  $profile_image = $user['profile_image'];
-  if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
-    $upload_dir = 'assets/uploads/profile_images/';
-    if (!is_dir($upload_dir)) {
-      mkdir($upload_dir, 0755, true);
+    // Handle profile image upload
+    $profile_image = $user['profile_image'];
+    if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
+        $upload_dir = 'assets/uploads/profile_images/';
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        $ext = pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION);
+        $filename = 'profile_' . time() . '.' . $ext;
+        $target = $upload_dir . $filename;
+        if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $target)) {
+            $profile_image = $target;
+        }
     }
-    $ext = pathinfo($_FILES['profile_image']['name'], PATHINFO_EXTENSION);
-    $filename = 'profile_' . time() . '.' . $ext;
-    $target = $upload_dir . $filename;
-    if (move_uploaded_file($_FILES['profile_image']['tmp_name'], $target)) {
-      $profile_image = $target;
-    }
-  }
 
-  $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, dob = ?, profile_image = ? WHERE id = ?");
-  $stmt->bind_param("sssssi", $full_name, $email, $phone, $dob, $profile_image, $user_id);
-  $stmt->execute();
-  $stmt->close();
-  header("Location: index.php");
-  exit();
+    $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, dob = ?, profile_image = ? WHERE id = ?");
+    $stmt->bind_param("sssssi", $full_name, $email, $phone, $dob, $profile_image, $user_id);
+    $stmt->execute();
+    $stmt->close();
+    header("Location: index.php");
+    exit();
 }
 ?>
 
@@ -210,523 +217,617 @@ if (isset($_POST['update_profile'])) {
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Bookings - UmrahFlights</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <style>
-    .tab-content {
-      display: none;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Bookings - UmrahFlights</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        .tab-content {
+            display: none;
+        }
 
-    .tab-content.active {
-      display: block;
-    }
+        .tab-content.active {
+            display: block;
+        }
 
-    .booking-card {
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
+        .booking-card {
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
 
-    .booking-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-    }
+        .booking-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
 
-    .status-badge {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      text-transform: capitalize;
-    }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
 
-    .status-pending {
-      background-color: #fef3c7;
-      color: #d97706;
-    }
+        .status-pending {
+            background-color: #fef3c7;
+            color: #d97706;
+        }
 
-    .status-confirmed {
-      background-color: #d1fae5;
-      color: #059669;
-    }
+        .status-confirmed {
+            background-color: #d1fae5;
+            color: #059669;
+        }
 
-    .status-cancelled {
-      background-color: #fee2e2;
-      color: #dc2626;
-    }
+        .status-cancelled {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
 
-    .status-completed {
-      background-color: #e5e7eb;
-      color: #4b5563;
-    }
+        .status-completed {
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
 
-    .filter-container {
-      background-color: #ffffff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-      margin-bottom: 30px;
-    }
+        .filter-container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+        }
 
-    .nav-tabs .nav-link {
-      transition: all 0.3s ease;
-    }
+        .nav-tabs .nav-link {
+            transition: all 0.3s ease;
+        }
 
-    .nav-tabs .nav-link:hover {
-      background-color: #f1f5f9;
-    }
+        .nav-tabs .nav-link:hover {
+            background-color: #f1f5f9;
+        }
 
-    .nav-tabs .nav-link.active {
-      background-color: #06b6d4;
-      color: white;
-      border-radius: 8px 8px 0 0;
-    }
+        .nav-tabs .nav-link.active {
+            background-color: #06b6d4;
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
 
-    @media (max-width: 768px) {
-      .nav-tabs {
-        flex-direction: column;
-      }
+        .modal-fullscreen {
+            max-width: 100vw;
+            margin: 0;
+        }
 
-      .nav-tabs .nav-link {
-        width: 100%;
-        text-align: center;
-        border-radius: 8px;
-        margin-bottom: 8px;
-      }
-    }
-  </style>
+        .modal-fullscreen .modal-content {
+            height: 100vh;
+            border-radius: 0;
+        }
+
+        @media (max-width: 768px) {
+            .nav-tabs {
+                flex-direction: column;
+            }
+
+            .nav-tabs .nav-link {
+                width: 100%;
+                text-align: center;
+                border-radius: 8px;
+                margin-bottom: 8px;
+            }
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100">
-  <!-- Navbar -->
-  <nav class="bg-gradient-to-r from-cyan-600 to-teal-500 p-4 shadow-lg">
-    <div class="container mx-auto flex justify-between items-center">
-      <!-- Left side: Logo and Title -->
-      <div class="flex items-center space-x-4">
-        <!-- <img src="https://via.placeholder.com/40" alt="Logo" class="h-12 w-12 rounded-full"> -->
-        <span class="text-white text-3xl font-extrabold tracking-tight">Ummrah</span>
-      </div>
-      <!-- Right side: Go Back Button -->
-      <div>
-        <a href="../index.php" class="bg-white text-cyan-600 px-5 py-2 rounded-full hover:bg-gray-100 transition duration-300 font-semibold shadow-md">Go Back</a>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Main Content -->
-  <section class="container mx-auto px-4 py-12">
-    <div class="text-center mb-12">
-      <div class="text-cyan-500 font-semibold mb-3 tracking-wider">My Bookings</div>
-      <h2 class="text-4xl font-extrabold text-gray-900 mb-4">Manage Your Travel Plans</h2>
-      <p class="text-gray-600 max-w-2xl mx-auto">View, cancel, or delete your bookings with ease. Keep your travel plans organized in one place.</p>
-    </div>
-
-    <!-- Filter Section -->
-    <div class="filter-container">
-      <div class="flex flex-col md:flex-row gap-4">
-        <select id="statusFilter" class="form-select border border-gray-200 rounded-xl p-3 bg-white focus:ring-2 focus:ring-cyan-500">
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="completed">Completed</option>
-        </select>
-        <input type="text" id="searchInput" class="form-control border border-gray-200 rounded-xl p-3 bg-white focus:ring-2 focus:ring-cyan-500" placeholder="Search by booking reference...">
-      </div>
-    </div>
-
-    <!-- Tabs Navigation -->
-    <ul class="nav nav-tabs mb-10 flex flex-wrap border-b-0" id="bookingTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active px-5 py-3 text-gray-700 font-semibold" data-tab="flights">Flights</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link px-5 py-3 text-gray-700 font-semibold" data-tab="hotels">Hotels</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link px-5 py-3 text-gray-700 font-semibold" data-tab="packages">Packages</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link px-5 py-3 text-gray-700 font-semibold" data-tab="transport">Transportation</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link px-5 py-3 text-gray-700 font-semibold" data-tab="profile">Profile</button>
-      </li>
-    </ul>
-
-    <!-- Tabs Content -->
-    <div id="flights" class="tab-content active">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <?php if (empty($flights)): ?>
-          <div class="col-span-full text-center py-12">
-            <p class="text-gray-500 text-lg">No flight bookings found.</p>
-          </div>
-        <?php else: ?>
-          <?php foreach ($flights as $flight): ?>
-            <div class="booking-card bg-white p-6" data-status="<?php echo htmlspecialchars($flight['booking_status']); ?>">
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-800"><?php echo htmlspecialchars($flight['airline_name']); ?> - <?php echo htmlspecialchars($flight['flight_number']); ?></h3>
-                <span class="status-badge status-<?php echo htmlspecialchars($flight['booking_status']); ?>">
-                  <?php echo ucfirst(htmlspecialchars($flight['booking_status'])); ?>
-                </span>
-              </div>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <?php echo htmlspecialchars($flight['departure_city']); ?> to <?php echo htmlspecialchars($flight['arrival_city']); ?>
-              </p>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-                <?php echo date('d M Y', strtotime($flight['departure_date'])); ?>
-              </p>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-                </svg>
-                <?php echo ucfirst(htmlspecialchars($flight['cabin_class'])); ?>
-              </p>
-              <p class="text-cyan-600 font-bold text-lg mb-4">Rs<?php echo number_format($flight['total_price'], 2); ?></p>
-              <div class="flex gap-3">
-                <a href="flight-details.php?id=<?php echo $flight['id']; ?>" class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-xl font-medium">ViewDetails</a>
-                <?php if ($flight['booking_status'] == 'pending'): ?>
-                  <form method="POST" class="cancel-form">
-                    <input type="hidden" name="booking_type" value="flight">
-                    <input type="hidden" name="booking_id" value="<?php echo $flight['id']; ?>">
-                    <button type="submit" name="cancel_booking" class="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-xl font-medium">Cancel</button>
-                  </form>
-                <?php endif; ?>
-                <form method="POST" class="delete-form">
-                  <input type="hidden" name="booking_type" value="flight">
-                  <input type="hidden" name="booking_id" value="<?php echo $flight['id']; ?>">
-                  <button type="submit" name="delete_booking" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl font-medium">Delete</button>
-                </form>
-              </div>
+    <!-- Navbar -->
+    <nav class="bg-gradient-to-r from-cyan-600 to-teal-500 p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <span class="text-white text-3xl font-extrabold tracking-tight">Ummrah</span>
             </div>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </div>
-    </div>
-
-    <div id="hotels" class="tab-content">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <?php if (empty($hotels)): ?>
-          <div class="col-span-full text-center py-12">
-            <p class="text-gray-500 text-lg">No hotel bookings found.</p>
-          </div>
-        <?php else: ?>
-          <?php foreach ($hotels as $hotel): ?>
-            <div class="booking-card bg-white p-6" data-status="<?php echo htmlspecialchars($hotel['booking_status']); ?>" data-reference="<?php echo htmlspecialchars($hotel['booking_reference']); ?>">
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-800"><?php echo htmlspecialchars($hotel['hotel_name']); ?></h3>
-                <span class="status-badge status-<?php echo htmlspecialchars($hotel['booking_status']); ?>">
-                  <?php echo ucfirst(htmlspecialchars($hotel['booking_status'])); ?>
-                </span>
-              </div>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                </svg>
-                <?php echo htmlspecialchars($hotel['location']); ?>
-              </p>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-                Check-in: <?php echo date('d M Y', strtotime($hotel['check_in_date'])); ?>
-              </p>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-                Check-out: <?php echo date('d M Y', strtotime($hotel['check_out_date'])); ?>
-              </p>
-              <p class="text-cyan-600 font-bold text-lg mb-4">Rs<?php echo number_format($hotel['total_price'], 2); ?></p>
-              <div class="flex gap-3">
-                <a href="hotel-details.php?id=<?php echo $hotel['id']; ?>" class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-xl font-medium">ViewDetails</a>
-                <?php if ($hotel['booking_status'] == 'pending'): ?>
-                  <form method="POST" class="cancel-form">
-                    <input type="hidden" name="booking_type" value="hotel">
-                    <input type="hidden" name="booking_id" value="<?php echo $hotel['id']; ?>">
-                    <button type="submit" name="cancel_booking" class="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-xl font-medium">Cancel</button>
-                  </form>
-                <?php endif; ?>
-                <form method="POST" class="delete-form">
-                  <input type="hidden" name="booking_type" value="hotel">
-                  <input type="hidden" name="booking_id" value="<?php echo $hotel['id']; ?>">
-                  <button type="submit" name="delete_booking" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl font-medium">Delete</button>
-                </form>
-              </div>
+            <div>
+                <a href="../index.php" class="bg-white text-cyan-600 px-5 py-2 rounded-full hover:bg-gray-100 transition duration-300 font-semibold shadow-md">Go Back</a>
             </div>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </div>
-    </div>
+        </div>
+    </nav>
 
-    <div id="packages" class="tab-content">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <?php if (empty($packages)): ?>
-          <div class="col-span-full text-center py-12">
-            <p class="text-gray-500 text-lg">No package bookings found.</p>
-          </div>
-        <?php else: ?>
-          <?php foreach ($packages as $package): ?>
-            <div class="booking-card bg-white p-6" data-status="<?php echo htmlspecialchars($package['booking_status']); ?>" data-reference="<?php echo htmlspecialchars($package['booking_reference']); ?>">
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-800"><?php echo htmlspecialchars($package['title']); ?></h3>
-                <span class="status-badge status-<?php echo htmlspecialchars($package['booking_status']); ?>">
-                  <?php echo ucfirst(htmlspecialchars($package['booking_status'])); ?>
-                </span>
-              </div>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-                <?php echo ucfirst(htmlspecialchars($package['package_type'])); ?> Package
-              </p>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-                Travel Date: <?php echo date('d M Y', strtotime($package['travel_date'])); ?>
-              </p>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                </svg>
-                <?php echo htmlspecialchars($package['num_travelers']); ?> Traveler(s)
-              </p>
-              <p class="text-cyan-600 font-bold text-lg mb-4">Rs<?php echo number_format($package['total_price'], 2); ?></p>
-              <div class="flex gap-3">
-                <a href="package-details.php?id=<?php echo $package['id']; ?>" class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-xl font-medium">ViewDetails</a>
-                <?php if ($package['booking_status'] == 'pending'): ?>
-                  <form method="POST" class="cancel-form">
-                    <input type="hidden" name="booking_type" value="package">
-                    <input type="hidden" name="booking_id" value="<?php echo $package['id']; ?>">
-                    <button type="submit" name="cancel_booking" class="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-xl font-medium">Cancel</button>
-                  </form>
-                <?php endif; ?>
-                <form method="POST" class="delete-form">
-                  <input type="hidden" name="booking_type" value="package">
-                  <input type="hidden" name="booking_id" value="<?php echo $package['id']; ?>">
-                  <button type="submit" name="delete_booking" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl font-medium">Delete</button>
-                </form>
-              </div>
+    <!-- Main Content -->
+    <section class="container mx-auto px-4 py-12">
+        <div class="text-center mb-12">
+            <div class="text-cyan-500 font-semibold mb-3 tracking-wider">My Bookings</div>
+            <h2 class="text-4xl font-extrabold text-gray-900 mb-4">Manage Your Travel Plans</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">View, cancel, or delete your bookings with ease. Keep your travel plans organized in one place.</p>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-container">
+            <div class="flex flex-col md:flex-row gap-4">
+                <select id="statusFilter" class="form-select border border-gray-200 rounded-xl p-3 bg-white focus:ring-2 focus:ring-cyan-500">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="completed">Completed</option>
+                </select>
+                <input type="text" id="searchInput" class="form-control border border-gray-200 rounded-xl p-3 bg-white focus:ring-2 focus:ring-cyan-500" placeholder="Search by booking reference...">
             </div>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </div>
-    </div>
+        </div>
 
-    <div id="transport" class="tab-content">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <?php if (empty($transports)): ?>
-          <div class="col-span-full text-center py-12">
-            <p class="text-gray-500 text-lg">No transportation bookings found.</p>
-          </div>
-        <?php else: ?>
-          <?php foreach ($transports as $transport): ?>
-            <div class="booking-card bg-white p-6" data-status="<?php echo htmlspecialchars($transport['booking_status']); ?>">
-              <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-gray-800"><?php echo htmlspecialchars($transport['route_name']); ?></h3>
-                <span class="status-badge status-<?php echo htmlspecialchars($transport['booking_status']); ?>">
-                  <?php echo ucfirst(htmlspecialchars($transport['booking_status'])); ?>
-                </span>
-              </div>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10"></path>
-                </svg>
-                <?php echo ucfirst(htmlspecialchars($transport['transport_type'])); ?> - <?php echo htmlspecialchars($transport['vehicle_type']); ?>
-              </p>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs mb-10 flex flex-wrap border-b-0" id="bookingTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active px-5 py-3 text-gray-700 font-semibold" data-tab="flights">Flights</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link px-5 py-3 text-gray-700 font-semibold" data-tab="hotels">Hotels</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link px-5 py-3 text-gray-700 font-semibold" data-tab="packages">Packages</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link px-5 py-3 text-gray-700 font-semibold" data-tab="transport">Transportation</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link px-5 py-3 text-gray-700 font-semibold" data-tab="profile">Profile</button>
+            </li>
+        </ul>
 
- 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-                Pickup: <?php echo date('d M Y, H:i', strtotime($transport['pickup_date'] . ' ' . $transport['pickup_time'])); ?>
-              </p>
-              <p class="text-cyan-600 font-bold text-lg mb-4">Rs<?php echo number_format($transport['price'], 2); ?></p>
-              <div class="flex gap-3">
-                <a href="transport-details.php?id=<?php echo $transport['id']; ?>" class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-xl font-medium">ViewDetails</a>
-                <?php if ($transport['booking_status'] == 'pending'): ?>
-                  <form method="POST" class="cancel-form">
-                    <input type="hidden" name="booking_type" value="transport">
-                    <input type="hidden" name="booking_id" value="<?php echo $transport['id']; ?>">
-                    <button type="submit" name="cancel_booking" class="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-xl font-medium">Cancel</button>
-                  </form>
+        <!-- Tabs Content -->
+        <div id="flights" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <?php if (empty($flights)): ?>
+                    <div class="col-span-full text-center py-12">
+                        <p class="text-gray-500 text-lg">No flight bookings found. <?php echo $conn->error ? 'Database error: ' . htmlspecialchars($conn->error) : ''; ?></p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($flights as $flight): ?>
+                        <div class="booking-card bg-white p-6" data-status="<?php echo htmlspecialchars($flight['booking_status']); ?>">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-bold text-gray-800"><?php echo htmlspecialchars($flight['airline_name']); ?> - <?php echo htmlspecialchars($flight['flight_number']); ?></h3>
+                                <span class="status-badge status-<?php echo htmlspecialchars($flight['booking_status']); ?>">
+                                    <?php echo ucfirst(htmlspecialchars($flight['booking_status'])); ?>
+                                </span>
+                            </div>
+                            <p class="text-gray-600 mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <?php echo htmlspecialchars($flight['departure_city']); ?> to <?php echo htmlspecialchars($flight['arrival_city']); ?>
+                            </p>
+                            <p class="text-gray-600 mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                <?php echo date('d M Y', strtotime($flight['departure_date'])); ?>
+                            </p>
+                            <p class="text-gray-600 mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                                </svg>
+                                <?php echo ucfirst(htmlspecialchars($flight['cabin_class'])); ?>
+                            </p>
+                            <p class="text-cyan-600 font-bold text-lg mb-4">Rs<?php echo number_format($flight['total_price'], 2); ?></p>
+                            <div class="flex gap-3">
+                                <button class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-xl font-medium" data-bs-toggle="modal" data-bs-target="#detailsModal" onclick="showFlightDetails(<?php echo htmlspecialchars(json_encode($flight), ENT_QUOTES, 'UTF-8'); ?>)">View Details</button>
+                                <?php if ($flight['booking_status'] == 'pending'): ?>
+                                    <form method="POST" class="cancel-form">
+                                        <input type="hidden" name="booking_type" value="flight">
+                                        <input type="hidden" name="booking_id" value="<?php echo $flight['id']; ?>">
+                                        <button type="submit" name="cancel_booking" class="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-xl font-medium">Cancel</button>
+                                    </form>
+                                <?php endif; ?>
+                                <form method="POST" class="delete-form">
+                                    <input type="hidden" name="booking_type" value="flight">
+                                    <input type="hidden" name="booking_id" value="<?php echo $flight['id']; ?>">
+                                    <button type="submit" name="delete_booking" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl font-medium">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
                 <?php endif; ?>
-                <form method="POST" class="delete-form">
-                  <input type="hidden" name="booking_type" value="transport">
-                  <input type="hidden" name="booking_id" value="<?php echo $transport['id']; ?>">
-                  <button type="submit" name="delete_booking" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl font-medium">Delete</button>
-                </form>
-              </div>
             </div>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </div>
+        </div>
+
+        <div id="hotels" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <?php if (empty($hotels)): ?>
+                    <div class="col-span-full text-center py-12">
+                        <p class="text-gray-500 text-lg">No hotel bookings found.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($hotels as $hotel): ?>
+                        <div class="booking-card bg-white p-6" data-status="<?php echo htmlspecialchars($hotel['booking_status']); ?>" data-reference="<?php echo htmlspecialchars($hotel['booking_reference']); ?>">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-bold text-gray-800"><?php echo htmlspecialchars($hotel['hotel_name']); ?></h3>
+                                <span class="status-badge status-<?php echo htmlspecialchars($hotel['booking_status']); ?>">
+                                    <?php echo ucfirst(htmlspecialchars($hotel['booking_status'])); ?>
+                                </span>
+                            </div>
+                            <p class="text-gray-600 mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                </svg>
+                                <?php echo htmlspecialchars($hotel['location']); ?>
+                            </p>
+                            <p class="text-gray-600 mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                Check-in: <?php echo date('d M Y', strtotime($hotel['check_in_date'])); ?>
+                            </p>
+                            <p class="text-gray-600 mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                Check-out: <?php echo date('d M Y', strtotime($hotel['check_out_date'])); ?>
+                            </p>
+                            <p class="text-cyan-600 font-bold text-lg mb-4">Rs<?php echo number_format($hotel['total_price'], 2); ?></p>
+                            <div class="flex gap-3">
+                                <button class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-xl font-medium" data-bs-toggle="modal" data-bs-target="#detailsModal" onclick="showHotelDetails(<?php echo htmlspecialchars(json_encode($hotel), ENT_QUOTES, 'UTF-8'); ?>)">View Details</button>
+                                <?php if ($hotel['booking_status'] == 'pending'): ?>
+                                    <form method="POST" class="cancel-form">
+                                        <input type="hidden" name="booking_type" value="hotel">
+                                        <input type="hidden" name="booking_id" value="<?php echo $hotel['id']; ?>">
+                                        <button type="submit" name="cancel_booking" class="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-xl font-medium">Cancel</button>
+                                    </form>
+                                <?php endif; ?>
+                                <form method="POST" class="delete-form">
+                                    <input type="hidden" name="booking_type" value="hotel">
+                                    <input type="hidden" name="booking_id" value="<?php echo $hotel['id']; ?>">
+                                    <button type="submit" name="delete_booking" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl font-medium">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div id="packages" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <?php if (empty($packages)): ?>
+                    <div class="col-span-full text-center py-12">
+                        <p class="text-gray-500 text-lg">No package bookings found.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($packages as $package): ?>
+                        <div class="booking-card bg-white p-6" data-status="<?php echo htmlspecialchars($package['booking_status']); ?>" data-reference="<?php echo htmlspecialchars($package['booking_reference']); ?>">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-bold text-gray-800"><?php echo htmlspecialchars($package['title']); ?></h3>
+                                <span class="status-badge status-<?php echo htmlspecialchars($package['booking_status']); ?>">
+                                    <?php echo ucfirst(htmlspecialchars($package['booking_status'])); ?>
+                                </span>
+                            </div>
+                            <p class="text-gray-600 mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <?php echo ucfirst(htmlspecialchars($package['package_type'])); ?> Package
+                            </p>
+                            <p class="text-gray-600 mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                Travel Date: <?php echo date('d M Y', strtotime($package['travel_date'])); ?>
+                            </p>
+                            <p class="text-gray-600 mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                </svg>
+                                <?php echo htmlspecialchars($package['num_travelers']); ?> Traveler(s)
+                            </p>
+                            <p class="text-cyan-600 font-bold text-lg mb-4">Rs<?php echo number_format($package['total_price'], 2); ?></p>
+                            <div class="flex gap-3">
+                                <button class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-xl font-medium" data-bs-toggle="modal" data-bs-target="#detailsModal" onclick="showPackageDetails(<?php echo htmlspecialchars(json_encode($package), ENT_QUOTES, 'UTF-8'); ?>)">View Details</button>
+                                <?php if ($package['booking_status'] == 'pending'): ?>
+                                    <form method="POST" class="cancel-form">
+                                        <input type="hidden" name="booking_type" value="package">
+                                        <input type="hidden" name="booking_id" value="<?php echo $package['id']; ?>">
+                                        <button type="submit" name="cancel_booking" class="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-xl font-medium">Cancel</button>
+                                    </form>
+                                <?php endif; ?>
+                                <form method="POST" class="delete-form">
+                                    <input type="hidden" name="booking_type" value="package">
+                                    <input type="hidden" name="booking_id" value="<?php echo $package['id']; ?>">
+                                    <button type="submit" name="delete_booking" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl font-medium">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div id="transport" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <?php if (empty($transports)): ?>
+                    <div class="col-span-full text-center py-12">
+                        <p class="text-gray-500 text-lg">No transportation bookings found.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($transports as $transport): ?>
+                        <div class="booking-card bg-white p-6" data-status="<?php echo htmlspecialchars($transport['booking_status']); ?>">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-bold text-gray-800"><?php echo htmlspecialchars($transport['route_name']); ?></h3>
+                                <span class="status-badge status-<?php echo htmlspecialchars($transport['booking_status']); ?>">
+                                    <?php echo ucfirst(htmlspecialchars($transport['booking_status'])); ?>
+                                </span>
+                            </div>
+                            <p class="text-gray-600 mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10"></path>
+                                </svg>
+                                <?php echo ucfirst(htmlspecialchars($transport['transport_type'])); ?> - <?php echo htmlspecialchars($transport['vehicle_type']); ?>
+                            </p>
+                            <p class="text-gray-600 mb-2 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                Pickup: <?php echo date('d M Y, H:i', strtotime($transport['pickup_date'] . ' ' . $transport['pickup_time'])); ?>
+                            </p>
+                            <p class="text-cyan-600 font-bold text-lg mb-4">Rs<?php echo number_format($transport['price'], 2); ?></p>
+                            <div class="flex gap-3">
+                                <button class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-xl font-medium" data-bs-toggle="modal" data-bs-target="#detailsModal" onclick="showTransportDetails(<?php echo htmlspecialchars(json_encode($transport), ENT_QUOTES, 'UTF-8'); ?>)">View Details</button>
+                                <?php if ($transport['booking_status'] == 'pending'): ?>
+                                    <form method="POST" class="cancel-form">
+                                        <input type="hidden" name="booking_type" value="transport">
+                                        <input type="hidden" name="booking_id" value="<?php echo $transport['id']; ?>">
+                                        <button type="submit" name="cancel_booking" class="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-xl font-medium">Cancel</button>
+                                    </form>
+                                <?php endif; ?>
+                                <form method="POST" class="delete-form">
+                                    <input type="hidden" name="booking_type" value="transport">
+                                    <input type="hidden" name="booking_id" value="<?php echo $transport['id']; ?>">
+                                    <button type="submit" name="delete_booking" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-xl font-medium">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div id="profile" class="tab-content">
+            <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md mx-auto">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">My Profile</h3>
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-5">
+                        <label class="block text-gray-700 font-medium mb-2" for="full_name">Full Name</label>
+                        <input type="text" name="full_name" id="full_name" value="<?php echo htmlspecialchars($user['full_name']); ?>" class="form-control border border-gray-200 rounded-xl p-3 w-full focus:ring-2 focus:ring-cyan-500" required>
+                    </div>
+                    <div class="mb-5">
+                        <label class="block text-gray-700 font-medium mb-2" for="email">Email</label>
+                        <input type="email" name="email" id="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control border border-gray-200 rounded-xl p-3 w-full focus:ring-2 focus:ring-cyan-500" required>
+                    </div>
+                    <div class="mb-5">
+                        <label class="block text-gray-700 font-medium mb-2" for="phone">Phone</label>
+                        <input type="text" name="phone" id="phone" value="<?php echo htmlspecialchars($user['phone']); ?>" class="form-control border border-gray-200 rounded-xl p-3 w-full focus:ring-2 focus:ring-cyan-500" required>
+                    </div>
+                    <div class="mb-5">
+                        <label class="block text-gray-700 font-medium mb-2" for="dob">Date of Birth</label>
+                        <input type="date" name="dob" id="dob" value="<?php echo htmlspecialchars($user['dob']); ?>" class="form-control border border-gray-200 rounded-xl p-3 w-full focus:ring-2 focus:ring-cyan-500" required>
+                    </div>
+                    <div class="mb-5">
+                        <label class="block text-gray-700 font-medium mb-2" for="profile_image">Profile Image</label>
+                        <input type="file" name="profile_image" id="profile_image" accept="image/*" class="form-control border border-gray-200 rounded-xl p-3 w-full">
+                        <?php if ($user['profile_image']): ?>
+                            <img src="../<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile Image" class="mt-3 w-28 h-28 object-cover rounded-full border-2 border-cyan-500">
+                        <?php endif; ?>
+                    </div>
+                    <button type="submit" name="update_profile" class="bg-cyan-500 hover:bg-cyan-600 text-white py-3 px-6 rounded-xl font-semibold w-full">Update Profile</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Details Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-to-r from-cyan-600 to-teal-500 text-white">
+                    <h5 class="modal-title text-2xl font-bold" id="detailsModalLabel">Booking Details</h5>
+                    <button type="button" class="btn-close " style="color:white;" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body bg-gray-100">
+                    <div class="container mx-auto py-8">
+                        <div class="bg-white p-8 rounded-2xl shadow-lg">
+                            <div id="modalContent"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-xl font-medium" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="profile" class="tab-content">
-      <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md mx-auto">
-        <h3 class="text-2xl font-bold text-gray-800 mb-6">My Profile</h3>
-        <form method="POST" enctype="multipart/form-data">
-          <div class="mb-5">
-            <label class="block text-gray-700 font-medium mb-2" for="full_name">Full Name</label>
-            <input type="text" name="full_name" id="full_name" value="<?php echo htmlspecialchars($user['full_name']); ?>" class="form-control border border-gray-200 rounded-xl p-3 w-full focus:ring-2 focus:ring-cyan-500" required>
-          </div>
-          <div class="mb-5">
-            <label class="block text-gray-700 font-medium mb-2" for="email">Email</label>
-            <input type="email" name="email" id="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control border border-gray-200 rounded-xl p-3 w-full focus:ring-2 focus:ring-cyan-500" required>
-          </div>
-          <div class="mb-5">
-            <label class="block text-gray-700 font-medium mb-2" for="phone">Phone</label>
-            <input type="text" name="phone" id="phone" value="<?php echo htmlspecialchars($user['phone']); ?>" class="form-control border border-gray-200 rounded-xl p-3 w-full focus:ring-2 focus:ring-cyan-500" required>
-          </div>
-          <div class="mb-5">
-            <label class="block text-gray-700 font-medium mb-2" for="dob">Date of Birth</label>
-            <input type="date" name="dob" id="dob" value="<?php echo htmlspecialchars($user['dob']); ?>" class="form-control border border-gray-200 rounded-xl p-3 w-full focus:ring-2 focus:ring-cyan-500" required>
-          </div>
-          <div class="mb-5">
-            <label class="block text-gray-700 font-medium mb-2" for="profile_image">Profile Image</label>
-            <input type="file" name="profile_image" id="profile_image" accept="image/*" class="form-control border border-gray-200 rounded-xl p-3 w-full">
-            <?php if ($user['profile_image']): ?>
-              <img src="../<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile Image" class="mt-3 w-28 h-28 object-cover rounded-full border-2 border-cyan-500">
-            <?php endif; ?>
-          </div>
-          <button type="submit" name="update_profile" class="bg-cyan-500 hover:bg-cyan-600 text-white py-3 px-6 rounded-xl font-semibold w-full">Update Profile</button>
-        </form>
-      </div>
-    </div>
-  </section>
+    <!-- Footer -->
+    <?php include '../includes/footer.php'; ?>
+    <?php include '../includes/js-links.php'; ?>
 
-  <!-- Footer -->
-  <?php include '../includes/footer.php'; ?>
-  <?php include '../includes/js-links.php'; ?>
+    <script>
+        // Tab switching
+        const tabs = document.querySelectorAll('#bookingTabs .nav-link');
+        const tabContents = document.querySelectorAll('.tab-content');
 
-  <script>
-    // Tab switching
-    const tabs = document.querySelectorAll('#bookingTabs .nav-link');
-    const tabContents = document.querySelectorAll('.tab-content');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
 
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        tabContents.forEach(content => content.classList.remove('active'));
-
-        tab.classList.add('active');
-        document.getElementById(tab.dataset.tab).classList.add('active');
-      });
-    });
-
-    // Cancel booking confirmation
-    document.querySelectorAll('.cancel-form').forEach(form => {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        Swal.fire({
-          title: 'Are you sure?',
-          text: 'This booking will be cancelled and cannot be undone.',
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#f59e0b',
-          cancelButtonColor: '#6b7280',
-          confirmButtonText: 'Yes, cancel it!'
-        }).then((result) => {
-          if (result.isConfirmed) {
-            // Create a FormData object 
-            const formData = new FormData(form);
-
-            // Add cancel_booking input to ensure correct action
-            formData.append('cancel_booking', '1');
-
-            // Use fetch for form submission
-            fetch('index.php', {
-              method: 'POST',
-              body: formData
-            }).then(response => {
-              // Reload the page to reflect changes
-              window.location.reload();
-            }).catch(error => {
-              Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'An error occurred while cancelling the booking.'
-              });
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
             });
-          }
         });
-      });
-    });
 
-    // Delete booking confirmation
-    document.querySelectorAll('.delete-form').forEach(form => {
-      form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        Swal.fire({
-          title: 'Are you sure?',
-          text: 'This booking will be permanently deleted and cannot be recovered.',
-          icon: 'error',
-          showCancelButton: true,
-          confirmButtonColor: '#dc2626',
-          cancelButtonColor: '#6b7280',
-          confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-          if (result.isConfirmed) {
-            // Create a FormData object 
-            const formData = new FormData(form);
-
-            // Add delete_booking input to ensure correct action
-            formData.append('delete_booking', '1');
-
-            // Use fetch for form submission
-            fetch('index.php', {
-              method: 'POST',
-              body: formData
-            }).then(response => {
-              // Reload the page to reflect changes
-              window.location.reload();
-            }).catch(error => {
-              Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'An error occurred while deleting the booking.'
-              });
+        // Cancel booking confirmation
+        document.querySelectorAll('.cancel-form').forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: 'This booking will be cancelled and cannot be undone.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#f59e0b',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, cancel it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const formData = new FormData(form);
+                        formData.append('cancel_booking', '1');
+                        fetch('index.php', {
+                            method: 'POST',
+                            body: formData
+                        }).then(response => {
+                            window.location.reload();
+                        }).catch(error => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'An error occurred while cancelling the booking.'
+                            });
+                        });
+                    }
+                });
             });
-          }
         });
-      });
-    });
-    // Filter and search
-    const statusFilter = document.getElementById('statusFilter');
-    const searchInput = document.getElementById('searchInput');
 
-    function filterBookings() {
-      const status = statusFilter.value.toLowerCase();
-      const search = searchInput.value.toLowerCase();
+        // Delete booking confirmation
+        document.querySelectorAll('.delete-form').forEach(form => {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: 'This booking will be permanently deleted and cannot be recovered.',
+                    icon: 'error',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const formData = new FormData(form);
+                        formData.append('delete_booking', '1');
+                        fetch('index.php', {
+                            method: 'POST',
+                            body: formData
+                        }).then(response => {
+                            window.location.reload();
+                        }).catch(error => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'An error occurred while deleting the booking.'
+                            });
+                        });
+                    }
+                });
+            });
+        });
 
-      document.querySelectorAll('.booking-card').forEach(card => {
-        const cardStatus = card.dataset.status.toLowerCase();
-        const cardReference = card.dataset.reference ? card.dataset.reference.toLowerCase() : '';
+        // Filter and search
+        const statusFilter = document.getElementById('statusFilter');
+        const searchInput = document.getElementById('searchInput');
 
-        const statusMatch = !status || cardStatus === status;
-        const searchMatch = !search || cardReference.includes(search);
+        function filterBookings() {
+            const status = statusFilter.value.toLowerCase();
+            const search = searchInput.value.toLowerCase();
 
-        card.style.display = statusMatch && searchMatch ? 'block' : 'none';
-      });
-    }
+            document.querySelectorAll('.booking-card').forEach(card => {
+                const cardStatus = card.dataset.status.toLowerCase();
+                const cardReference = card.dataset.reference ? card.dataset.reference.toLowerCase() : '';
 
-    statusFilter.addEventListener('change', filterBookings);
-    searchInput.addEventListener('input', filterBookings);
-  </script>
+                const statusMatch = !status || cardStatus === status;
+                const searchMatch = !search || cardReference.includes(search);
+
+                card.style.display = statusMatch && searchMatch ? 'block' : 'none';
+            });
+        }
+
+        statusFilter.addEventListener('change', filterBookings);
+        searchInput.addEventListener('input', filterBookings);
+
+        // Modal content functions
+        function showFlightDetails(flight) {
+            try {
+                document.getElementById('detailsModalLabel').textContent = `${flight.airline_name} - ${flight.flight_number} Details`;
+                document.getElementById('modalContent').innerHTML = `
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Flight Details</h3>
+                    <p class="text-gray-600 mb-2"><strong>Airline:</strong> ${flight.airline_name}</p>
+                    <p class="text-gray-600 mb-2"><strong>Flight Number:</strong> ${flight.flight_number}</p>
+                    <p class="text-gray-600 mb-2"><strong>Route:</strong> ${flight.departure_city} to ${flight.arrival_city}</p>
+                    <p class="text-gray-600 mb-2"><strong>Departure Date:</strong> ${new Date(flight.departure_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                    <p class="text-gray-600 mb-2"><strong>Cabin Class:</strong> ${flight.cabin_class.charAt(0).toUpperCase() + flight.cabin_class.slice(1)}</p>
+                    <p class="text-gray-600 mb-2"><strong>Total Price:</strong> Rs${parseFloat(flight.total_price).toFixed(2)}</p>
+                    <p class="text-gray-600 mb-2"><strong>Booking Status:</strong> ${flight.booking_status.charAt(0).toUpperCase() + flight.booking_status.slice(1)}</p>
+                    <p class="text-gray-600 mb-2"><strong>Booked On:</strong> ${new Date(flight.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                `;
+            } catch (e) {
+                console.error('Error in showFlightDetails:', e);
+                document.getElementById('modalContent').innerHTML = '<p class="text-red-500">Error loading flight details.</p>';
+            }
+        }
+
+        function showHotelDetails(hotel) {
+            try {
+                document.getElementById('detailsModalLabel').textContent = `${hotel.hotel_name} Details`;
+                document.getElementById('modalContent').innerHTML = `
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Hotel Details</h3>
+                    <p class="text-gray-600 mb-2"><strong>Hotel Name:</strong> ${hotel.hotel_name}</p>
+                    <p class="text-gray-600 mb-2"><strong>Location:</strong> ${hotel.location}</p>
+                    <p class="text-gray-600 mb-2"><strong>Check-in Date:</strong> ${new Date(hotel.check_in_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                    <p class="text-gray-600 mb-2"><strong>Check-out Date:</strong> ${new Date(hotel.check_out_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                    <p class="text-gray-600 mb-2"><strong>Total Price:</strong> Rs${parseFloat(hotel.total_price).toFixed(2)}</p>
+                    <p class="text-gray-600 mb-2"><strong>Booking Status:</strong> ${hotel.booking_status.charAt(0).toUpperCase() + hotel.booking_status.slice(1)}</p>
+                    <p class="text-gray-600 mb-2"><strong>Booking Reference:</strong> ${hotel.booking_reference}</p>
+                `;
+            } catch (e) {
+                console.error('Error in showHotelDetails:', e);
+                document.getElementById('modalContent').innerHTML = '<p class="text-red-500">Error loading hotel details.</p>';
+            }
+        }
+
+        function showPackageDetails(package) {
+            try {
+                document.getElementById('detailsModalLabel').textContent = `${package.title} Details`;
+                document.getElementById('modalContent').innerHTML = `
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Package Details</h3>
+                    <p class="text-gray-600 mb-2"><strong>Package Title:</strong> ${package.title}</p>
+                    <p class="text-gray-600 mb-2"><strong>Package Type:</strong> ${package.package_type.charAt(0).toUpperCase() + package.package_type.slice(1)}</p>
+                    <p class="text-gray-600 mb-2"><strong>Travel Date:</strong> ${new Date(package.travel_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                    <p class="text-gray-600 mb-2"><strong>Number of Travelers:</strong> ${package.num_travelers}</p>
+                    <p class="text-gray-600 mb-2"><strong>Total Price:</strong> Rs${parseFloat(package.total_price).toFixed(2)}</p>
+                    <p class="text-gray-600 mb-2"><strong>Booking Status:</strong> ${package.booking_status.charAt(0).toUpperCase() + package.booking_status.slice(1)}</p>
+                    <p class="text-gray-600 mb-2"><strong>Booking Reference:</strong> ${package.booking_reference}</p>
+                `;
+            } catch (e) {
+                console.error('Error in showPackageDetails:', e);
+                document.getElementById('modalContent').innerHTML = '<p class="text-red-500">Error loading package details.</p>';
+            }
+        }
+
+        function showTransportDetails(transport) {
+            try {
+                document.getElementById('detailsModalLabel').textContent = `${transport.route_name} Details`;
+                document.getElementById('modalContent').innerHTML = `
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Transportation Details</h3>
+                    <p class="text-gray-600 mb-2"><strong>Route:</strong> ${transport.route_name}</p>
+                    <p class="text-gray-600 mb-2"><strong>Transport Type:</strong> ${transport.transport_type.charAt(0).toUpperCase() + transport.transport_type.slice(1)}</p>
+                    <p class="text-gray-600 mb-2"><strong>Vehicle Type:</strong> ${transport.vehicle_type}</p>
+                    <p class="text-gray-600 mb-2"><strong>Pickup:</strong> ${new Date(transport.pickup_date + ' ' + transport.pickup_time).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                    <p class="text-gray-600 mb-2"><strong>Price:</strong> Rs${parseFloat(transport.price).toFixed(2)}</p>
+                    <p class="text-gray-600 mb-2"><strong>Booking Status:</strong> ${transport.booking_status.charAt(0).toUpperCase() + transport.booking_status.slice(1)}</p>
+                `;
+            } catch (e) {
+                console.error('Error in showTransportDetails:', e);
+                document.getElementById('modalContent').innerHTML = '<p class="text-red-500">Error loading transport details.</p>';
+            }
+        }
+    </script>
 </body>
 
 </html>

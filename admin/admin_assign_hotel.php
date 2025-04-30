@@ -384,45 +384,90 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
   }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Assign Hotel | Admin Panel</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Assign Hotel | UmrahFlights</title>
+  <!-- Tailwind CSS (same as index.php, add-transportation.php, and assign-flight.php) -->
+  <link rel="stylesheet" href="../src/output.css">
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- SweetAlert2 (for consistency with add-transportation.php and assign-flight.php) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 font-sans min-h-screen">
   <?php include 'includes/sidebar.php'; ?>
+  <main class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300" role="main" aria-label="Main content">
+    <!-- Top Navbar (aligned with index.php, add-transportation.php, and assign-flight.php) -->
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden" aria-label="Toggle sidebar">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <h4 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">Assign Hotel</h4>
+        </div>
+        <div class="flex items-center space-x-4">
+          <!-- User Dropdown -->
+          <div class="relative">
+            <button id="userDropdownButton" class="flex items-center space-x-2 text-gray-700 hover:bg-indigo-50 rounded-lg px-3 py-2 focus:outline-none" aria-label="User menu" aria-expanded="false">
+              <div class="rounded-full overflow-hidden" style="width: 32px; height: 32px;">
+                <div class="bg-gray-200 w-full h-full"></div>
+              </div>
+              <span class="hidden md:inline text-sm font-medium">Admin User</span>
+              <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
+              <li>
+                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </nav>
 
-  <div class="ml-0 md:ml-64 p-6">
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <!-- Main Content Section -->
+    <section class="bg-white shadow-lg rounded-lg p-6" aria-label="Hotel assignment">
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">
-          <i class="fas fa-hotel text-blue-500 mr-2"></i>Assign Hotel
-        </h1>
-        <a href="index.php" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+        <h2 class="text-2xl font-bold text-gray-800">
+          <i class="fas fa-hotel text-indigo-600 mr-2"></i>Assign Hotel
+        </h2>
+        <a href="index.php" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
           <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
         </a>
       </div>
 
+      <!-- Alerts (aligned with index.php, add-transportation.php, and assign-flight.php) -->
       <?php if ($error_message): ?>
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-          <p><?php echo $error_message; ?></p>
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
+          <span><?php echo htmlspecialchars($error_message); ?></span>
+          <button class="text-red-700 hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-red-500" onclick="this.parentElement.remove()" aria-label="Close alert">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       <?php endif; ?>
 
       <?php if ($success_message): ?>
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
-          <p><?php echo $success_message; ?></p>
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
+          <span><?php echo htmlspecialchars($success_message); ?></span>
+          <button class="text-green-700 hover:text-green-900 focus:outline-none focus:ring-2 focus:ring-green-500" onclick="this.parentElement.remove()" aria-label="Close alert">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       <?php endif; ?>
 
       <?php if ($booking): ?>
-        <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-6">
+        <div class="bg-indigo-50 border-l-4 border-indigo-500 text-indigo-700 p-4 rounded-lg mb-6">
           <p><strong>Booking #<?php echo $booking['id']; ?></strong></p>
           <p>User: <?php echo htmlspecialchars($booking['full_name']); ?> (ID: <?php echo $booking['user_id']; ?>)</p>
           <p>Package: <?php echo $booking['package_id']; ?></p>
@@ -430,8 +475,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
         </div>
 
         <?php if (!empty($booking_details)): ?>
-          <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6">
-            <h3 class="font-bold">Current Hotel Assignment</h3>
+          <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6">
+            <h3 class="font-bold text-lg text-gray-800">Current Hotel Assignment</h3>
             <p>Hotel ID: <?php echo $booking_details['hotel_id']; ?></p>
             <p>Room: <?php echo $booking_details['room_id']; ?></p>
             <p>Check-in: <?php echo date('F j, Y', strtotime($booking_details['check_in_date'])); ?></p>
@@ -447,7 +492,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label for="hotel_id" class="block text-sm font-medium text-gray-700 mb-1">Select Hotel</label>
-              <select name="hotel_id" id="hotel_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
+              <select name="hotel_id" id="hotel_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" required>
                 <option value="">-- Select Hotel --</option>
                 <?php foreach ($hotels as $hotel): ?>
                   <option value="<?php echo $hotel['id']; ?>" <?php echo ($form_hotel_id == $hotel['id']) ? 'selected' : ''; ?>>
@@ -459,7 +504,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
 
             <div>
               <label for="room_id" class="block text-sm font-medium text-gray-700 mb-1">Room ID</label>
-              <select name="room_id" id="room_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required <?php echo empty($available_rooms) && empty($booking_details) ? 'disabled' : ''; ?>>
+              <select name="room_id" id="room_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" required <?php echo empty($available_rooms) && empty($booking_details) ? 'disabled' : ''; ?>>
                 <?php if (!empty($available_rooms)): ?>
                   <option value="">-- Select Room --</option>
                   <?php foreach ($available_rooms as $room): ?>
@@ -480,7 +525,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
             <div>
               <label for="check_in_date" class="block text-sm font-medium text-gray-700 mb-1">Check-in Date</label>
               <input type="date" name="check_in_date" id="check_in_date"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 value="<?php echo $form_check_in_date; ?>"
                 min="<?php echo date('Y-m-d'); ?>"
                 required>
@@ -489,7 +534,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
             <div>
               <label for="check_out_date" class="block text-sm font-medium text-gray-700 mb-1">Check-out Date</label>
               <input type="date" name="check_out_date" id="check_out_date"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 value="<?php echo $form_check_out_date; ?>"
                 min="<?php echo !empty($form_check_in_date) ? $form_check_in_date : date('Y-m-d', strtotime('+1 day')); ?>"
                 required>
@@ -499,15 +544,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
           <div>
             <label for="special_requests" class="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
             <textarea name="special_requests" id="special_requests" rows="3"
-              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"><?php echo htmlspecialchars($form_special_requests); ?></textarea>
+              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"><?php echo htmlspecialchars($form_special_requests); ?></textarea>
           </div>
 
           <div class="flex justify-between">
-            <button type="submit" name="check_availability" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            <button type="submit" name="check_availability" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
               <i class="fas fa-search mr-2"></i>Check Room Availability
             </button>
 
-            <button type="submit" name="assign_hotel" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" <?php echo empty($available_rooms) && empty($booking_details) ? 'disabled' : ''; ?>>
+            <button type="submit" name="assign_hotel" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700" <?php echo empty($available_rooms) && empty($booking_details) ? 'disabled' : ''; ?>>
               <i class="fas fa-check mr-2"></i><?php echo !empty($booking_details) ? 'Update Hotel Assignment' : 'Assign Hotel'; ?>
             </button>
           </div>
@@ -519,49 +564,123 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
           <?php endif; ?>
         </form>
       <?php else: ?>
-        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4">
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg">
           <p>Booking not found or invalid booking ID.</p>
         </div>
       <?php endif; ?>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <script>
-    // Validate dates
-    document.getElementById('check_in_date').addEventListener('change', function() {
-      const checkOutInput = document.getElementById('check_out_date');
-      checkOutInput.min = this.value;
+    document.addEventListener('DOMContentLoaded', function() {
+      // Sidebar elements (aligned with index.php, add-transportation.php, and assign-flight.php)
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const dashboardHeader = document.getElementById('dashboardHeader');
 
-      if (checkOutInput.value && new Date(checkOutInput.value) <= new Date(this.value)) {
-        // Set checkout to day after checkin
-        const nextDay = new Date(this.value);
-        nextDay.setDate(nextDay.getDate() + 1);
-        checkOutInput.value = nextDay.toISOString().split('T')[0];
+      // User dropdown elements
+      const userDropdownButton = document.getElementById('userDropdownButton');
+      const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+      // Error handling for missing elements
+      if (!sidebar || !sidebarOverlay || !sidebarToggle || !sidebarClose) {
+        console.warn('One or more sidebar elements are missing.');
+        return;
       }
-    });
+      if (!userDropdownButton || !userDropdownMenu) {
+        console.warn('User dropdown elements are missing.');
+        return;
+      }
+      if (!dashboardHeader) {
+        console.warn('Dashboard header element is missing.');
+        return;
+      }
 
-    // Form submission confirmation
-    document.getElementById('assignHotelForm').addEventListener('submit', function(e) {
-      if (e.submitter && e.submitter.name === 'assign_hotel') {
-        if (!confirm('Are you sure you want to assign this hotel to the booking?')) {
-          e.preventDefault();
+      // Sidebar toggle function
+      const toggleSidebar = () => {
+        sidebar.classList.toggle('-translate-x-full');
+        sidebarOverlay.classList.toggle('hidden');
+        sidebarToggle.classList.toggle('hidden');
+      };
+
+      // Open sidebar
+      sidebarToggle.addEventListener('click', toggleSidebar);
+
+      // Close sidebar
+      sidebarClose.addEventListener('click', toggleSidebar);
+
+      // Close sidebar via overlay
+      sidebarOverlay.addEventListener('click', toggleSidebar);
+
+      // Open sidebar on Dashboard header click
+      dashboardHeader.addEventListener('click', () => {
+        if (sidebar.classList.contains('-translate-x-full')) {
+          toggleSidebar();
         }
-      }
-    });
+      });
 
-    // Disable assign button if no room is selected
-    const roomSelect = document.getElementById('room_id');
-    const assignButton = document.querySelector('button[name="assign_hotel"]');
+      // User dropdown toggle
+      userDropdownButton.addEventListener('click', () => {
+        userDropdownMenu.classList.toggle('hidden');
+      });
 
-    roomSelect.addEventListener('change', function() {
-      assignButton.disabled = !this.value;
-    });
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (event) => {
+        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+          userDropdownMenu.classList.add('hidden');
+        }
+      });
 
-    // Enable room selection dropdown when hotel_id changes and check availability button is clicked
-    document.getElementById('hotel_id').addEventListener('change', function() {
-      if (this.value) {
-        document.getElementById('check_in_date').focus();
-      }
+      // Validate dates
+      document.getElementById('check_in_date').addEventListener('change', function() {
+        const checkOutInput = document.getElementById('check_out_date');
+        checkOutInput.min = this.value;
+
+        if (checkOutInput.value && new Date(checkOutInput.value) <= new Date(this.value)) {
+          // Set checkout to day after checkin
+          const nextDay = new Date(this.value);
+          nextDay.setDate(nextDay.getDate() + 1);
+          checkOutInput.value = nextDay.toISOString().split('T')[0];
+        }
+      });
+
+      // Form submission confirmation with SweetAlert2
+      document.getElementById('assignHotelForm').addEventListener('submit', function(e) {
+        if (e.submitter && e.submitter.name === 'assign_hotel') {
+          e.preventDefault();
+          Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to assign this hotel to the booking?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, assign it!',
+            cancelButtonText: 'Cancel'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              this.submit();
+            }
+          });
+        }
+      });
+
+      // Disable assign button if no room is selected
+      const roomSelect = document.getElementById('room_id');
+      const assignButton = document.querySelector('button[name="assign_hotel"]');
+
+      roomSelect.addEventListener('change', function() {
+        assignButton.disabled = !this.value;
+      });
+
+      // Enable room selection dropdown when hotel_id changes and check availability button is clicked
+      document.getElementById('hotel_id').addEventListener('change', function() {
+        if (this.value) {
+          document.getElementById('check_in_date').focus();
+        }
+      });
     });
   </script>
 </body>

@@ -1,17 +1,14 @@
 <?php
 require_once '../config/db.php';
 
-// Start admin session
 session_name('admin_session');
 session_start();
 
-// Check if admin is logged in
 if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true) {
   header('Location: login.php');
   exit;
 }
 
-// Get booking ID from POST or GET
 $booking_id = isset($_POST['booking_id']) ? intval($_POST['booking_id']) : (isset($_GET['booking_id']) ? intval($_GET['booking_id']) : 0);
 
 if ($booking_id <= 0) {
@@ -19,7 +16,6 @@ if ($booking_id <= 0) {
   exit;
 }
 
-// Initialize variables
 $success_message = '';
 $error_message = '';
 $booking = null;
@@ -28,7 +24,6 @@ $taxi_routes = [];
 $rentacar_routes = [];
 $booking_details = [];
 
-// Store form values to maintain state after submission
 $form_transport_type = isset($_POST['transport_type']) ? $_POST['transport_type'] : '';
 $form_route_id = isset($_POST['route_id']) ? intval($_POST['route_id']) : 0;
 $form_vehicle_type = isset($_POST['vehicle_type']) ? $_POST['vehicle_type'] : '';
@@ -40,7 +35,6 @@ $form_full_name = isset($_POST['full_name']) ? $_POST['full_name'] : '';
 $form_email = isset($_POST['email']) ? $_POST['email'] : '';
 $form_phone = isset($_POST['phone']) ? $_POST['phone'] : '';
 
-// Fetch booking details
 $stmt = $conn->prepare("SELECT b.id, b.user_id, b.package_id, b.created_at, u.full_name, u.email, u.phone 
                        FROM package_bookings b 
                        JOIN users u ON b.user_id = u.id 
@@ -55,7 +49,6 @@ if ($result->num_rows > 0) {
 }
 $stmt->close();
 
-// Check if transportation is already assigned to this booking
 if ($booking) {
   $stmt = $conn->prepare("SELECT * FROM transportation_bookings WHERE user_id = ?");
   $stmt->bind_param("i", $booking['user_id']);
@@ -63,8 +56,6 @@ if ($booking) {
   $result = $stmt->get_result();
   if ($result->num_rows > 0) {
     $booking_details = $result->fetch_assoc();
-
-    // Use booking details as default form values if not already set
     if (empty($form_transport_type)) {
       $form_transport_type = $booking_details['transport_type'];
     }
@@ -99,7 +90,6 @@ if ($booking) {
   $stmt->close();
 }
 
-// Fetch taxi routes
 $stmt = $conn->prepare("SELECT id, route_name, route_number, camry_sonata_price, starex_staria_price, hiace_price 
                       FROM taxi_routes 
                       ORDER BY route_number");
@@ -110,7 +100,6 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Fetch rent-a-car routes
 $stmt = $conn->prepare("SELECT id, route_name, route_number, gmc_16_19_price, gmc_22_23_price, coaster_price 
                       FROM rentacar_routes 
                       ORDER BY route_number");
@@ -121,7 +110,6 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Process form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
   $transport_type = $form_transport_type;
   $route_id = $form_route_id;
@@ -134,7 +122,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
   $email = $form_email;
   $phone = $form_phone;
 
-  // Validate inputs
   if (!in_array($transport_type, $transport_types)) {
     $error_message = "Please select a valid transport type.";
   } elseif ($route_id <= 0) {
@@ -143,17 +130,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
     $error_message = "Please select a vehicle type.";
   } elseif (empty($pickup_date) || empty($pickup_time)) {
     $error_message = "Pickup date and time are required.";
+  } elseif (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $pickup_time)) {
+    $error_message = "Invalid pickup time. Please use 24-hour format (e.g., 13:55 or 22:45).";
   } elseif (empty($pickup_location)) {
     $error_message = "Pickup location is required.";
   } elseif (empty($full_name) || empty($email) || empty($phone)) {
     $error_message = "Contact information is required.";
   } else {
-    // Get price based on vehicle type and route
     $price = 0;
     $route_name = '';
 
     if ($transport_type === 'taxi') {
-      // Find route in taxi routes
       foreach ($taxi_routes as $route) {
         if ($route['id'] == $route_id) {
           $route_name = $route['route_name'];
@@ -171,8 +158,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
           break;
         }
       }
-    } else { // rentacar
-      // Find route in rentacar routes
+    } else {
       foreach ($rentacar_routes as $route) {
         if ($route['id'] == $route_id) {
           $route_name = $route['route_name'];
@@ -195,25 +181,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
     if ($price <= 0) {
       $error_message = "Could not determine price for selected options.";
     } else {
-      // Format pickup time with seconds
       $pickup_time = $pickup_time . ':00';
-
-      // Start transaction
       $conn->begin_transaction();
       try {
-        // Check if booking already has transportation assigned
+        $payment_status = 'paid';
+        $booking_status = 'confirmed';
+
         if (!empty($booking_details)) {
-          // Update existing booking
           $stmt = $conn->prepare("UPDATE transportation_bookings 
                                 SET transport_type = ?, route_id = ?, route_name = ?,
                                     vehicle_type = ?, price = ?, pickup_date = ?,
                                     pickup_time = ?, pickup_location = ?, 
                                     additional_notes = ?, full_name = ?,
-                                    email = ?, phone = ?
+                                    email = ?, phone = ?, payment_status = ?,
+                                    booking_status = ?
                                 WHERE user_id = ?");
           $user_id = $booking['user_id'];
           $stmt->bind_param(
-            "sissdsssssssi",
+            "sissdsssssssssi",
             $transport_type,
             $route_id,
             $route_name,
@@ -226,6 +211,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
             $full_name,
             $email,
             $phone,
+            $payment_status,
+            $booking_status,
             $user_id
           );
           if (!$stmt->execute()) {
@@ -233,16 +220,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
           }
           $stmt->close();
         } else {
-          // Create new booking
           $user_id = $booking['user_id'];
           $stmt = $conn->prepare("INSERT INTO transportation_bookings 
                                 (user_id, transport_type, route_id, route_name,
                                  vehicle_type, price, full_name, email, phone,
                                  pickup_date, pickup_time, pickup_location, 
-                                 additional_notes, booking_status) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed')");
+                                 additional_notes, payment_status, booking_status) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
           $stmt->bind_param(
-            "isissdsssssss",
+            "isissdsssssssss",
             $user_id,
             $transport_type,
             $route_id,
@@ -255,7 +241,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
             $pickup_date,
             $pickup_time,
             $pickup_location,
-            $additional_notes
+            $additional_notes,
+            $payment_status,
+            $booking_status
           );
           if (!$stmt->execute()) {
             throw new Exception("Error creating transportation booking: " . $stmt->error);
@@ -263,11 +251,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
           $stmt->close();
         }
 
-        // Commit the transaction
         $conn->commit();
-        $success_message = "Transportation assigned successfully to booking #$booking_id.";
+        $success_message = "Transportation assigned successfully to booking #$booking_id. Payment status set to 'paid' and booking status set to 'confirmed'.";
 
-        // Refresh booking details
         $stmt = $conn->prepare("SELECT * FROM transportation_bookings WHERE user_id = ?");
         $stmt->bind_param("i", $booking['user_id']);
         $stmt->execute();
@@ -284,45 +270,90 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
   }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Assign Transportation | Admin Panel</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Assign Transportation | UmrahFlights</title>
+  <!-- Tailwind CSS (same as other pages) -->
+  <link rel="stylesheet" href="../src/output.css">
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- SweetAlert2 (for consistency with other pages) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 font-sans min-h-screen">
   <?php include 'includes/sidebar.php'; ?>
+  <main class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300" role="main" aria-label="Main content">
+    <!-- Top Navbar (aligned with other pages) -->
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden" aria-label="Toggle sidebar">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <h4 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">Assign Transportation</h4>
+        </div>
+        <div class="flex items-center space-x-4">
+          <!-- User Dropdown -->
+          <div class="relative">
+            <button id="userDropdownButton" class="flex items-center space-x-2 text-gray-700 hover:bg-indigo-50 rounded-lg px-3 py-2 focus:outline-none" aria-label="User menu" aria-expanded="false">
+              <div class="rounded-full overflow-hidden" style="width: 32px; height: 32px;">
+                <div class="bg-gray-200 w-full h-full"></div>
+              </div>
+              <span class="hidden md:inline text-sm font-medium">Admin User</span>
+              <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
+              <li>
+                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </nav>
 
-  <div class="ml-0 md:ml-64 p-6">
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <!-- Main Content Section -->
+    <section class="bg-white shadow-lg rounded-lg p-6" aria-label="Transportation assignment">
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">
-          <i class="fas fa-car text-blue-500 mr-2"></i>Assign Transportation
-        </h1>
-        <a href="index.php" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+        <h2 class="text-2xl font-bold text-gray-800">
+          <i class="fas fa-car text-indigo-600 mr-2"></i>Assign Transportation
+        </h2>
+        <a href="index.php" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
           <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
         </a>
       </div>
 
+      <!-- Alerts (aligned with other pages) -->
       <?php if ($error_message): ?>
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-          <p><?php echo $error_message; ?></p>
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
+          <span><?php echo htmlspecialchars($error_message); ?></span>
+          <button class="text-red-700 hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-red-500" onclick="this.parentElement.remove()" aria-label="Close alert">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       <?php endif; ?>
 
       <?php if ($success_message): ?>
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
-          <p><?php echo $success_message; ?></p>
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
+          <span><?php echo htmlspecialchars($success_message); ?></span>
+          <button class="text-green-700 hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-green-500" onclick="this.parentElement.remove()" aria-label="Close alert">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       <?php endif; ?>
 
       <?php if ($booking): ?>
-        <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-6">
+        <div class="bg-indigo-50 border-l-4 border-indigo-500 text-indigo-700 p-4 rounded-lg mb-6">
           <p><strong>Booking #<?php echo $booking['id']; ?></strong></p>
           <p>User: <?php echo htmlspecialchars($booking['full_name']); ?> (ID: <?php echo $booking['user_id']; ?>)</p>
           <p>Package: <?php echo $booking['package_id']; ?></p>
@@ -330,33 +361,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
         </div>
 
         <?php if (!empty($booking_details)): ?>
-          <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6">
-            <h3 class="font-bold">Current Transportation Assignment</h3>
+          <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6">
+            <h3 class="font-bold text-lg text-gray-800">Current Transportation Assignment</h3>
             <p>Type: <?php echo ucfirst($booking_details['transport_type']); ?></p>
             <p>Route: <?php echo htmlspecialchars($booking_details['route_name']); ?></p>
             <p>Vehicle: <?php echo htmlspecialchars($booking_details['vehicle_type']); ?></p>
             <p>Pickup: <?php echo date('F j, Y', strtotime($booking_details['pickup_date'])); ?> at <?php echo date('H:i', strtotime($booking_details['pickup_time'])); ?></p>
             <p>Price: PKR <?php echo number_format($booking_details['price'], 2); ?></p>
+            <p>Payment Status: <?php echo ucfirst($booking_details['payment_status'] ?? 'Pending'); ?></p>
+            <p>Booking Status: <?php echo ucfirst($booking_details['booking_status'] ?? 'Pending'); ?></p>
             <p class="mt-2">You can update this assignment using the form below.</p>
           </div>
         <?php endif; ?>
 
         <form action="" method="POST" class="space-y-6" id="assignTransportForm">
           <input type="hidden" name="booking_id" value="<?php echo $booking_id; ?>">
-
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label for="transport_type" class="block text-sm font-medium text-gray-700 mb-1">Transport Type</label>
-              <select name="transport_type" id="transport_type" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
+              <select name="transport_type" id="transport_type" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" required>
                 <option value="">-- Select Transport Type --</option>
                 <option value="taxi" <?php echo ($form_transport_type == 'taxi') ? 'selected' : ''; ?>>Taxi</option>
                 <option value="rentacar" <?php echo ($form_transport_type == 'rentacar') ? 'selected' : ''; ?>>Rent A Car</option>
               </select>
             </div>
-
             <div id="routeContainer">
               <label for="route_id" class="block text-sm font-medium text-gray-700 mb-1">Route</label>
-              <select name="route_id" id="route_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required <?php echo empty($form_transport_type) ? 'disabled' : ''; ?>>
+              <select name="route_id" id="route_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" required <?php echo empty($form_transport_type) ? 'disabled' : ''; ?>>
                 <option value="">-- Select Route --</option>
                 <?php if ($form_transport_type == 'taxi'): ?>
                   <?php foreach ($taxi_routes as $route): ?>
@@ -373,10 +404,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
                 <?php endif; ?>
               </select>
             </div>
-
             <div id="vehicleContainer">
               <label for="vehicle_type" class="block text-sm font-medium text-gray-700 mb-1">Vehicle Type</label>
-              <select name="vehicle_type" id="vehicle_type" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required <?php echo empty($form_route_id) ? 'disabled' : ''; ?>>
+              <select name="vehicle_type" id="vehicle_type" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" required <?php echo empty($form_route_id) ? 'disabled' : ''; ?>>
                 <option value="">-- Select Vehicle Type --</option>
                 <?php if (!empty($form_transport_type) && !empty($form_route_id)): ?>
                   <?php if ($form_transport_type == 'taxi'): ?>
@@ -388,7 +418,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
                         break;
                       }
                     }
-
                     if ($selected_route):
                     ?>
                       <?php if (floatval($selected_route['camry_sonata_price']) > 0): ?>
@@ -396,13 +425,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
                           Camry/Sonata - PKR <?php echo number_format($selected_route['camry_sonata_price'], 2); ?>
                         </option>
                       <?php endif; ?>
-
                       <?php if (floatval($selected_route['starex_staria_price']) > 0): ?>
                         <option value="Starex/Staria" <?php echo ($form_vehicle_type == 'Starex/Staria') ? 'selected' : ''; ?>>
                           Starex/Staria - PKR <?php echo number_format($selected_route['starex_staria_price'], 2); ?>
                         </option>
                       <?php endif; ?>
-
                       <?php if (floatval($selected_route['hiace_price']) > 0): ?>
                         <option value="Hiace" <?php echo ($form_vehicle_type == 'Hiace') ? 'selected' : ''; ?>>
                           Hiace - PKR <?php echo number_format($selected_route['hiace_price'], 2); ?>
@@ -418,7 +445,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
                         break;
                       }
                     }
-
                     if ($selected_route):
                     ?>
                       <?php if (floatval($selected_route['gmc_16_19_price']) > 0): ?>
@@ -426,13 +452,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
                           GMC 16-19 Seats - PKR <?php echo number_format($selected_route['gmc_16_19_price'], 2); ?>
                         </option>
                       <?php endif; ?>
-
                       <?php if (floatval($selected_route['gmc_22_23_price']) > 0): ?>
                         <option value="GMC 22-23 Seats" <?php echo ($form_vehicle_type == 'GMC 22-23 Seats') ? 'selected' : ''; ?>>
                           GMC 22-23 Seats - PKR <?php echo number_format($selected_route['gmc_22_23_price'], 2); ?>
                         </option>
                       <?php endif; ?>
-
                       <?php if (floatval($selected_route['coaster_price']) > 0): ?>
                         <option value="Coaster" <?php echo ($form_vehicle_type == 'Coaster') ? 'selected' : ''; ?>>
                           Coaster - PKR <?php echo number_format($selected_route['coaster_price'], 2); ?>
@@ -443,74 +467,72 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
                 <?php endif; ?>
               </select>
             </div>
-
             <div>
               <label for="pickup_date" class="block text-sm font-medium text-gray-700 mb-1">Pickup Date</label>
               <input type="date" name="pickup_date" id="pickup_date"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value="<?php echo $form_pickup_date; ?>"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                value="<?php echo htmlspecialchars($form_pickup_date); ?>"
                 min="<?php echo date('Y-m-d'); ?>"
                 required>
             </div>
-
             <div>
               <label for="pickup_time" class="block text-sm font-medium text-gray-700 mb-1">Pickup Time</label>
-              <input type="time" name="pickup_time" id="pickup_time"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value="<?php echo $form_pickup_time; ?>"
+              <input type="text"
+                name="pickup_time"
+                id="pickup_time"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                value="<?php echo htmlspecialchars($form_pickup_time); ?>"
+                placeholder="HH:MM"
+                maxlength="5"
                 required>
+              <span id="pickup_time_error" class="text-red-500 text-xs hidden">Please enter a valid time in 24-hour format (e.g., 13:55 or 22:45).</span>
             </div>
-
             <div>
               <label for="pickup_location" class="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
               <input type="text" name="pickup_location" id="pickup_location"
-                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 value="<?php echo htmlspecialchars($form_pickup_location); ?>"
                 required>
             </div>
           </div>
-
           <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h3 class="text-lg font-medium text-gray-800 mb-4">Contact Information</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                 <input type="text" name="full_name" id="full_name"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   value="<?php echo !empty($form_full_name) ? htmlspecialchars($form_full_name) : htmlspecialchars($booking['full_name']); ?>"
                   required>
               </div>
               <div>
                 <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input type="email" name="email" id="email"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   value="<?php echo !empty($form_email) ? htmlspecialchars($form_email) : htmlspecialchars($booking['email']); ?>"
                   required>
               </div>
               <div>
                 <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                 <input type="text" name="phone" id="phone"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   value="<?php echo !empty($form_phone) ? htmlspecialchars($form_phone) : htmlspecialchars($booking['phone']); ?>"
                   required>
               </div>
             </div>
           </div>
-
           <div>
             <label for="additional_notes" class="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
             <textarea name="additional_notes" id="additional_notes" rows="3"
-              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"><?php echo htmlspecialchars($form_additional_notes); ?></textarea>
+              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"><?php echo htmlspecialchars($form_additional_notes); ?></textarea>
           </div>
-
-          <div id="pricePreview" class="bg-green-50 p-4 rounded-lg border border-green-200 <?php echo (empty($form_transport_type) || empty($form_route_id) || empty($form_vehicle_type)) ? 'hidden' : ''; ?>">
+          <div id="pricePreview" class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 <?php echo (empty($form_transport_type) || empty($form_route_id) || empty($form_vehicle_type)) ? 'hidden' : ''; ?>">
             <div class="flex justify-between items-center">
               <h3 class="text-lg font-medium text-gray-800">Price</h3>
-              <span class="text-xl font-bold text-green-600">PKR <span id="priceDisplay"><?php
+              <span class="text-xl font-bold text-indigo-600">PKR <span id="priceDisplay"><?php
                                                                                           if (!empty($booking_details)) {
                                                                                             echo number_format($booking_details['price'], 2);
                                                                                           } else {
-                                                                                            // Calculate price based on selections
                                                                                             $calculated_price = 0;
                                                                                             if (!empty($form_transport_type) && !empty($form_route_id) && !empty($form_vehicle_type)) {
                                                                                               if ($form_transport_type === 'taxi') {
@@ -530,7 +552,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
                                                                                                     break;
                                                                                                   }
                                                                                                 }
-                                                                                              } else { // rentacar
+                                                                                              } else {
                                                                                                 foreach ($rentacar_routes as $route) {
                                                                                                   if ($route['id'] == $form_route_id) {
                                                                                                     switch ($form_vehicle_type) {
@@ -554,189 +576,287 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
                                                                                           ?></span></span>
             </div>
           </div>
-
           <div class="flex justify-end">
-            <button type="submit" name="assign_transport" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+            <button type="submit" name="assign_transport" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
               <i class="fas fa-check mr-2"></i><?php echo !empty($booking_details) ? 'Update Transportation' : 'Assign Transportation'; ?>
             </button>
           </div>
         </form>
       <?php else: ?>
-        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4">
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg">
           <p>Booking not found or invalid booking ID.</p>
         </div>
       <?php endif; ?>
-    </div>
-  </div>
+    </section>
+  </main>
 
   <script>
-    // Define routes data for dynamic loading
     const taxiRoutes = <?php echo json_encode($taxi_routes); ?>;
     const rentacarRoutes = <?php echo json_encode($rentacar_routes); ?>;
 
-    // Function to populate route dropdown based on transport type
-    function populateRoutes(transportType) {
-      const routeSelect = document.getElementById('route_id');
-      routeSelect.innerHTML = '<option value="">-- Select Route --</option>';
-      routeSelect.disabled = !transportType;
+    document.addEventListener('DOMContentLoaded', function() {
+      // Sidebar elements (aligned with other pages)
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const dashboardHeader = document.getElementById('dashboardHeader');
 
-      if (!transportType) return;
+      // User dropdown elements
+      const userDropdownButton = document.getElementById('userDropdownButton');
+      const userDropdownMenu = document.getElementById('userDropdownMenu');
 
-      const routes = transportType === 'taxi' ? taxiRoutes : rentacarRoutes;
+      // Error handling for missing elements
+      if (!sidebar || !sidebarOverlay || !sidebarToggle || !sidebarClose) {
+        console.warn('One or more sidebar elements are missing.');
+        return;
+      }
+      if (!userDropdownButton || !userDropdownMenu) {
+        console.warn('User dropdown elements are missing.');
+        return;
+      }
+      if (!dashboardHeader) {
+        console.warn('Dashboard header element is missing.');
+        return;
+      }
 
-      routes.forEach(route => {
-        const option = document.createElement('option');
-        option.value = route.id;
-        option.textContent = `${route.route_name} (Route #${route.route_number})`;
-        option.setAttribute('data-route', JSON.stringify(route));
-        routeSelect.appendChild(option);
+      // Sidebar toggle function
+      const toggleSidebar = () => {
+        sidebar.classList.toggle('-translate-x-full');
+        sidebarOverlay.classList.toggle('hidden');
+        sidebarToggle.classList.toggle('hidden');
+      };
+
+      // Open sidebar
+      sidebarToggle.addEventListener('click', toggleSidebar);
+
+      // Close sidebar
+      sidebarClose.addEventListener('click', toggleSidebar);
+
+      // Close sidebar via overlay
+      sidebarOverlay.addEventListener('click', toggleSidebar);
+
+      // Open sidebar on Dashboard header click
+      dashboardHeader.addEventListener('click', () => {
+        if (sidebar.classList.contains('-translate-x-full')) {
+          toggleSidebar();
+        }
       });
 
-      // If a route was previously selected, try to re-select it
-      const savedRouteId = <?php echo $form_route_id ? $form_route_id : '0'; ?>;
-      if (savedRouteId > 0) {
-        for (let i = 0; i < routeSelect.options.length; i++) {
-          if (routeSelect.options[i].value == savedRouteId) {
-            routeSelect.selectedIndex = i;
-            routeSelect.dispatchEvent(new Event('change'));
-            break;
+      // User dropdown toggle
+      userDropdownButton.addEventListener('click', () => {
+        userDropdownMenu.classList.toggle('hidden');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (event) => {
+        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+          userDropdownMenu.classList.add('hidden');
+        }
+      });
+
+      // Pickup time validation
+      const timeInput = document.getElementById('pickup_time');
+      const errorSpan = document.getElementById('pickup_time_error');
+      const form = document.getElementById('assignTransportForm');
+
+      timeInput.addEventListener('input', function(e) {
+        let value = e.target.value;
+        value = value.replace(/[^0-9:]/g, '');
+        if (value.length === 2 && !value.includes(':')) {
+          value += ':';
+        }
+        if (value.length > 5) {
+          value = value.substring(0, 5);
+        }
+        if (value.includes(':') && value.split(':')[0].length === 2) {
+          const hours = parseInt(value.split(':')[0], 10);
+          if (hours > 23) {
+            value = '23' + value.substring(2);
           }
         }
-      }
-    }
-
-    // Function to populate vehicle types based on selected route
-    function populateVehicles(routeId, transportType) {
-      const vehicleSelect = document.getElementById('vehicle_type');
-      vehicleSelect.innerHTML = '<option value="">-- Select Vehicle Type --</option>';
-
-      if (!routeId || !transportType) {
-        vehicleSelect.disabled = true;
-        return;
-      }
-
-      const routes = transportType === 'taxi' ? taxiRoutes : rentacarRoutes;
-      let selectedRoute = null;
-
-      // Find the selected route
-      for (const route of routes) {
-        if (route.id == routeId) {
-          selectedRoute = route;
-          break;
-        }
-      }
-
-      if (!selectedRoute) {
-        vehicleSelect.disabled = true;
-        return;
-      }
-
-      vehicleSelect.disabled = false;
-
-      // Add vehicle options based on transport type
-      if (transportType === 'taxi') {
-        if (parseFloat(selectedRoute.camry_sonata_price) > 0) {
-          addVehicleOption(vehicleSelect, 'Camry/Sonata', selectedRoute.camry_sonata_price);
-        }
-        if (parseFloat(selectedRoute.starex_staria_price) > 0) {
-          addVehicleOption(vehicleSelect, 'Starex/Staria', selectedRoute.starex_staria_price);
-        }
-        if (parseFloat(selectedRoute.hiace_price) > 0) {
-          addVehicleOption(vehicleSelect, 'Hiace', selectedRoute.hiace_price);
-        }
-      } else { // rentacar
-        if (parseFloat(selectedRoute.gmc_16_19_price) > 0) {
-          addVehicleOption(vehicleSelect, 'GMC 16-19 Seats', selectedRoute.gmc_16_19_price);
-        }
-        if (parseFloat(selectedRoute.gmc_22_23_price) > 0) {
-          addVehicleOption(vehicleSelect, 'GMC 22-23 Seats', selectedRoute.gmc_22_23_price);
-        }
-        if (parseFloat(selectedRoute.coaster_price) > 0) {
-          addVehicleOption(vehicleSelect, 'Coaster', selectedRoute.coaster_price);
-        }
-      }
-
-      // If a vehicle type was previously selected, try to re-select it
-      const savedVehicleType = "<?php echo $form_vehicle_type ? $form_vehicle_type : ''; ?>";
-      if (savedVehicleType) {
-        for (let i = 0; i < vehicleSelect.options.length; i++) {
-          if (vehicleSelect.options[i].value === savedVehicleType) {
-            vehicleSelect.selectedIndex = i;
-            vehicleSelect.dispatchEvent(new Event('change'));
-            break;
+        if (value.length === 5 && value.includes(':')) {
+          const minutes = parseInt(value.split(':')[1], 10);
+          if (minutes > 59) {
+            value = value.substring(0, 3) + '59';
           }
         }
-      }
-    }
+        e.target.value = value;
+        const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+        if (value.length === 5 && !timePattern.test(value)) {
+          timeInput.classList.remove('border-gray-300');
+          timeInput.classList.add('border-red-500');
+          errorSpan.classList.remove('hidden');
+        } else {
+          timeInput.classList.remove('border-red-500');
+          timeInput.classList.add('border-gray-300');
+          errorSpan.classList.add('hidden');
+        }
+      });
 
-    function addVehicleOption(select, vehicleName, price) {
-      const option = document.createElement('option');
-      option.value = vehicleName;
-      option.textContent = `${vehicleName} - PKR ${parseFloat(price).toLocaleString()}`;
-      option.setAttribute('data-price', price);
-      select.appendChild(option);
-    }
+      form.addEventListener('submit', function(e) {
+        const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+        if (timeInput.value && !timePattern.test(timeInput.value)) {
+          e.preventDefault();
+          timeInput.classList.remove('border-gray-300');
+          timeInput.classList.add('border-red-500');
+          errorSpan.classList.remove('hidden');
+          timeInput.focus();
+          Swal.fire({
+            icon: 'error',
+            title: 'Invalid Time',
+            text: 'Please enter a valid time in 24-hour format (e.g., 13:55 or 22:45).'
+          });
+        } else if (e.submitter && e.submitter.name === 'assign_transport') {
+          e.preventDefault();
+          Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you want to assign this transportation to the booking?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#4f46e5',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, assign it!',
+            cancelButtonText: 'Cancel'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              this.submit();
+            }
+          });
+        }
+      });
 
-    function updatePriceDisplay() {
-      const vehicleSelect = document.getElementById('vehicle_type');
-      const pricePreview = document.getElementById('pricePreview');
-      const priceDisplay = document.getElementById('priceDisplay');
-
-      if (vehicleSelect.value) {
-        const selectedOption = vehicleSelect.options[vehicleSelect.selectedIndex];
-        const price = parseFloat(selectedOption.getAttribute('data-price'));
-        priceDisplay.textContent = price.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
+      // Populate routes and vehicles
+      function populateRoutes(transportType) {
+        const routeSelect = document.getElementById('route_id');
+        routeSelect.innerHTML = '<option value="">-- Select Route --</option>';
+        routeSelect.disabled = !transportType;
+        if (!transportType) return;
+        const routes = transportType === 'taxi' ? taxiRoutes : rentacarRoutes;
+        routes.forEach(route => {
+          const option = document.createElement('option');
+          option.value = route.id;
+          option.textContent = `${route.route_name} (Route #${route.route_number})`;
+          option.setAttribute('data-route', JSON.stringify(route));
+          routeSelect.appendChild(option);
         });
-        pricePreview.classList.remove('hidden');
-      } else {
-        pricePreview.classList.add('hidden');
+        const savedRouteId = <?php echo $form_route_id ? $form_route_id : '0'; ?>;
+        if (savedRouteId > 0) {
+          for (let i = 0; i < routeSelect.options.length; i++) {
+            if (routeSelect.options[i].value == savedRouteId) {
+              routeSelect.selectedIndex = i;
+              routeSelect.dispatchEvent(new Event('change'));
+              break;
+            }
+          }
+        }
       }
-    }
 
-    // Event listeners
-    document.getElementById('transport_type').addEventListener('change', function() {
-      populateRoutes(this.value);
-      document.getElementById('vehicle_type').innerHTML = '<option value="">-- Select Route First --</option>';
-      document.getElementById('vehicle_type').disabled = true;
-      document.getElementById('pricePreview').classList.add('hidden');
-    });
+      function populateVehicles(routeId, transportType) {
+        const vehicleSelect = document.getElementById('vehicle_type');
+        vehicleSelect.innerHTML = '<option value="">-- Select Vehicle Type --</option>';
+        if (!routeId || !transportType) {
+          vehicleSelect.disabled = true;
+          return;
+        }
+        const routes = transportType === 'taxi' ? taxiRoutes : rentacarRoutes;
+        let selectedRoute = null;
+        for (const route of routes) {
+          if (route.id == routeId) {
+            selectedRoute = route;
+            break;
+          }
+        }
+        if (!selectedRoute) {
+          vehicleSelect.disabled = true;
+          return;
+        }
+        vehicleSelect.disabled = false;
+        if (transportType === 'taxi') {
+          if (parseFloat(selectedRoute.camry_sonata_price) > 0) {
+            addVehicleOption(vehicleSelect, 'Camry/Sonata', selectedRoute.camry_sonata_price);
+          }
+          if (parseFloat(selectedRoute.starex_staria_price) > 0) {
+            addVehicleOption(vehicleSelect, 'Starex/Staria', selectedRoute.starex_staria_price);
+          }
+          if (parseFloat(selectedRoute.hiace_price) > 0) {
+            addVehicleOption(vehicleSelect, 'Hiace', selectedRoute.hiace_price);
+          }
+        } else {
+          if (parseFloat(selectedRoute.gmc_16_19_price) > 0) {
+            addVehicleOption(vehicleSelect, 'GMC 16-19 Seats', selectedRoute.gmc_16_19_price);
+          }
+          if (parseFloat(selectedRoute.gmc_22_23_price) > 0) {
+            addVehicleOption(vehicleSelect, 'GMC 22-23 Seats', selectedRoute.gmc_22_23_price);
+          }
+          if (parseFloat(selectedRoute.coaster_price) > 0) {
+            addVehicleOption(vehicleSelect, 'Coaster', selectedRoute.coaster_price);
+          }
+        }
+        const savedVehicleType = "<?php echo $form_vehicle_type ? addslashes($form_vehicle_type) : ''; ?>";
+        if (savedVehicleType) {
+          for (let i = 0; i < vehicleSelect.options.length; i++) {
+            if (vehicleSelect.options[i].value === savedVehicleType) {
+              vehicleSelect.selectedIndex = i;
+              vehicleSelect.dispatchEvent(new Event('change'));
+              break;
+            }
+          }
+        }
+      }
 
-    document.getElementById('route_id').addEventListener('change', function() {
-      const transportType = document.getElementById('transport_type').value;
-      populateVehicles(this.value, transportType);
-      document.getElementById('pricePreview').classList.add('hidden');
-    });
+      function addVehicleOption(select, vehicleName, price) {
+        const option = document.createElement('option');
+        option.value = vehicleName;
+        option.textContent = `${vehicleName} - PKR ${parseFloat(price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        option.setAttribute('data-price', price);
+        select.appendChild(option);
+      }
 
-    document.getElementById('vehicle_type').addEventListener('change', updatePriceDisplay);
+      function updatePriceDisplay() {
+        const vehicleSelect = document.getElementById('vehicle_type');
+        const pricePreview = document.getElementById('pricePreview');
+        const priceDisplay = document.getElementById('priceDisplay');
+        if (vehicleSelect.value) {
+          const selectedOption = vehicleSelect.options[vehicleSelect.selectedIndex];
+          const price = parseFloat(selectedOption.getAttribute('data-price'));
+          priceDisplay.textContent = price.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+          pricePreview.classList.remove('hidden');
+        } else {
+          pricePreview.classList.add('hidden');
+        }
+      }
 
-    // Initialize form state on page load
-    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('transport_type').addEventListener('change', function() {
+        populateRoutes(this.value);
+        document.getElementById('vehicle_type').innerHTML = '<option value="">-- Select Route First --</option>';
+        document.getElementById('vehicle_type').disabled = true;
+        document.getElementById('pricePreview').classList.add('hidden');
+      });
+
+      document.getElementById('route_id').addEventListener('change', function() {
+        const transportType = document.getElementById('transport_type').value;
+        populateVehicles(this.value, transportType);
+        document.getElementById('pricePreview').classList.add('hidden');
+      });
+
+      document.getElementById('vehicle_type').addEventListener('change', updatePriceDisplay);
+
+      document.getElementById('pickup_date').min = new Date().toISOString().split('T')[0];
+
+      // Initialize form state
       const transportType = document.getElementById('transport_type').value;
       const routeId = document.getElementById('route_id').value;
-
       if (transportType) {
         populateRoutes(transportType);
-
         if (routeId) {
           populateVehicles(routeId, transportType);
-
           if (document.getElementById('vehicle_type').value) {
             updatePriceDisplay();
           }
-        }
-      }
-    });
-
-    // Set minimum date for pickup date
-    document.getElementById('pickup_date').min = new Date().toISOString().split('T')[0];
-
-    // Form submission confirmation
-    document.getElementById('assignTransportForm').addEventListener('submit', function(e) {
-      if (e.submitter && e.submitter.name === 'assign_transport') {
-        if (!confirm('Are you sure you want to assign this transportation to the booking?')) {
-          e.preventDefault();
         }
       }
     });

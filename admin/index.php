@@ -242,6 +242,7 @@ $avg_transportation_booking = round((float)$avg_bookings['avg_transportation_boo
 $stmt->close();
 ?>
 
+```html
 <!DOCTYPE html>
 <html lang="en">
 
@@ -249,46 +250,48 @@ $stmt->close();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard | UmrahFlights</title>
-  <!-- Bootstrap 5 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <!-- <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"> -->
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/css/index.css">
 </head>
 
-<body>
+<body class="bg-gray-100">
   <?php include 'includes/sidebar.php'; ?>
 
   <!-- Main Content -->
-  <div class="mt-10 main-content col-md-12">
+  <div class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300">
     <!-- Top Navbar -->
-    <nav class="p-5 navbar navbar-expand-lg top-navbar mb-4">
-      <div class="container-fluid">
-        <button id="sidebarToggle" class="btn d-lg-none">
-          <i class="fas fa-bars"></i>
-        </button>
-        <h4 class="mb-0 ms-2">Dashboard</h4>
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <h4 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">Dashboard</h4>
+        </div>
 
-        <div class="d-flex align-items-center">
-          <!-- <div class="position-relative me-3">
-            <button class="btn position-relative" id="notificationBtn">
-              <i class="fas fa-bell fs-5"></i>
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                <?php echo $pending_bookings; ?>
-              </span>
-            </button>
-          </div> -->
-
-          <div class="dropdown">
-            <button class="btn dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-              <div class="rounded-circle overflow-hidden me-2" style="width: 32px; height: 32px;">
-                <!-- <img src="../assets/img/admin.jpg" alt="Admin User" class="img-fluid"> -->
+        <div class="flex items-center space-x-4">
+          <!-- User Dropdown -->
+          <div class="relative">
+            <button id="userDropdownButton" class="flex items-center space-x-2 text-gray-700 hover:bg-indigo-50 rounded-lg px-3 py-2 focus:outline-none">
+              <div class="rounded-full overflow-hidden" style="width: 32px; height: 32px;">
+                <!-- Placeholder for user image -->
+                <div class="bg-gray-200 w-full h-full"></div>
               </div>
-              <span class="d-none d-md-inline">Admin User</span>
+              <span class="hidden md:inline text-sm font-medium">Admin User</span>
+              <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-              <li><a class="dropdown-item text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+            <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
+              <li>
+                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </a>
+              </li>
             </ul>
           </div>
         </div>
@@ -296,402 +299,357 @@ $stmt->close();
     </nav>
 
     <!-- Stats Cards -->
-    <div class="row g-4 mb-4 p-5">
-
-
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
       <!-- Total Revenue -->
-      <div class="col-12 col-md-6 col-lg-12">
-        <div class="card stat-card border-start border-success border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1">Rs.<?php echo number_format($total_revenue, 2); ?></h3>
-                <div class="text-muted">Total Revenue</div>
-              </div>
-              <div class="stat-card-icon bg-success bg-opacity-10 text-success">
-                <i class="fas fa-wallet"></i>
-              </div>
+      <div class="col-span-1 lg:col-span-4">
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-green-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800">Rs.<?php echo number_format($total_revenue, 2); ?></h3>
+              <p class="text-sm text-gray-500">Total Revenue</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-500">
+              <i class="fas fa-wallet text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
-
       <!-- Average Package Booking Value -->
-      <div class="col-12 col-md-6 col-lg-12">
-        <div class="card stat-card border-start border-warning border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1">Rs.<?php echo number_format($avg_package_booking, 2); ?></h3>
-                <div class="text-muted">Avg Package Booking</div>
-              </div>
-              <div class="stat-card-icon bg-warning bg-opacity-10 text-warning">
-                <i class="fas fa-box-open"></i>
-              </div>
+      <div class="col-span-1 lg:col-span-4">
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-yellow-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800">Rs.<?php echo number_format($avg_package_booking, 2); ?></h3>
+              <p class="text-sm text-gray-500">Avg Package Booking</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 text-yellow-500">
+              <i class="fas fa-box-open text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Average Flight Booking Value -->
-      <div class="col-12 col-md-6 col-lg-12">
-        <div class="card stat-card border-start border-primary border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1">Rs.<?php echo number_format($avg_flight_booking, 2); ?></h3>
-                <div class="text-muted">Avg Flight Booking</div>
-              </div>
-              <div class="stat-card-icon bg-primary bg-opacity-10 text-primary">
-                <i class="fas fa-plane-departure"></i>
-              </div>
+      <div class="col-span-1 lg:col-span-4">
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-blue-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800">Rs.<?php echo number_format($avg_flight_booking, 2); ?></h3>
+              <p class="text-sm text-gray-500">Avg Flight Booking</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-500">
+              <i class="fas fa-plane-departure text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
-
       <!-- Total Bookings -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-primary border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $total_bookings; ?></h3>
-                <div class="text-muted">Total Bookings</div>
-              </div>
-              <div class="stat-card-icon bg-primary bg-opacity-10 text-primary">
-                <i class="fas fa-calendar-check"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-blue-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $total_bookings; ?></h3>
+              <p class="text-sm text-gray-500">Total Bookings</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-500">
+              <i class="fas fa-calendar-check text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Total Users -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-info border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $total_users; ?></h3>
-                <div class="text-muted">Total Users</div>
-              </div>
-              <div class="stat-card-icon bg-info bg-opacity-10 text-info">
-                <i class="fas fa-users"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-cyan-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $total_users; ?></h3>
+              <p class="text-sm text-gray-500">Total Users</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 text-cyan-500">
+              <i class="fas fa-users text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Active Packages -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-warning border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $total_packages; ?></h3>
-                <div class="text-muted">Active Packages</div>
-              </div>
-              <div class="stat-card-icon bg-warning bg-opacity-10 text-warning">
-                <i class="fas fa-box"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-yellow-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $total_packages; ?></h3>
+              <p class="text-sm text-gray-500">Active Packages</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 text-yellow-500">
+              <i class="fas fa-box text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Pending Bookings -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-danger border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $pending_bookings; ?></h3>
-                <div class="text-muted">Pending Bookings</div>
-              </div>
-              <div class="stat-card-icon bg-danger bg-opacity-10 text-danger">
-                <i class="fas fa-hourglass-half"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-red-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $pending_bookings; ?></h3>
+              <p class="text-sm text-gray-500">Pending Bookings</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-500">
+              <i class="fas fa-hourglass-half text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Confirmed Bookings -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-success border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $confirmed_bookings; ?></h3>
-                <div class="text-muted">Confirmed Bookings</div>
-              </div>
-              <div class="stat-card-icon bg-success bg-opacity-10 text-success">
-                <i class="fas fa-check-circle"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-green-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $confirmed_bookings; ?></h3>
+              <p class="text-sm text-gray-500">Confirmed Bookings</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-500">
+              <i class="fas fa-check-circle text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Cancelled Bookings -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-secondary border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $cancelled_bookings; ?></h3>
-                <div class="text-muted">Cancelled Bookings</div>
-              </div>
-              <div class="stat-card-icon bg-secondary bg-opacity-10 text-secondary">
-                <i class="fas fa-times-circle"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-gray-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $cancelled_bookings; ?></h3>
+              <p class="text-sm text-gray-500">Cancelled Bookings</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-500">
+              <i class="fas fa-times-circle text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Total Hotels -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-primary border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $total_hotels; ?></h3>
-                <div class="text-muted">Total Hotels</div>
-              </div>
-              <div class="stat-card-icon bg-primary bg-opacity-10 text-primary">
-                <i class="fas fa-hotel"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-blue-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $total_hotels; ?></h3>
+              <p class="text-sm text-gray-500">Total Hotels</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-500">
+              <i class="fas fa-hotel text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Makkah Hotels -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-info border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $makkah_hotels; ?></h3>
-                <div class="text-muted">Makkah Hotels</div>
-              </div>
-              <div class="stat-card-icon bg-info bg-opacity-10 text-info">
-                <i class="fas fa-mosque"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-cyan-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $makkah_hotels; ?></h3>
+              <p class="text-sm text-gray-500">Makkah Hotels</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 text-cyan-500">
+              <i class="fas fa-mosque text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Madinah Hotels -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-info border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $madinah_hotels; ?></h3>
-                <div class="text-muted">Madinah Hotels</div>
-              </div>
-              <div class="stat-card-icon bg-info bg-opacity-10 text-info">
-                <i class="fas fa-mosque"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-cyan-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $madinah_hotels; ?></h3>
+              <p class="text-sm text-gray-500">Madinah Hotels</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 text-cyan-500">
+              <i class="fas fa-mosque text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Average Hotel Rating -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-warning border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $avg_hotel_rating; ?>/5</h3>
-                <div class="text-muted">Avg Hotel Rating</div>
-              </div>
-              <div class="stat-card-icon bg-warning bg-opacity-10 text-warning">
-                <i class="fas fa-star"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-yellow-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $avg_hotel_rating; ?>/5</h3>
+              <p class="text-sm text-gray-500">Avg Hotel Rating</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 text-yellow-500">
+              <i class="fas fa-star text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Available Rooms -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-success border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $available_rooms; ?>/<?php echo $total_rooms; ?></h3>
-                <div class="text-muted">Available Rooms</div>
-              </div>
-              <div class="stat-card-icon bg-success bg-opacity-10 text-success">
-                <i class="fas fa-bed"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-green-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $available_rooms; ?>/<?php echo $total_rooms; ?></h3>
+              <p class="text-sm text-gray-500">Available Rooms</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-500">
+              <i class="fas fa-bed text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Total Flights -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-primary border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $total_flights; ?></h3>
-                <div class="text-muted">Total Flights</div>
-              </div>
-              <div class="stat-card-icon bg-primary bg-opacity-10 text-primary">
-                <i class="fas fa-plane"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-blue-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $total_flights; ?></h3>
+              <p class="text-sm text-gray-500">Total Flights</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-500">
+              <i class="fas fa-plane text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Flight Seats -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-info border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $economy_seats + $business_seats + $first_class_seats; ?></h3>
-                <div class="text-muted">Total Flight Seats</div>
-              </div>
-              <div class="stat-card-icon bg-info bg-opacity-10 text-info">
-                <i class="fas fa-chair"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-cyan-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $economy_seats + $business_seats + $first_class_seats; ?></h3>
+              <p class="text-sm text-gray-500">Total Flight Seats</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 text-cyan-500">
+              <i class="fas fa-chair text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Taxi Routes -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-secondary border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $taxi_routes; ?></h3>
-                <div class="text-muted">Taxi Routes</div>
-              </div>
-              <div class="stat-card-icon bg-secondary bg-opacity-10 text-secondary">
-                <i class="fas fa-taxi"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-gray-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $taxi_routes; ?></h3>
+              <p class="text-sm text-gray-500">Taxi Routes</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-500">
+              <i class="fas fa-taxi text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Rent-a-Car Routes -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-secondary border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $rentacar_routes; ?></h3>
-                <div class="text-muted">Rent-a-Car Routes</div>
-              </div>
-              <div class="stat-card-icon bg-secondary bg-opacity-10 text-secondary">
-                <i class="fas fa-car"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-gray-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $rentacar_routes; ?></h3>
+              <p class="text-sm text-gray-500">Rent-a-Car Routes</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-500">
+              <i class="fas fa-car text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Pending Payments -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-danger border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $pending_payments; ?></h3>
-                <div class="text-muted">Pending Payments</div>
-              </div>
-              <div class="stat-card-icon bg-danger bg-opacity-10 text-danger">
-                <i class="fas fa-money-check-alt"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-red-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $pending_payments; ?></h3>
+              <p class="text-sm text-gray-500">Pending Payments</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-500">
+              <i class="fas fa-money-check-alt text-xl"></i>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Completed Payments -->
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="card stat-card border-start border-success border-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h3 class="fw-bold mb-1"><?php echo $completed_payments; ?></h3>
-                <div class="text-muted">Completed Payments</div>
-              </div>
-              <div class="stat-card-icon bg-success bg-opacity-10 text-success">
-                <i class="fas fa-money-check"></i>
-              </div>
+      <div>
+        <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-green-500">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-800"><?php echo $completed_payments; ?></h3>
+              <p class="text-sm text-gray-500">Completed Payments</p>
+            </div>
+            <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-500">
+              <i class="fas fa-money-check text-xl"></i>
             </div>
           </div>
         </div>
       </div>
-
     </div>
 
     <!-- Recent Activity Section -->
-    <div class="card mt-4 p-5">
-      <div class="card-header">
-        <h5 class="mb-0">Recent Activity</h5>
+    <div class="bg-white shadow-lg rounded-lg p-6">
+      <div class="mb-4">
+        <h5 class="text-lg font-semibold text-gray-800">Recent Activity</h5>
       </div>
-      <div class="card-body">
-        <table class="table table-striped">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
           <thead>
-            <tr>
-              <th>Type</th>
-              <th>Reference/ID</th>
-              <th>User</th>
-              <th>Status</th>
-              <th>Date</th>
+            <tr class="border-b">
+              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Type</th>
+              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Reference/ID</th>
+              <th class="py-3 px-4 text-sm font-semibold text-gray-600">User</th>
+              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
+              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Date</th>
             </tr>
           </thead>
           <tbody>
             <?php
             // Fetch recent bookings (limit to 5)
             $stmt = $conn->prepare("
-                            SELECT 'Flight' AS type, id, passenger_name AS user, booking_status, created_at
-                            FROM flight_bookings
-                            UNION
-                            SELECT 'Hotel' AS type, booking_reference AS id, '' AS user, booking_status, created_at
-                            FROM hotel_bookings
-                            UNION
-                            SELECT 'Package' AS type, booking_reference AS id, '' AS user, booking_status, created_at
-                            FROM package_bookings
-                            UNION
-                            SELECT 'Transportation' AS type, id, full_name AS user, booking_status, created_at
-                            FROM transportation_bookings
-                            ORDER BY created_at DESC
-                            LIMIT 5
-                        ");
+              SELECT 'Flight' AS type, id, passenger_name AS user, booking_status, created_at
+              FROM flight_bookings
+              UNION
+              SELECT 'Hotel' AS type, booking_reference AS id, '' AS user, booking_status, created_at
+              FROM hotel_bookings
+              UNION
+              SELECT 'Package' AS type, booking_reference AS id, '' AS user, booking_status, created_at
+              FROM package_bookings
+              UNION
+              SELECT 'Transportation' AS type, id, full_name AS user, booking_status, created_at
+              FROM transportation_bookings
+              ORDER BY created_at DESC
+              LIMIT 5
+            ");
             if (!$stmt) {
               error_log("Query preparation failed for recent activity: " . $conn->error);
             }
             $stmt->execute();
             $recent_activities = $stmt->get_result();
             if ($recent_activities->num_rows === 0) {
-              echo "<tr><td colspan='5'>No recent activities found.</td></tr>";
+              echo "<tr><td colspan='5' class='py-3 px-4 text-sm text-gray-500'>No recent activities found.</td></tr>";
             } else {
               while ($activity = $recent_activities->fetch_assoc()) {
-                echo "<tr>";
-                echo "<td>" . htmlspecialchars($activity['type']) . "</td>";
-                echo "<td>" . htmlspecialchars($activity['id']) . "</td>";
-                echo "<td>" . htmlspecialchars($activity['user'] ?: 'N/A') . "</td>";
-                echo "<td>" . htmlspecialchars($activity['booking_status']) . "</td>";
-                echo "<td>" . date('Y-m-d H:i', strtotime($activity['created_at'])) . "</td>";
+                echo "<tr class='border-b hover:bg-indigo-50'>";
+                echo "<td class='py-3 px-4 text-sm text-gray-700'>" . htmlspecialchars($activity['type']) . "</td>";
+                echo "<td class='py-3 px-4 text-sm text-gray-700'>" . htmlspecialchars($activity['id']) . "</td>";
+                echo "<td class='py-3 px-4 text-sm text-gray-700'>" . htmlspecialchars($activity['user'] ?: 'N/A') . "</td>";
+                echo "<td class='py-3 px-4 text-sm text-gray-700'>" . htmlspecialchars($activity['booking_status']) . "</td>";
+                echo "<td class='py-3 px-4 text-sm text-gray-700'>" . date('Y-m-d H:i', strtotime($activity['created_at'])) . "</td>";
                 echo "</tr>";
               }
             }
@@ -703,12 +661,72 @@ $stmt->close();
     </div>
   </div>
 
-  <!-- Bootstrap 5 JS Bundle with Popper -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Chart.js -->
+  <!-- Chart.js (retained for potential use in assets/js/index.js) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js"></script>
   <!-- Custom JavaScript -->
-  <script src="assets/js/index.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Sidebar elements (assumed from sidebar.php)
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const dashboardHeader = document.getElementById('dashboardHeader');
+
+      // User dropdown elements
+      const userDropdownButton = document.getElementById('userDropdownButton');
+      const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+      // Error handling for missing elements
+      if (!sidebar || !sidebarOverlay || !sidebarToggle || !sidebarClose) {
+        console.warn('One or more sidebar elements are missing. Ensure sidebar.php includes #sidebar, #sidebar-overlay, #sidebar-close.');
+        return;
+      }
+      if (!userDropdownButton || !userDropdownMenu) {
+        console.warn('User dropdown elements are missing.');
+        return;
+      }
+      if (!dashboardHeader) {
+        console.warn('Dashboard header element is missing.');
+        return;
+      }
+
+      // Sidebar toggle function
+      const toggleSidebar = () => {
+        sidebar.classList.toggle('-translate-x-full');
+        sidebarOverlay.classList.toggle('hidden');
+        sidebarToggle.classList.toggle('hidden');
+      };
+
+      // Open sidebar
+      sidebarToggle.addEventListener('click', toggleSidebar);
+
+      // Close sidebar
+      sidebarClose.addEventListener('click', toggleSidebar);
+
+      // Close sidebar via overlay
+      sidebarOverlay.addEventListener('click', toggleSidebar);
+
+      // Open sidebar on Dashboard header click
+      dashboardHeader.addEventListener('click', () => {
+        if (sidebar.classList.contains('-translate-x-full')) {
+          toggleSidebar();
+        }
+      });
+
+      // User dropdown toggle
+      userDropdownButton.addEventListener('click', () => {
+        userDropdownMenu.classList.toggle('hidden');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (event) => {
+        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+          userDropdownMenu.classList.add('hidden');
+        }
+      });
+    });
+  </script>
 </body>
 
 </html>

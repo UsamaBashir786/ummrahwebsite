@@ -146,6 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $stmt->close();
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -153,8 +154,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Add New Flight | UmrahFlights Admin</title>
-  <!-- Bootstrap 5 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <!-- <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"> -->
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <!-- Custom CSS -->
@@ -162,489 +163,540 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link rel="stylesheet" href="assets/css/sidebar.css">
 </head>
 
-<body>
+<body class="bg-gray-100">
   <?php include 'includes/sidebar.php'; ?>
-  <div class="container-fluid">
-    <div class="row">
-      <!-- Main Content -->
-      <div class="mt-10"></div>
-      <main class="mt-15 col-md-12 px-0">
-        <!-- Navbar -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
-          <div class="container">
-            <h1 class="navbar-brand mb-0 d-flex align-items-center">
-              <i class="text-primary fas fa-plane me-2"></i> Add New Flight
-            </h1>
-            <div class="d-flex align-items-center">
-              <button onclick="history.back()" class="btn btn-outline-secondary btn-sm me-2">
-                <i class="fas fa-arrow-left me-1"></i> Back
+
+  <!-- Main Content -->
+  <div class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <h1 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">
+            <i class="fas fa-plane text-indigo-600 mr-2"></i>Add New Flight
+          </h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <button onclick="history.back()" class="flex items-center px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-indigo-50">
+            <i class="fas fa-arrow-left mr-2"></i> Back
+          </button>
+          <!-- User Dropdown -->
+          <div class="relative">
+            <button id="userDropdownButton" class="flex items-center space-x-2 text-gray-700 hover:bg-indigo-50 rounded-lg px-3 py-2 focus:outline-none">
+              <div class="rounded-full overflow-hidden" style="width: 32px; height: 32px;">
+                <div class="bg-gray-200 w-full h-full"></div>
+              </div>
+              <span class="hidden md:inline text-sm font-medium">Admin User</span>
+              <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
+              <li>
+                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Form Container -->
+    <div class="bg-white shadow-lg rounded-lg p-6">
+      <div class="mb-6">
+        <h2 class="text-xl font-semibold text-indigo-600">
+          <i class="fas fa-plane-departure mr-2"></i>Add New Flight
+        </h2>
+        <p class="text-sm text-gray-500">Enter flight details for Umrah journey</p>
+      </div>
+
+      <form action="" method="POST" id="flightForm">
+        <!-- Outbound Flight Section Title -->
+        <div class="mb-4">
+          <h3 class="text-lg font-semibold text-indigo-600">
+            <i class="fas fa-plane-departure mr-2"></i>Outbound Flight Details
+          </h3>
+        </div>
+
+        <!-- Airline & Flight Number -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label for="airline_name" class="block text-sm font-medium text-gray-700">Airline Name <span class="text-red-500">*</span></label>
+            <select name="airline_name" id="airline_name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+              <option value="">Select Airline</option>
+              <optgroup label="Pakistani Airlines">
+                <option value="PIA">Pakistan International Airlines (PIA)</option>
+                <option value="AirBlue">AirBlue</option>
+                <option value="SereneAir">Serene Air</option>
+                <option value="AirSial">AirSial</option>
+                <option value="FlyJinnah">Fly Jinnah</option>
+              </optgroup>
+              <optgroup label="Middle Eastern Airlines">
+                <option value="Emirates">Emirates</option>
+                <option value="Qatar">Qatar Airways</option>
+                <option value="Etihad">Etihad Airways</option>
+                <option value="Saudi">Saudia (Saudi Airlines)</option>
+                <option value="Flynas">Flynas</option>
+                <option value="Flydubai">Flydubai</option>
+                <option value="OmanAir">Oman Air</option>
+                <option value="GulfAir">Gulf Air</option>
+                <option value="KuwaitAirways">Kuwait Airways</option>
+              </optgroup>
+              <optgroup label="Asian Airlines">
+                <option value="Thai">Thai Airways</option>
+                <option value="Malaysia">Malaysia Airlines</option>
+                <option value="Singapore">Singapore Airlines</option>
+                <option value="Cathay">Cathay Pacific</option>
+                <option value="ChinaSouthern">China Southern</option>
+                <option value="Turkish">Turkish Airlines</option>
+              </optgroup>
+              <optgroup label="European & American Airlines">
+                <option value="British">British Airways</option>
+                <option value="Lufthansa">Lufthansa</option>
+                <option value="AirFrance">Air France</option>
+                <option value="KLM">KLM Royal Dutch Airlines</option>
+                <option value="Virgin">Virgin Atlantic</option>
+              </optgroup>
+              <optgroup label="Budget Airlines">
+                <option value="AirArabia">Air Arabia</option>
+                <option value="Indigo">IndiGo</option>
+                <option value="SpiceJet">SpiceJet</option>
+              </optgroup>
+            </select>
+          </div>
+          <div>
+            <label for="flight_number" class="block text-sm font-medium text-gray-700">Flight Number <span class="text-red-500">*</span></label>
+            <input type="text" name="flight_number" id="flight_number" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., PK-309" required maxlength="9">
+          </div>
+        </div>
+
+        <!-- Route Information -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label for="departure_city" class="block text-sm font-medium text-gray-700">Departure City <span class="text-red-500">*</span></label>
+            <select name="departure_city" id="departure_city" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+              <option value="">Select City</option>
+              <option value="Karachi">Karachi</option>
+              <option value="Lahore">Lahore</option>
+              <option value="Islamabad">Islamabad</option>
+              <option value="Rawalpindi">Rawalpindi</option>
+              <option value="Faisalabad">Faisalabad</option>
+              <option value="Multan">Multan</option>
+              <option value="Hyderabad">Hyderabad</option>
+              <option value="Peshawar">Peshawar</option>
+              <option value="Quetta">Quetta</option>
+              <optgroup label="Punjab">
+                <option value="Gujranwala">Gujranwala</option>
+                <option value="Sialkot">Sialkot</option>
+                <option value="Bahawalpur">Bahawalpur</option>
+                <option value="Sargodha">Sargodha</option>
+                <option value="Jhang">Jhang</option>
+                <option value="Gujrat">Gujrat</option>
+                <option value="Kasur">Kasur</option>
+                <option value="Okara">Okara</option>
+                <option value="Sahiwal">Sahiwal</option>
+                <option value="Sheikhupura">Sheikhupura</option>
+              </optgroup>
+              <optgroup label="Sindh">
+                <option value="Sukkur">Sukkur</option>
+                <option value="Larkana">Larkana</option>
+                <option value="Nawabshah">Nawabshah</option>
+                <option value="Mirpur Khas">Mirpur Khas</option>
+                <option value="Thatta">Thatta</option>
+                <option value="Jacobabad">Jacobabad</option>
+              </optgroup>
+              <optgroup label="Khyber Pakhtunkhwa">
+                <option value="Mardan">Mardan</option>
+                <option value="Abbottabad">Abbottabad</option>
+                <option value="Swat">Swat</option>
+                <option value="Nowshera">Nowshera</option>
+                <option value="Charsadda">Charsadda</option>
+                <option value="Mansehra">Mansehra</option>
+              </optgroup>
+              <optgroup label="Balochistan">
+                <option value="Gwadar">Gwadar</option>
+                <option value="Khuzdar">Khuzdar</option>
+                <option value="Chaman">Chaman</option>
+                <option value="Zhob">Zhob</option>
+              </optgroup>
+              <optgroup label="Azad Kashmir & Gilgit-Baltistan">
+                <option value="Muzaffarabad">Muzaffarabad</option>
+                <option value="Mirpur">Mirpur</option>
+                <option value="Gilgit">Gilgit</option>
+                <option value="Skardu">Skardu</option>
+              </optgroup>
+            </select>
+          </div>
+          <div>
+            <label for="arrival_city" class="block text-sm font-medium text-gray-700">Arrival City <span class="text-red-500">*</span></label>
+            <select name="arrival_city" id="arrival_city" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+              <option value="">Select City</option>
+              <option value="Jeddah">Jeddah</option>
+              <option value="Medina">Medina</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Flight Stops -->
+        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="text-base font-semibold text-gray-800">Flight Stops</h4>
+            <div class="flex space-x-4">
+              <label class="flex items-center">
+                <input type="radio" name="has_stops" id="directFlight" value="0" class="mr-2" checked>
+                <span class="text-sm text-gray-700">Direct Flight</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="has_stops" id="hasStops" value="1" class="mr-2">
+                <span class="text-sm text-gray-700">Has Stops</span>
+              </label>
+            </div>
+          </div>
+          <div id="stops-container" class="hidden">
+            <div class="stop-row grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Stop City</label>
+                <input type="text" name="stop_city[]" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" maxlength="12" placeholder="e.g., Dubai">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Stop Duration (hours)</label>
+                <input type="text" name="stop_duration[]" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 4">
+              </div>
+            </div>
+            <div class="text-right">
+              <button type="button" id="add-stop" class="inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                <i class="fas fa-plus mr-2"></i>Add Another Stop
               </button>
             </div>
           </div>
-        </nav>
+        </div>
 
-        <!-- Form Container -->
-        <div class="container py-4">
-          <div class="card shadow-sm">
-            <div class="card-body p-4">
-              <div class="mb-4">
-                <h2 class="card-title text-primary">
-                  <i class="fas fa-plane-departure me-2"></i>Add New Flight
-                </h2>
-                <p class="text-muted">Enter flight details for Umrah journey</p>
+        <!-- Schedule and Duration -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label for="departure_date" class="block text-sm font-medium text-gray-700">Departure Date <span class="text-red-500">*</span></label>
+            <input type="date" name="departure_date" id="departure_date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+          </div>
+          <div>
+            <label for="departure_time" class="block text-sm font-medium text-gray-700">Departure Time <span class="text-red-500">*</span></label>
+            <input type="text" name="departure_time" id="departure_time" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="HH:MM (24-hour format)" required>
+          </div>
+          <div>
+            <label for="flight_duration" class="block text-sm font-medium text-gray-700">Flight Duration (hours) <span class="text-red-500">*</span></label>
+            <input type="number" name="flight_duration" id="flight_duration" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 5.5" step="0.1" required>
+          </div>
+        </div>
+
+        <!-- Distance Field -->
+        <div class="mb-4">
+          <label for="distance" class="block text-sm font-medium text-gray-700">Distance (km) <span class="text-red-500">*</span></label>
+          <input type="number" name="distance" id="distance" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 3500" step="1" required>
+        </div>
+
+        <!-- Return Flight Section -->
+        <div class="border-t pt-4 mt-4">
+          <div class="mb-4">
+            <h3 class="text-lg font-semibold text-indigo-600">
+              <i class="fas fa-plane-arrival mr-2"></i>Return Flight Details
+            </h3>
+          </div>
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="text-base font-semibold text-gray-800">Journey Type</h4>
+            <div class="flex space-x-4">
+              <label class="flex items-center">
+                <input type="radio" name="has_return" id="oneWayFlight" value="0" class="mr-2" checked>
+                <span class="text-sm text-gray-700">One-way Flight</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="has_return" id="roundTrip" value="1" class="mr-2">
+                <span class="text-sm text-gray-700">Round Trip</span>
+              </label>
+            </div>
+          </div>
+          <div id="return-container" class="bg-gray-50 p-4 rounded-lg hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label for="return_airline" class="block text-sm font-medium text-gray-700">Return Airline</label>
+                <select name="return_airline" id="return_airline" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                  <option value="">Select Airline</option>
+                  <option value="same">Same as Outbound</option>
+                  <optgroup label="Pakistani Airlines">
+                    <option value="PIA">Pakistan International Airlines (PIA)</option>
+                    <option value="AirBlue">AirBlue</option>
+                    <option value="SereneAir">Serene Air</option>
+                    <option value="AirSial">AirSial</option>
+                    <option value="FlyJinnah">Fly Jinnah</option>
+                  </optgroup>
+                  <optgroup label="Middle Eastern Airlines">
+                    <option value="Emirates">Emirates</option>
+                    <option value="Qatar">Qatar Airways</option>
+                    <option value="Etihad">Etihad Airways</option>
+                    <option value="Saudi">Saudia (Saudi Airlines)</option>
+                    <option value="Flynas">Flynas</option>
+                    <option value="Flydubai">Flydubai</option>
+                    <option value="OmanAir">Oman Air</option>
+                  </optgroup>
+                  <optgroup label="Asian Airlines">
+                    <option value="Thai">Thai Airways</option>
+                    <option value="Singapore">Singapore Airlines</option>
+                    <option value="Turkish">Turkish Airlines</option>
+                    <option value="Malaysia">Malaysia Airlines</option>
+                  </optgroup>
+                  <optgroup label="European & American Airlines">
+                    <option value="British">British Airways</option>
+                    <option value="Lufthansa">Lufthansa</option>
+                    <option value="AirFrance">Air France</option>
+                  </optgroup>
+                  <optgroup label="Budget Airlines">
+                    <option value="AirArabia">Air Arabia</option>
+                    <option value="Indigo">IndiGo</option>
+                  </optgroup>
+                </select>
               </div>
-
-              <form action="" method="POST" id="flightForm">
-                <!-- Outbound Flight Section Title -->
-                <div class="section-heading mb-4">
-                  <h3 class="text-primary">
-                    <i class="fas fa-plane-departure me-2"></i>Outbound Flight Details
-                  </h3>
+              <div>
+                <label for="return_flight_number" class="block text-sm font-medium text-gray-700">Return Flight Number</label>
+                <input type="text" name="return_flight_number" id="return_flight_number" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., PK-310" maxlength="7">
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label for="return_date" class="block text-sm font-medium text-gray-700">Return Date</label>
+                <input type="date" name="return_date" id="return_date" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+              </div>
+              <div>
+                <label for="return_time" class="block text-sm font-medium text-gray-700">Return Time</label>
+                <input type="text" name="return_time" id="return_time" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="HH:MM (24-hour format)">
+              </div>
+              <div>
+                <label for="return_flight_duration" class="block text-sm font-medium text-gray-700">Return Flight Duration (hours)</label>
+                <input type="text" name="return_flight_duration" id="return_flight_duration" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 5.5">
+              </div>
+            </div>
+            <div class="mt-4">
+              <div class="flex items-center justify-between mb-4">
+                <h5 class="text-base font-semibold text-gray-800">Return Flight Stops</h5>
+                <div class="flex space-x-4">
+                  <label class="flex items-center">
+                    <input type="radio" name="has_return_stops" id="directReturnFlight" value="0" class="mr-2" checked>
+                    <span class="text-sm text-gray-700">Direct Return Flight</span>
+                  </label>
+                  <label class="flex items-center">
+                    <input type="radio" name="has_return_stops" id="hasReturnStops" value="1" class="mr-27D;
+                    <span class=" text-sm text-gray-700">Has Stops</span>
+                  </label>
                 </div>
-
-                <!-- Airline & Flight Number -->
-                <div class="row mb-4">
-                  <div class="col-md-6 mb-3 mb-md-0">
-                    <label for="airline_name" class="form-label">Airline Name <span class="text-danger">*</span></label>
-                    <select name="airline_name" id="airline_name" class="form-select" required>
-                      <option value="">Select Airline</option>
-                      <!-- Pakistani Airlines -->
-                      <optgroup label="Pakistani Airlines">
-                        <option value="PIA">Pakistan International Airlines (PIA)</option>
-                        <option value="AirBlue">AirBlue</option>
-                        <option value="SereneAir">Serene Air</option>
-                        <option value="AirSial">AirSial</option>
-                        <option value="FlyJinnah">Fly Jinnah</option>
-                      </optgroup>
-                      <!-- Middle Eastern Airlines -->
-                      <optgroup label="Middle Eastern Airlines">
-                        <option value="Emirates">Emirates</option>
-                        <option value="Qatar">Qatar Airways</option>
-                        <option value="Etihad">Etihad Airways</option>
-                        <option value="Saudi">Saudia (Saudi Airlines)</option>
-                        <option value="Flynas">Flynas</option>
-                        <option value="Flydubai">Flydubai</option>
-                        <option value="OmanAir">Oman Air</option>
-                        <option value="GulfAir">Gulf Air</option>
-                        <option value="KuwaitAirways">Kuwait Airways</option>
-                      </optgroup>
-                      <!-- Asian Airlines -->
-                      <optgroup label="Asian Airlines">
-                        <option value="Thai">Thai Airways</option>
-                        <option value="Malaysia">Malaysia Airlines</option>
-                        <option value="Singapore">Singapore Airlines</option>
-                        <option value="Cathay">Cathay Pacific</option>
-                        <option value="ChinaSouthern">China Southern</option>
-                        <option value="Turkish">Turkish Airlines</option>
-                      </optgroup>
-                      <!-- European & American Airlines -->
-                      <optgroup label="European & American Airlines">
-                        <option value="British">British Airways</option>
-                        <option value="Lufthansa">Lufthansa</option>
-                        <option value="AirFrance">Air France</option>
-                        <option value="KLM">KLM Royal Dutch Airlines</option>
-                        <option value="Virgin">Virgin Atlantic</option>
-                      </optgroup>
-                      <!-- Budget Airlines -->
-                      <optgroup label="Budget Airlines">
-                        <option value="AirArabia">Air Arabia</option>
-                        <option value="Indigo">IndiGo</option>
-                        <option value="SpiceJet">SpiceJet</option>
-                      </optgroup>
-                    </select>
+              </div>
+              <div id="return-stops-container" class="hidden">
+                <div class="return-stop-row grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Return Stop City</label>
+                    <input type="text" name="return_stop_city[]" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Dubai" maxlength="50">
+                    <div class="invalid-feedback"></div>
                   </div>
-                  <div class="col-md-6">
-                    <label for="flight_number" class="form-label">Flight Number <span class="text-danger">*</span></label>
-                    <input type="text" name="flight_number" id="flight_number" class="form-control" placeholder="e.g., PK-309" required maxlength="9">
-                  </div>
-                  <script>
-
-                  </script>
-                </div>
-
-                <!-- Route Information -->
-                <div class="row mb-4">
-                  <div class="col-md-6 mb-3 mb-md-0">
-                    <label for="departure_city" class="form-label">Departure City <span class="text-danger">*</span></label>
-                    <select name="departure_city" id="departure_city" class="form-select" required>
-                      <option value="">Select City</option>
-                      <!-- Major Cities -->
-                      <option value="Karachi">Karachi</option>
-                      <option value="Lahore">Lahore</option>
-                      <option value="Islamabad">Islamabad</option>
-                      <option value="Rawalpindi">Rawalpindi</option>
-                      <option value="Faisalabad">Faisalabad</option>
-                      <option value="Multan">Multan</option>
-                      <option value="Hyderabad">Hyderabad</option>
-                      <option value="Peshawar">Peshawar</option>
-                      <option value="Quetta">Quetta</option>
-                      <!-- Punjab Cities -->
-                      <optgroup label="Punjab">
-                        <option value="Gujranwala">Gujranwala</option>
-                        <option value="Sialkot">Sialkot</option>
-                        <option value="Bahawalpur">Bahawalpur</option>
-                        <option value="Sargodha">Sargodha</option>
-                        <option value="Jhang">Jhang</option>
-                        <option value="Gujrat">Gujrat</option>
-                        <option value="Kasur">Kasur</option>
-                        <option value="Okara">Okara</option>
-                        <option value="Sahiwal">Sahiwal</option>
-                        <option value="Sheikhupura">Sheikhupura</option>
-                      </optgroup>
-                      <!-- Sindh Cities -->
-                      <optgroup label="Sindh">
-                        <option value="Sukkur">Sukkur</option>
-                        <option value="Larkana">Larkana</option>
-                        <option value="Nawabshah">Nawabshah</option>
-                        <option value="Mirpur Khas">Mirpur Khas</option>
-                        <option value="Thatta">Thatta</option>
-                        <option value="Jacobabad">Jacobabad</option>
-                      </optgroup>
-                      <!-- KPK Cities -->
-                      <optgroup label="Khyber Pakhtunkhwa">
-                        <option value="Mardan">Mardan</option>
-                        <option value="Abbottabad">Abbottabad</option>
-                        <option value="Swat">Swat</option>
-                        <option value="Nowshera">Nowshera</option>
-                        <option value="Charsadda">Charsadda</option>
-                        <option value="Mansehra">Mansehra</option>
-                      </optgroup>
-                      <!-- Balochistan Cities -->
-                      <optgroup label="Balochistan">
-                        <option value="Gwadar">Gwadar</option>
-                        <option value="Khuzdar">Khuzdar</option>
-                        <option value="Chaman">Chaman</option>
-                        <option value="Zhob">Zhob</option>
-                      </optgroup>
-                      <!-- AJK & Gilgit-Baltistan -->
-                      <optgroup label="Azad Kashmir & Gilgit-Baltistan">
-                        <option value="Muzaffarabad">Muzaffarabad</option>
-                        <option value="Mirpur">Mirpur</option>
-                        <option value="Gilgit">Gilgit</option>
-                        <option value="Skardu">Skardu</option>
-                      </optgroup>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="arrival_city" class="form-label">Arrival City <span class="text-danger">*</span></label>
-                    <select name="arrival_city" id="arrival_city" class="form-select" required>
-                      <option value="">Select City</option>
-                      <option value="Jeddah">Jeddah</option>
-                      <option value="Medina">Medina</option>
-                    </select>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Return Stop Duration (hours)</label>
+                    <input type="text" name="return_stop_duration[]" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 2">
+                    <div class="invalid-feedback"></div>
                   </div>
                 </div>
-
-                <!-- Flight Stops -->
-                <div class="card mb-4 bg-light">
-                  <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                      <h4 class="mb-0">Flight Stops</h4>
-                      <div class="ms-4">
-                        <div class="form-check form-check-inline">
-                          <input class="form-check-input" type="radio" name="has_stops" id="directFlight" value="0" checked>
-                          <label class="form-check-label" for="directFlight">Direct Flight</label>
-                        </div>
-                        <div class="form-check form-check-inline">
-                          <input class="form-check-input" type="radio" name="has_stops" id="hasStops" value="1">
-                          <label class="form-check-label" for="hasStops">Has Stops</label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div id="stops-container" class="d-none">
-                      <div class="stop-row row mb-3">
-                        <div class="col-md-6 mb-3 mb-md-0">
-                          <label class="form-label">Stop City</label>
-                          <input type="text" name="stop_city[]" class="form-control" maxlength="12" placeholder="e.g., Dubai">
-                        </div>
-                        <div class="col-md-6">
-                          <label class="form-label">Stop Duration (hours)</label>
-                          <input type="text" name="stop_duration[]" class="form-control" placeholder="e.g., 4">
-                        </div>
-                      </div>
-                      <div class="text-end">
-                        <button type="button" id="add-stop" class="btn btn-primary">
-                          <i class="fas fa-plus me-2"></i>Add Another Stop
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Schedule and Duration -->
-                <div class="row mb-4">
-                  <div class="col-md-4 mb-3 mb-md-0">
-                    <label for="departure_date" class="form-label">Departure Date <span class="text-danger">*</span></label>
-                    <input type="date" name="departure_date" id="departure_date" class="form-control" required>
-                  </div>
-                  <div class="col-md-4 mb-3 mb-md-0">
-                    <label for="departure_time" class="form-label">Departure Time <span class="text-danger">*</span></label>
-                    <input type="text" name="departure_time" id="departure_time" class="form-control" placeholder="HH:MM (24-hour format)" required>
-                  </div>
-                  <div class="col-md-4">
-                    <label for="flight_duration" class="form-label">Flight Duration (hours) <span class="text-danger">*</span></label>
-                    <input type="number" name="flight_duration" id="flight_duration" class="form-control" placeholder="e.g., 5.5" step="0.1" required>
-                  </div>
-                </div>
-
-                <!-- Distance Field -->
-                <div class="mb-4">
-                  <label for="distance" class="form-label">Distance (km) <span class="text-danger">*</span></label>
-                  <input type="number" name="distance" id="distance" class="form-control" placeholder="e.g., 3500" step="1" required>
-                </div>
-
-                <!-- Return Flight Section -->
-                <div class="border-top pt-4 mt-4">
-                  <div class="mb-3">
-                    <h3 class="text-primary">
-                      <i class="fas fa-plane-arrival me-2"></i>Return Flight Details
-                    </h3>
-                  </div>
-
-                  <div class="d-flex align-items-center mb-3">
-                    <header>
-                      <h4 class="mb-0">Journey Type</h4>
-                    </header>
-                    <div class="ms-4">
-                      <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="has_return" id="oneWayFlight" value="0" checked>
-                        <label class="form-check-label" for="oneWayFlight">One-way Flight</label>
-                      </div>
-                      <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="has_return" id="roundTrip" value="1">
-                        <label class="form-check-label" for="roundTrip">Round Trip</label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div id="return-container" class="card bg-light mb-4 d-none">
-                    <div class="card-body">
-                      <div class="row mb-4">
-                        <div class="col-md-6 mb-3 mb-md-0">
-                          <label for="return_airline" class="form-label">Return Airline</label>
-                          <select name="return_airline" id="return_airline" class="form-select">
-                            <option value="">Select Airline</option>
-                            <option value="same">Same as Outbound</option>
-                            <!-- Pakistani Airlines -->
-                            <optgroup label="Pakistani Airlines">
-                              <option value="PIA">Pakistan International Airlines (PIA)</option>
-                              <option value="AirBlue">AirBlue</option>
-                              <option value="SereneAir">Serene Air</option>
-                              <option value="AirSial">AirSial</option>
-                              <option value="FlyJinnah">Fly Jinnah</option>
-                            </optgroup>
-                            <!-- Middle Eastern Airlines -->
-                            <optgroup label="Middle Eastern Airlines">
-                              <option value="Emirates">Emirates</option>
-                              <option value="Qatar">Qatar Airways</option>
-                              <option value="Etihad">Etihad Airways</option>
-                              <option value="Saudi">Saudia (Saudi Airlines)</option>
-                              <option value="Flynas">Flynas</option>
-                              <option value="Flydubai">Flydubai</option>
-                              <option value="OmanAir">Oman Air</option>
-                            </optgroup>
-                            <!-- Asian Airlines -->
-                            <optgroup label="Asian Airlines">
-                              <option value="Thai">Thai Airways</option>
-                              <option value="Singapore">Singapore Airlines</option>
-                              <option value="Turkish">Turkish Airlines</option>
-                              <option value="Malaysia">Malaysia Airlines</option>
-                            </optgroup>
-                            <!-- European & American Airlines -->
-                            <optgroup label="European & American Airlines">
-                              <option value="British">British Airways</option>
-                              <option value="Lufthansa">Lufthansa</option>
-                              <option value="AirFrance">Air France</option>
-                            </optgroup>
-                            <!-- Budget Airlines -->
-                            <optgroup label="Budget Airlines">
-                              <option value="AirArabia">Air Arabia</option>
-                              <option value="Indigo">IndiGo</option>
-                            </optgroup>
-                          </select>
-                        </div>
-                        <div class="col-md-6">
-                          <label for="return_flight_number" class="form-label">Return Flight Number</label>
-                          <input type="text" name="return_flight_number" id="return_flight_number" class="form-control" placeholder="e.g., PK-310" maxlength="7">
-                        </div>
-                      </div>
-
-                      <div class="row mb-4">
-                        <div class="col-md-4 mb-3 mb-md-0">
-                          <label for="return_date" class="form-label">Return Date</label>
-                          <input type="date" name="return_date" id="return_date" class="form-control">
-                        </div>
-                        <div class="col-md-4 mb-3 mb-md-0">
-                          <label for="return_time" class="form-label">Return Time</label>
-                          <input type="text" name="return_time" id="return_time" class="form-control" placeholder="HH:MM (24-hour format)">
-                        </div>
-                        <div class="col-md-4">
-                          <label for="return_flight_duration" class="form-label">Return Flight Duration (hours)</label>
-                          <input type="text" name="return_flight_duration" id="return_flight_duration" class="form-control" placeholder="e.g., 5.5">
-                        </div>
-                      </div>
-
-                      <div class="mt-4">
-                        <div class="d-flex align-items-center mb-3">
-                          <h5 class="mb-0">Return Flight Stops</h5>
-                          <div class="ms-4">
-                            <div class="form-check form-check-inline">
-                              <input class="form-check-input" type="radio" name="has_return_stops" id="directReturnFlight" value="0" checked>
-                              <label class="form-check-label" for="directReturnFlight">Direct Return Flight</label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                              <input class="form-check-input" type="radio" name="has_return_stops" id="hasReturnStops" value="1">
-                              <label class="form-check-label" for="hasReturnStops">Has Stops</label>
-                            </div>
-                          </div>
-                        </div>
-                        <div id="return-stops-container" class="d-none">
-                          <div class="return-stop-row row mb-3">
-                            <div class="col-md-6 mb-3 mb-md-0">
-                              <label class="form-label">Return Stop City</label>
-                              <input type="text" name="return_stop_city[]" class="form-control" placeholder="e.g., Dubai" maxlength="50">
-                              <div class="invalid-feedback"></div>
-                            </div>
-                            <div class="col-md-6">
-                              <label class="form-label">Return Stop Duration (hours)</label>
-                              <input type="text" name="return_stop_duration[]" class="form-control" placeholder="e.g., 2">
-                              <div class="invalid-feedback"></div>
-                            </div>
-                          </div>
-                          <div class="text-end">
-                            <button type="button" id="add-return-stop" class="btn btn-primary">
-                              <i class="fas fa-plus me-2"></i>Add Another Return Stop
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Pricing Section -->
-                <div class="border-top pt-4 mt-4">
-                  <div class="mb-3">
-                    <h3 class="text-primary">
-                      <i class="fas fa-tags me-2"></i>Pricing Information
-                    </h3>
-                  </div>
-
-                  <div class="row mb-4">
-                    <div class="col-md-4 mb-3 mb-md-0">
-                      <label for="economy_price" class="form-label">Economy Price (PKR) <span class="text-danger">*</span></label>
-                      <input type="number" name="economy_price" id="economy_price" class="form-control" placeholder="242,250" required>
-                    </div>
-                    <div class="col-md-4 mb-3 mb-md-0">
-                      <label for="business_price" class="form-label">Business Price (PKR) <span class="text-danger">*</span></label>
-                      <input type="number" name="business_price" id="business_price" class="form-control" placeholder="427,500" required>
-                    </div>
-                    <div class="col-md-4">
-                      <label for="first_class_price" class="form-label">First Class Price (PKR) <span class="text-danger">*</span></label>
-                      <input type="number" name="first_class_price" id="first_class_price" class="form-control" placeholder="712,500" required>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Seat Information -->
-                <div class="border-top pt-4 mt-4">
-                  <div class="mb-3">
-                    <h3 class="text-primary">
-                      <i class="fas fa-chair me-2"></i>Seat Information
-                    </h3>
-                  </div>
-
-                  <div class="row mb-4">
-                    <div class="col-md-4 mb-3 mb-md-0">
-                      <label for="economy_seats" class="form-label">Economy Seats <span class="text-danger">*</span></label>
-                      <input type="number" name="economy_seats" id="economy_seats" class="form-control" placeholder="200" required>
-                    </div>
-                    <div class="col-md-4 mb-3 mb-md-0">
-                      <label for="business_seats" class="form-label">Business Seats <span class="text-danger">*</span></label>
-                      <input type="number" name="business_seats" id="business_seats" class="form-control" placeholder="30" required>
-                    </div>
-                    <div class="col-md-4">
-                      <label for="first_class_seats" class="form-label">First Class Seats <span class="text-danger">*</span></label>
-                      <input type="number" name="first_class_seats" id="first_class_seats" class="form-control" placeholder="10" required>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Flight Notes -->
-                <div class="mb-4">
-                  <label for="flight_notes" class="form-label">Flight Notes (Optional)</label>
-                  <textarea name="flight_notes" id="flight_notes" class="form-control" rows="3" placeholder="Any additional information about this flight"></textarea>
-                </div>
-
-                <!-- Submit Buttons -->
-                <div class="d-flex gap-2">
-                  <button type="submit" id="submit-btn" class="btn btn-primary">
-                    <i class="fas fa-save me-2"></i> Save Flight
-                  </button>
-                  <button type="reset" class="btn btn-secondary">
-                    <i class="fas fa-times me-2"></i>Reset
+                <div class="text-right">
+                  <button type="button" id="add-return-stop" class="inline-flex items-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-plus mr-2"></i>Add Another Return Stop
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         </div>
-      </main>
+
+        <!-- Pricing Section -->
+        <div class="border-t pt-4 mt-4">
+          <div class="mb-4">
+            <h3 class="text-lg font-semibold text-indigo-600">
+              <i class="fas fa-tags mr-2"></i>Pricing Information
+            </h3>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label for="economy_price" class="block text-sm font-medium text-gray-700">Economy Price (PKR) <span class="text-red-500">*</span></label>
+              <input type="number" name="economy_price" id="economy_price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="242,250" required>
+            </div>
+            <div>
+              <label for="business_price" class="block text-sm font-medium text-gray-700">Business Price (PKR) <span class="text-red-500">*</span></label>
+              <input type="number" name="business_price" id="business_price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="427,500" required>
+            </div>
+            <div>
+              <label for="first_class_price" class="block text-sm font-medium text-gray-700">First Class Price (PKR) <span class="text-red-500">*</span></label>
+              <input type="number" name="first_class_price" id="first_class_price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="712,500" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seat Information -->
+        <div class="border-t pt-4 mt-4">
+          <div class="mb-4">
+            <h3 class="text-lg font-semibold text-indigo-600">
+              <i class="fas fa-chair mr-2"></i>Seat Information
+            </h3>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label for="economy_seats" class="block text-sm font-medium text-gray-700">Economy Seats <span class="text-red-500">*</span></label>
+              <input type="number" name="economy_seats" id="economy_seats" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="200" required>
+            </div>
+            <div>
+              <label for="business_seats" class="block text-sm font-medium text-gray-700">Business Seats <span class="text-red-500">*</span></label>
+              <input type="number" name="business_seats" id="business_seats" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="30" required>
+            </div>
+            <div>
+              <label for="first_class_seats" class="block text-sm font-medium text-gray-700">First Class Seats <span class="text-red-500">*</span></label>
+              <input type="number" name="first_class_seats" id="first_class_seats" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="10" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- Flight Notes -->
+        <div class="mb-4">
+          <label for="flight_notes" class="block text-sm font-medium text-gray-700">Flight Notes (Optional)</label>
+          <textarea name="flight_notes" id="flight_notes" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" rows="3" placeholder="Any additional information about this flight"></textarea>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="flex space-x-3">
+          <button type="submit" id="submit-btn" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+            <i class="fas fa-save mr-2"></i> Save Flight
+          </button>
+          <button type="reset" class="inline-flex items-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+            <i class="fas fa-times mr-2"></i>Reset
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- Bootstrap Bundle with Popper -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Simple script for toggling sections and adding stops -->
-  <script src="assets/js/validate.js"></script>
+  <!-- Custom JavaScript -->
   <script>
-    // Toggle stops section
-    function toggleStopsSection(show) {
-      document.getElementById('stops-container').classList.toggle('d-none', !show);
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+      // Sidebar elements (assumed from sidebar.php)
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebarClose = document.getElementById('sidebar-close');
+      const dashboardHeader = document.getElementById('dashboardHeader');
 
-    // Toggle return section
-    function toggleReturnSection(show) {
-      document.getElementById('return-container').classList.toggle('d-none', !show);
-    }
+      // User dropdown elements
+      const userDropdownButton = document.getElementById('userDropdownButton');
+      const userDropdownMenu = document.getElementById('userDropdownMenu');
 
-    // Toggle return stops section
-    function toggleReturnStopsSection(show) {
-      document.getElementById('return-stops-container').classList.toggle('d-none', !show);
-    }
+      // Form elements
+      const addStopButton = document.getElementById('add-stop');
+      const addReturnStopButton = document.getElementById('add-return-stop');
 
-    // Add stop row (for outbound stops)
-    document.getElementById('add-stop').addEventListener('click', function() {
-      const stopRow = document.querySelector('.stop-row').cloneNode(true);
-      stopRow.querySelectorAll('input').forEach(input => input.value = '');
-      this.closest('.text-end').before(stopRow);
-      // Re-initialize validation for new inputs (from validate.js)
-      const newCityInput = stopRow.querySelector('input[name="stop_city[]"]');
-      const newDurationInput = stopRow.querySelector('input[name="stop_duration[]"]');
-      window.addNewStopCity(newCityInput); // Assumes validate.js exposes this
-      window.initStopDurationValidation(newDurationInput); // From validate.js
-    });
+      // Error handling for missing elements
+      if (!sidebar || !sidebarOverlay || !sidebarToggle || !sidebarClose) {
+        console.warn('One or more sidebar elements are missing. Ensure sidebar.php includes #sidebar, #sidebar-overlay, #sidebar-close.');
+      }
+      if (!userDropdownButton || !userDropdownMenu) {
+        console.warn('User dropdown elements are missing.');
+      }
+      if (!dashboardHeader) {
+        console.warn('Dashboard header element is missing.');
+      }
+      if (!addStopButton || !addReturnStopButton) {
+        console.warn('Form stop buttons are missing.');
+      }
 
-    // Bind radio buttons
-    document.querySelectorAll('input[name="has_stops"]').forEach(input => {
-      input.addEventListener('change', function() {
-        toggleStopsSection(this.value == '1');
+      // Sidebar toggle function
+      const toggleSidebar = () => {
+        if (sidebar && sidebarOverlay && sidebarToggle) {
+          sidebar.classList.toggle('-translate-x-full');
+          sidebarOverlay.classList.toggle('hidden');
+          sidebarToggle.classList.toggle('hidden');
+        }
+      };
+
+      // Sidebar event listeners
+      if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+      if (sidebarClose) sidebarClose.addEventListener('click', toggleSidebar);
+      if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+      if (dashboardHeader) {
+        dashboardHeader.addEventListener('click', () => {
+          if (sidebar && sidebar.classList.contains('-translate-x-full')) {
+            toggleSidebar();
+          }
+        });
+      }
+
+      // User dropdown toggle
+      if (userDropdownButton && userDropdownMenu) {
+        userDropdownButton.addEventListener('click', () => {
+          userDropdownMenu.classList.toggle('hidden');
+        });
+        document.addEventListener('click', (event) => {
+          if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+            userDropdownMenu.classList.add('hidden');
+          }
+        });
+      }
+
+      // Form interactions
+      const toggleStopsSection = (show) => {
+        document.getElementById('stops-container').classList.toggle('hidden', !show);
+      };
+      const toggleReturnSection = (show) => {
+        document.getElementById('return-container').classList.toggle('hidden', !show);
+      };
+      const toggleReturnStopsSection = (show) => {
+        document.getElementById('return-stops-container').classList.toggle('hidden', !show);
+      };
+
+      // Bind radio buttons
+      document.querySelectorAll('input[name="has_stops"]').forEach(input => {
+        input.addEventListener('change', () => toggleStopsSection(input.value === '1'));
       });
-    });
-
-    document.querySelectorAll('input[name="has_return"]').forEach(input => {
-      input.addEventListener('change', function() {
-        toggleReturnSection(this.value == '1');
+      document.querySelectorAll('input[name="has_return"]').forEach(input => {
+        input.addEventListener('change', () => toggleReturnSection(input.value === '1'));
       });
-    });
-
-    document.querySelectorAll('input[name="has_return_stops"]').forEach(input => {
-      input.addEventListener('change', function() {
-        toggleReturnStopsSection(this.value == '1');
+      document.querySelectorAll('input[name="has_return_stops"]').forEach(input => {
+        input.addEventListener('change', () => toggleReturnStopsSection(input.value === '1'));
       });
+
+      // Add stop row (outbound)
+      if (addStopButton) {
+        addStopButton.addEventListener('click', () => {
+          const stopRow = document.querySelector('.stop-row').cloneNode(true);
+          stopRow.querySelectorAll('input').forEach(input => input.value = '');
+          addStopButton.closest('.text-right').before(stopRow);
+          // Re-initialize validation for new inputs
+          const newCityInput = stopRow.querySelector('input[name="stop_city[]"]');
+          const newDurationInput = stopRow.querySelector('input[name="stop_duration[]"]');
+          if (window.addNewStopCity) window.addNewStopCity(newCityInput);
+          if (window.initStopDurationValidation) window.initStopDurationValidation(newDurationInput);
+        });
+      }
+
+      // Add return stop row
+      if (addReturnStopButton) {
+        addReturnStopButton.addEventListener('click', () => {
+          const returnStopRow = document.querySelector('.return-stop-row').cloneNode(true);
+          returnStopRow.querySelectorAll('input').forEach(input => input.value = '');
+          addReturnStopButton.closest('.text-right').before(returnStopRow);
+          // Re-initialize validation for new inputs
+          const newCityInput = returnStopRow.querySelector('input[name="return_stop_city[]"]');
+          const newDurationInput = returnStopRow.querySelector('input[name="return_stop_duration[]"]');
+          if (window.addNewStopCity) window.addNewStopCity(newCityInput);
+          if (window.initStopDurationValidation) window.initStopDurationValidation(newDurationInput);
+        });
+      }
     });
   </script>
+  <!-- Validation Script -->
+  <script src="assets/js/validate.js"></script>
 </body>
 
 </html>
