@@ -193,10 +193,12 @@ $stmt->close();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manage Users | UmrahFlights</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Manage Users | UmrahFlights Admin</title>
+  <!-- Tailwind CSS -->
+  <link rel="stylesheet" href="../src/output.css">
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <link rel="stylesheet" href="assets/css/index.css">
+  <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     .edit-form {
@@ -216,57 +218,59 @@ $stmt->close();
     }
 
     .stat-card {
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      color: white;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       transition: transform 0.2s;
     }
 
     .stat-card:hover {
       transform: translateY(-5px);
     }
-
-    .input-field {
-      width: 100%;
-      padding: 0.375rem 0.75rem;
-      border: 1px solid #d1d5db;
-      border-radius: 0.375rem;
-      font-size: 0.875rem;
-    }
-
-    .input-field:focus {
-      outline: 2px solid #3b82f6;
-      border-color: #3b82f6;
-    }
   </style>
 </head>
 
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100">
   <?php include 'includes/sidebar.php'; ?>
-  <main class="mt-10 p-6 min-h-screen" role="main" aria-label="Main content">
-    <nav class="flex items-center justify-between bg-white shadow-md p-4 rounded-lg mb-6">
-      <div class="flex items-center">
-        <button id="sidebarToggle" class="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle sidebar">
-          <i class="fas fa-bars text-xl"></i>
-        </button>
-        <h1 class="text-xl font-semibold text-gray-800 ml-4">Manage Users</h1>
-      </div>
-      <div class="flex items-center space-x-4">
-        <div class="relative">
-          <button id="userDropdown" class="flex items-center text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="User menu" aria-expanded="false">
-            <!-- <img src="../assets/img/admin.jpg" alt="Admin User" class="w-8 h-8 rounded-full mr-2"> -->
-            <span class="hidden md:inline text-gray-800">Admin User</span>
-            <i class="fas fa-chevron-down ml-1"></i>
+
+  <!-- Main Content -->
+  <div class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300">
+    <!-- Top Navbar -->
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
+            <i class="fas fa-bars text-xl"></i>
           </button>
-          <div id="userDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg py-2 z-10">
-            <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-gray-100"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+          <h4 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-users text-indigo-600 mr-2"></i> Manage Users
+          </h4>
+        </div>
+
+        <div class="flex items-center space-x-4">
+          <!-- User Dropdown -->
+          <div class="relative">
+            <button id="userDropdownButton" class="flex items-center space-x-2 text-gray-700 hover:bg-indigo-50 rounded-lg px-3 py-2 focus:outline-none">
+              <div class="rounded-full overflow-hidden" style="width: 32px; height: 32px;">
+                <div class="bg-gray-200 w-full h-full flex items-center justify-center">
+                  <i class="fas fa-user text-gray-500"></i>
+                </div>
+              </div>
+              <span class="hidden md:inline text-sm font-medium">Admin User</span>
+              <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
+              <li>
+                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
     </nav>
 
+    <!-- Alert Messages -->
     <?php if ($success_message): ?>
       <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
         <span><?php echo htmlspecialchars($success_message); ?></span>
@@ -284,58 +288,96 @@ $stmt->close();
       </div>
     <?php endif; ?>
 
-    <section class="bg-white p-6 rounded-lg shadow-md" aria-label="User management">
-      <!-- Statistics Section -->
-      <div class="mb-6">
-        <h2 class="text-2xl font-bold mb-4">User Statistics</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="stat-card">
-            <h3 class="text-lg font-semibold">Total Users</h3>
-            <p class="text-2xl mt-2"><?php echo $stats['total_users']; ?></p>
+    <!-- Statistics Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <div class="stat-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-indigo-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800">Total Users</h3>
+            <p class="text-2xl font-bold text-indigo-600"><?php echo $stats['total_users']; ?></p>
           </div>
-          <div class="stat-card">
-            <h3 class="text-lg font-semibold">Users with Profile Images</h3>
-            <p class="text-2xl mt-2"><?php echo $stats['users_with_images']; ?></p>
-          </div>
-          <div class="stat-card">
-            <h3 class="text-lg font-semibold">Recent Registrations</h3>
-            <p class="text-2xl mt-2"><?php echo $stats['recent_registrations']; ?></p>
-            <p class="text-sm opacity-80">Last 30 days</p>
-          </div>
-          <div class="stat-card">
-            <h3 class="text-lg font-semibold">Average Age</h3>
-            <p class="text-2xl mt-2"><?php echo $stats['average_age']; ?> years</p>
+          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 text-indigo-500">
+            <i class="fas fa-users text-xl"></i>
           </div>
         </div>
       </div>
 
+      <div class="stat-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-green-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800">With Profile Images</h3>
+            <p class="text-2xl font-bold text-green-600"><?php echo $stats['users_with_images']; ?></p>
+          </div>
+          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-500">
+            <i class="fas fa-image text-xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-purple-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800">Recent Registrations</h3>
+            <p class="text-2xl font-bold text-purple-600"><?php echo $stats['recent_registrations']; ?></p>
+            <p class="text-xs text-gray-500">Last 30 days</p>
+          </div>
+          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 text-purple-500">
+            <i class="fas fa-user-plus text-xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-yellow-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800">Average Age</h3>
+            <p class="text-2xl font-bold text-yellow-600"><?php echo $stats['average_age']; ?> years</p>
+          </div>
+          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 text-yellow-500">
+            <i class="fas fa-birthday-cake text-xl"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users Management Section -->
+    <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
       <!-- Search and Filter -->
       <div class="mb-6">
         <form method="GET" class="flex flex-col md:flex-row gap-4">
           <div class="flex-1">
-            <label for="search" class="block text-sm font-medium text-gray-700">Search Users</label>
-            <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name or email" class="input-field w-full">
+            <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search Users</label>
+            <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name or email"
+              class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
           </div>
           <div>
-            <label for="filter_image" class="block text-sm font-medium text-gray-700">Filter by Profile Image</label>
-            <select id="filter_image" name="filter_image" class="input-field w-full md:w-48">
+            <label for="filter_image" class="block text-sm font-medium text-gray-700 mb-1">Filter by Profile Image</label>
+            <select id="filter_image" name="filter_image"
+              class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
               <option value="" <?php echo $filter_image === '' ? 'selected' : ''; ?>>All</option>
               <option value="with_image" <?php echo $filter_image === 'with_image' ? 'selected' : ''; ?>>With Image</option>
               <option value="without_image" <?php echo $filter_image === 'without_image' ? 'selected' : ''; ?>>Without Image</option>
             </select>
           </div>
           <div class="flex items-end">
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"><i class="fas fa-search mr-2"></i>Search</button>
+            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <i class="fas fa-search mr-2"></i>Search
+            </button>
           </div>
         </form>
       </div>
 
       <!-- Users Table -->
       <div class="mb-6 overflow-x-auto">
-        <h3 class="font-semibold text-lg mb-3">User List</h3>
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-medium text-gray-700">User List</h3>
+          <a href="add-user.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <i class="fas fa-user-plus mr-2"></i>Add New User
+          </a>
+        </div>
         <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-blue-600 text-white">
+            <tr class="bg-indigo-600 text-white">
               <th class="p-3 w-16 text-center">ID</th>
               <th class="p-3 text-left">Full Name</th>
               <th class="p-3 text-left">Email</th>
@@ -353,7 +395,7 @@ $stmt->close();
             <?php else: ?>
               <?php foreach ($users as $user): ?>
                 <!-- View Row -->
-                <tr class="view-row" data-user-id="<?php echo $user['id']; ?>">
+                <tr class="view-row border-b hover:bg-gray-50" data-user-id="<?php echo $user['id']; ?>">
                   <td class="p-3 text-center"><?php echo htmlspecialchars($user['id']); ?></td>
                   <td class="p-3"><?php echo htmlspecialchars($user['full_name']); ?></td>
                   <td class="p-3"><?php echo htmlspecialchars($user['email']); ?></td>
@@ -367,36 +409,43 @@ $stmt->close();
                   </td>
                   <td class="p-3 text-center"><?php echo date('Y-m-d', strtotime($user['created_at'])); ?></td>
                   <td class="p-3 text-center">
-                    <button type="button" class="text-blue-500 hover:text-blue-700 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
-                    <button type="button" class="text-red-500 hover:text-red-700 delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
+                    <button type="button" class="text-indigo-600 hover:text-indigo-800 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
+                    <button type="button" class="text-red-600 hover:text-red-800 delete-btn ml-2" title="Delete"><i class="fas fa-trash"></i></button>
                   </td>
                 </tr>
                 <!-- Edit Form Row -->
-                <tr class="edit-form" data-user-id="<?php echo $user['id']; ?>">
+                <tr class="edit-form border-b bg-gray-50" data-user-id="<?php echo $user['id']; ?>">
                   <td class="p-3 text-center"><?php echo htmlspecialchars($user['id']); ?></td>
                   <td class="p-3">
-                    <input type="text" name="full_name" value="<?php echo htmlspecialchars($user['full_name']); ?>" class="input-field w-full" pattern="[A-Za-z\s]+" title="Only letters and spaces allowed" maxlength="100" required>
+                    <input type="text" name="full_name" value="<?php echo htmlspecialchars($user['full_name']); ?>"
+                      class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      pattern="[A-Za-z\s]+" title="Only letters and spaces allowed" maxlength="100" required>
                     <div class="text-red-500 text-xs error-msg-name hidden">Only letters and spaces allowed (max 100 chars)</div>
                   </td>
                   <td class="p-3">
-                    <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="input-field w-full" maxlength="100" required>
+                    <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>"
+                      class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      maxlength="100" required>
                     <div class="text-red-500 text-xs error-msg-email hidden">Invalid email format</div>
                   </td>
                   <td class="p-3">
-                    <input type="date" name="dob" value="<?php echo htmlspecialchars($user['dob']); ?>" class="input-field w-full text-center" required>
+                    <input type="date" name="dob" value="<?php echo htmlspecialchars($user['dob']); ?>"
+                      class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center"
+                      required>
                     <div class="text-red-500 text-xs error-msg-dob hidden">Invalid date</div>
                   </td>
                   <td class="p-3">
-                    <input type="file" name="profile_image" accept=".jpg,.jpeg,.png,.gif" class="input-field w-full">
+                    <input type="file" name="profile_image" accept=".jpg,.jpeg,.png,.gif"
+                      class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                     <div class="text-red-500 text-xs error-msg-image hidden">Invalid file type or size (max 5MB)</div>
                     <?php if ($user['profile_image'] && file_exists($user['profile_image'])): ?>
-                      <p class="text-sm text-gray-500 mt-1">Current: <a href="<?php echo htmlspecialchars($user['profile_image']); ?>" target="_blank">View Image</a></p>
+                      <p class="text-xs text-gray-500 mt-1">Current: <a href="<?php echo htmlspecialchars($user['profile_image']); ?>" target="_blank" class="text-indigo-600 hover:text-indigo-800">View Image</a></p>
                     <?php endif; ?>
                   </td>
                   <td class="p-3 text-center"><?php echo date('Y-m-d', strtotime($user['created_at'])); ?></td>
                   <td class="p-3 text-center">
-                    <button type="button" class="text-green-500 hover:text-green-700 save-btn" title="Save"><i class="fas fa-save"></i></button>
-                    <button type="button" class="text-gray-500 hover:text-gray-700 cancel-btn" title="Cancel"><i class="fas fa-times"></i></button>
+                    <button type="button" class="text-green-600 hover:text-green-800 save-btn" title="Save"><i class="fas fa-save"></i></button>
+                    <button type="button" class="text-gray-600 hover:text-gray-800 cancel-btn ml-2" title="Cancel"><i class="fas fa-times"></i></button>
                   </td>
                 </tr>
               <?php endforeach; ?>
@@ -404,27 +453,40 @@ $stmt->close();
           </tbody>
         </table>
       </div>
-    </section>
-  </main>
+    </div>
+  </div>
 
+  <!-- Scripts -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Sidebar and Dropdown Handlers
-      document.getElementById('sidebarToggle').addEventListener('click', function() {
-        document.querySelector('aside').classList.toggle('hidden');
-      });
+      // User Dropdown Toggle
+      const userDropdownButton = document.getElementById('userDropdownButton');
+      const userDropdownMenu = document.getElementById('userDropdownMenu');
 
-      document.getElementById('userDropdown').addEventListener('click', function() {
-        document.getElementById('userDropdownMenu').classList.toggle('hidden');
-      });
+      if (userDropdownButton && userDropdownMenu) {
+        userDropdownButton.addEventListener('click', function() {
+          userDropdownMenu.classList.toggle('hidden');
+        });
 
-      document.addEventListener('click', function(e) {
-        const dropdown = document.getElementById('userDropdownMenu');
-        const button = document.getElementById('userDropdown');
-        if (!dropdown.contains(e.target) && !button.contains(e.target)) {
-          dropdown.classList.add('hidden');
-        }
-      });
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+          if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+            userDropdownMenu.classList.add('hidden');
+          }
+        });
+      }
+
+      // Sidebar Toggle (assuming sidebar toggle functionality from sidebar.php)
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+      if (sidebarToggle && sidebar && sidebarOverlay) {
+        sidebarToggle.addEventListener('click', function() {
+          sidebar.classList.remove('-translate-x-full');
+          sidebarOverlay.classList.remove('hidden');
+        });
+      }
 
       // Validation Functions
       function validateName(input) {
@@ -579,7 +641,7 @@ $stmt->close();
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            cancelButtonColor: '#4f46e5',
             confirmButtonText: 'Yes, delete it!'
           }).then((result) => {
             if (result.isConfirmed) {

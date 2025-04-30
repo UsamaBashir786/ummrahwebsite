@@ -108,10 +108,12 @@ $stmt->close();
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>View Transportation | UmrahFlights</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>View Transportation | UmrahFlights Admin</title>
+  <!-- Tailwind CSS -->
+  <link rel="stylesheet" href="../src/output.css">
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <link rel="stylesheet" href="assets/css/index.css">
+  <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     .tab-buttons {
@@ -122,7 +124,7 @@ $stmt->close();
 
     .tab-btn {
       padding: 10px 20px;
-      border-radius: 6px;
+      border-radius: 0.375rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
@@ -130,7 +132,7 @@ $stmt->close();
     }
 
     .tab-btn.active {
-      background-color: #3b82f6;
+      background-color: #4f46e5;
       color: white;
     }
 
@@ -164,24 +166,6 @@ $stmt->close();
       }
     }
 
-    .price-input {
-      width: 100%;
-      padding: 0.375rem 0.75rem;
-      border: 1px solid #d1d5db;
-      border-radius: 0.375rem;
-      font-size: 0.875rem;
-    }
-
-    .price-input:focus {
-      outline: 2px solid #3b82f6;
-      border-color: #3b82f6;
-    }
-
-    .rentacar-input:focus {
-      outline: 2px solid #1d4ed8;
-      border-color: #1d4ed8;
-    }
-
     .edit-form {
       display: none;
     }
@@ -200,30 +184,50 @@ $stmt->close();
   </style>
 </head>
 
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100">
   <?php include 'includes/sidebar.php'; ?>
-  <main class="ml-0 md:ml-64 p-6 min-h-screen" role="main" aria-label="Main content">
-    <nav class="flex items-center justify-between bg-white shadow-md p-4 rounded-lg mb-6">
-      <div class="flex items-center">
-        <button id="sidebarToggle" class="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle sidebar">
-          <i class="fas fa-bars text-xl"></i>
-        </button>
-        <h1 class="text-xl font-semibold text-gray-800 ml-4">View Transportation</h1>
-      </div>
-      <div class="flex items-center space-x-4">
-        <div class="relative">
-          <button id="userDropdown" class="flex items-center text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="User menu" aria-expanded="false">
-            <!-- <img src="../assets/img/admin.jpg" alt="Admin User" class="w-8 h-8 rounded-full mr-2"> -->
-            <span class="hidden md:inline text-gray-800">Admin User</span>
-            <i class="fas fa-chevron-down ml-1"></i>
+
+  <!-- Main Content -->
+  <div class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300">
+    <!-- Top Navbar -->
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
+            <i class="fas fa-bars text-xl"></i>
           </button>
-          <div id="userDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg py-2 z-10">
-            <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-gray-100"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+          <h4 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-car text-indigo-600 mr-2"></i> Transportation Management
+          </h4>
+        </div>
+
+        <div class="flex items-center space-x-4">
+          <!-- User Dropdown -->
+          <div class="relative">
+            <button id="userDropdownButton" class="flex items-center space-x-2 text-gray-700 hover:bg-indigo-50 rounded-lg px-3 py-2 focus:outline-none">
+              <div class="rounded-full overflow-hidden" style="width: 32px; height: 32px;">
+                <div class="bg-gray-200 w-full h-full flex items-center justify-center">
+                  <i class="fas fa-user text-gray-500"></i>
+                </div>
+              </div>
+              <span class="hidden md:inline text-sm font-medium">Admin User</span>
+              <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
+              <li>
+                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
     </nav>
 
+    <!-- Alert Messages -->
     <?php if ($success_message): ?>
       <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
         <span><?php echo htmlspecialchars($success_message); ?></span>
@@ -241,8 +245,9 @@ $stmt->close();
       </div>
     <?php endif; ?>
 
-    <section class="bg-white p-6 rounded-lg shadow-md" aria-label="Transportation management">
-      <div class="tab-buttons flex justify-center">
+    <!-- Main Content Section -->
+    <div class="bg-white shadow-lg rounded-lg p-6 mb-8" aria-label="Transportation management">
+      <div class="tab-buttons flex justify-center mb-6">
         <button class="tab-btn active" onclick="switchTab('taxi')">Taxi Routes</button>
         <button class="tab-btn" onclick="switchTab('rentacar')">Rent A Car Routes</button>
       </div>
@@ -250,14 +255,19 @@ $stmt->close();
       <!-- Taxi Routes Tab -->
       <div id="taxi-tab" class="tab-content active">
         <div class="mb-6">
-          <h2 class="text-2xl font-bold">Taxi Routes</h2>
-          <p class="text-gray-600 mt-2">View and manage taxi service routes and prices</p>
+          <h2 class="text-xl font-semibold text-indigo-600">Taxi Routes</h2>
+          <p class="text-gray-600 mt-1">View and manage taxi service routes and prices</p>
         </div>
         <div class="mb-6 overflow-x-auto">
-          <h3 class="font-semibold text-lg mb-3">Existing Routes</h3>
+          <div class="mb-4 flex justify-between items-center">
+            <h3 class="font-medium text-gray-700">Existing Routes</h3>
+            <a href="add-transportation-route.php?type=taxi" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <i class="fas fa-plus mr-2"></i>Add New Route
+            </a>
+          </div>
           <table class="w-full text-left border-collapse">
             <thead>
-              <tr class="bg-blue-600 text-white">
+              <tr class="bg-indigo-600 text-white">
                 <th class="p-3 w-16 text-center">#</th>
                 <th class="p-3 text-left">Route</th>
                 <th class="p-3 text-center">Camry / Sonata (PKR)</th>
@@ -274,41 +284,41 @@ $stmt->close();
               <?php else: ?>
                 <?php foreach ($taxi_routes as $route): ?>
                   <!-- View Row -->
-                  <tr class="view-row" data-route-id="<?php echo $route['id']; ?>">
+                  <tr class="view-row border-b hover:bg-gray-50" data-route-id="<?php echo $route['id']; ?>">
                     <td class="p-3 text-center"><?php echo htmlspecialchars($route['route_number']); ?></td>
                     <td class="p-3"><?php echo htmlspecialchars($route['route_name']); ?></td>
                     <td class="p-3 text-center"><?php echo number_format($route['camry_sonata_price'], 2); ?></td>
                     <td class="p-3 text-center"><?php echo number_format($route['starex_staria_price'], 2); ?></td>
                     <td class="p-3 text-center"><?php echo number_format($route['hiace_price'], 2); ?></td>
                     <td class="p-3 text-center">
-                      <button type="button" class="text-blue-500 hover:text-blue-700 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
-                      <button type="button" class="text-red-500 hover:text-red-700 delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
+                      <button type="button" class="text-indigo-600 hover:text-indigo-800 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
+                      <button type="button" class="text-red-600 hover:text-red-800 delete-btn ml-2" title="Delete"><i class="fas fa-trash"></i></button>
                     </td>
                   </tr>
                   <!-- Edit Form Row -->
-                  <tr class="edit-form price-validation-row" data-route-id="<?php echo $route['id']; ?>">
+                  <tr class="edit-form price-validation-row border-b bg-gray-50" data-route-id="<?php echo $route['id']; ?>">
                     <td class="p-3 text-center">
-                      <input type="number" name="route_number" value="<?php echo htmlspecialchars($route['route_number']); ?>" class="price-input w-16 text-center" required>
+                      <input type="number" name="route_number" value="<?php echo htmlspecialchars($route['route_number']); ?>" class="block w-16 rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center" required>
                     </td>
                     <td class="p-3">
-                      <input type="text" name="route_name" value="<?php echo htmlspecialchars($route['route_name']); ?>" class="price-input w-full route-name" pattern="[A-Za-z\s]+" title="Only letters are allowed" maxlength="15" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')" required>
+                      <input type="text" name="route_name" value="<?php echo htmlspecialchars($route['route_name']); ?>" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent route-name" pattern="[A-Za-z\s]+" title="Only letters are allowed" maxlength="15" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')" required>
                       <div class="text-red-500 text-xs error-msg-name hidden">Only letters allowed (max 15 chars)</div>
                     </td>
                     <td class="p-3">
-                      <input type="number" name="camry_price" value="<?php echo htmlspecialchars($route['camry_sonata_price']); ?>" min="0" step="0.01" class="price-input w-full text-center base-price" oninput="validateEditCarPrices(this)" required>
+                      <input type="number" name="camry_price" value="<?php echo htmlspecialchars($route['camry_sonata_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center base-price" oninput="validateEditCarPrices(this)" required>
                       <div class="text-red-500 text-xs error-msg-base hidden">Must be greater than 0</div>
                     </td>
                     <td class="p-3">
-                      <input type="number" name="starex_price" value="<?php echo htmlspecialchars($route['starex_staria_price']); ?>" min="0" step="0.01" class="price-input w-full text-center mid-price" oninput="validateEditCarPrices(this)" required>
+                      <input type="number" name="starex_price" value="<?php echo htmlspecialchars($route['starex_staria_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center mid-price" oninput="validateEditCarPrices(this)" required>
                       <div class="text-red-500 text-xs error-msg-mid hidden">Must be higher than base price</div>
                     </td>
                     <td class="p-3">
-                      <input type="number" name="hiace_price" value="<?php echo htmlspecialchars($route['hiace_price']); ?>" min="0" step="0.01" class="price-input w-full text-center premium-price" oninput="validateEditCarPrices(this)" required>
+                      <input type="number" name="hiace_price" value="<?php echo htmlspecialchars($route['hiace_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center premium-price" oninput="validateEditCarPrices(this)" required>
                       <div class="text-red-500 text-xs error-msg-premium hidden">Must be higher than mid price</div>
                     </td>
                     <td class="p-3 text-center">
-                      <button type="button" class="text-green-500 hover:text-green-700 save-btn" title="Save"><i class="fas fa-save"></i></button>
-                      <button type="button" class="text-gray-500 hover:text-gray-700 cancel-btn" title="Cancel"><i class="fas fa-times"></i></button>
+                      <button type="button" class="text-green-600 hover:text-green-800 save-btn" title="Save"><i class="fas fa-save"></i></button>
+                      <button type="button" class="text-gray-600 hover:text-gray-800 cancel-btn ml-2" title="Cancel"><i class="fas fa-times"></i></button>
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -321,14 +331,19 @@ $stmt->close();
       <!-- Rent A Car Routes Tab -->
       <div id="rentacar-tab" class="tab-content">
         <div class="mb-6">
-          <h2 class="text-2xl font-bold">Rent A Car Routes</h2>
-          <p class="text-gray-600 mt-2">View and manage rent a car service routes and prices</p>
+          <h2 class="text-xl font-semibold text-indigo-600">Rent A Car Routes</h2>
+          <p class="text-gray-600 mt-1">View and manage rent a car service routes and prices</p>
         </div>
         <div class="mb-6 overflow-x-auto">
-          <h3 class="font-semibold text-lg mb-3">Existing Routes</h3>
+          <div class="mb-4 flex justify-between items-center">
+            <h3 class="font-medium text-gray-700">Existing Routes</h3>
+            <a href="add-transportation-route.php?type=rentacar" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <i class="fas fa-plus mr-2"></i>Add New Route
+            </a>
+          </div>
           <table class="w-full text-left border-collapse">
             <thead>
-              <tr class="bg-blue-600 text-white">
+              <tr class="bg-indigo-600 text-white">
                 <th class="p-3 w-16 text-center">#</th>
                 <th class="p-3 text-left">Route</th>
                 <th class="p-3 text-center">GMC 16-19 (PKR)</th>
@@ -345,41 +360,41 @@ $stmt->close();
               <?php else: ?>
                 <?php foreach ($rentacar_routes as $route): ?>
                   <!-- View Row -->
-                  <tr class="view-row" data-route-id="<?php echo $route['id']; ?>">
+                  <tr class="view-row border-b hover:bg-gray-50" data-route-id="<?php echo $route['id']; ?>">
                     <td class="p-3 text-center"><?php echo htmlspecialchars($route['route_number']); ?></td>
                     <td class="p-3"><?php echo htmlspecialchars($route['route_name']); ?></td>
                     <td class="p-3 text-center"><?php echo number_format($route['gmc_16_19_price'], 2); ?></td>
                     <td class="p-3 text-center"><?php echo number_format($route['gmc_22_23_price'], 2); ?></td>
                     <td class="p-3 text-center"><?php echo number_format($route['coaster_price'], 2); ?></td>
                     <td class="p-3 text-center">
-                      <button type="button" class="text-blue-500 hover:text-blue-700 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
-                      <button type="button" class="text-red-500 hover:text-red-700 delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
+                      <button type="button" class="text-indigo-600 hover:text-indigo-800 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
+                      <button type="button" class="text-red-600 hover:text-red-800 delete-btn ml-2" title="Delete"><i class="fas fa-trash"></i></button>
                     </td>
                   </tr>
                   <!-- Edit Form Row -->
-                  <tr class="edit-form price-validation-row" data-route-id="<?php echo $route['id']; ?>">
+                  <tr class="edit-form price-validation-row border-b bg-gray-50" data-route-id="<?php echo $route['id']; ?>">
                     <td class="p-3 text-center">
-                      <input type="number" name="route_number" value="<?php echo htmlspecialchars($route['route_number']); ?>" class="price-input rentacar-input w-16 text-center" required>
+                      <input type="number" name="route_number" value="<?php echo htmlspecialchars($route['route_number']); ?>" class="block w-16 rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center" required>
                     </td>
                     <td class="p-3">
-                      <input type="text" name="route_name" value="<?php echo htmlspecialchars($route['route_name']); ?>" class="price-input rentacar-input w-full route-name" pattern="[A-Za-z\s]+" title="Only letters are allowed" maxlength="15" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')" required>
+                      <input type="text" name="route_name" value="<?php echo htmlspecialchars($route['route_name']); ?>" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent route-name" pattern="[A-Za-z\s]+" title="Only letters are allowed" maxlength="15" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')" required>
                       <div class="text-red-500 text-xs error-msg-name hidden">Only letters allowed (max 15 chars)</div>
                     </td>
                     <td class="p-3">
-                      <input type="number" name="gmc_16_19_price" value="<?php echo htmlspecialchars($route['gmc_16_19_price']); ?>" min="0" step="0.01" class="price-input rentacar-input w-full text-center base-price" oninput="validateEditCarPrices(this)" required>
+                      <input type="number" name="gmc_16_19_price" value="<?php echo htmlspecialchars($route['gmc_16_19_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center base-price" oninput="validateEditCarPrices(this)" required>
                       <div class="text-red-500 text-xs error-msg-base hidden">Must be greater than 0</div>
                     </td>
                     <td class="p-3">
-                      <input type="number" name="gmc_22_23_price" value="<?php echo htmlspecialchars($route['gmc_22_23_price']); ?>" min="0" step="0.01" class="price-input rentacar-input w-full text-center mid-price" oninput="validateEditCarPrices(this)" required>
+                      <input type="number" name="gmc_22_23_price" value="<?php echo htmlspecialchars($route['gmc_22_23_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center mid-price" oninput="validateEditCarPrices(this)" required>
                       <div class="text-red-500 text-xs error-msg-mid hidden">Must be higher than base price</div>
                     </td>
                     <td class="p-3">
-                      <input type="number" name="coaster_price" value="<?php echo htmlspecialchars($route['coaster_price']); ?>" min="0" step="0.01" class="price-input rentacar-input w-full text-center premium-price" oninput="validateEditCarPrices(this)" required>
+                      <input type="number" name="coaster_price" value="<?php echo htmlspecialchars($route['coaster_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center premium-price" oninput="validateEditCarPrices(this)" required>
                       <div class="text-red-500 text-xs error-msg-premium hidden">Must be higher than mid price</div>
                     </td>
                     <td class="p-3 text-center">
-                      <button type="button" class="text-green-500 hover:text-green-700 save-btn" title="Save"><i class="fas fa-save"></i></button>
-                      <button type="button" class="text-gray-500 hover:text-gray-700 cancel-btn" title="Cancel"><i class="fas fa-times"></i></button>
+                      <button type="button" class="text-green-600 hover:text-green-800 save-btn" title="Save"><i class="fas fa-save"></i></button>
+                      <button type="button" class="text-gray-600 hover:text-gray-800 cancel-btn ml-2" title="Cancel"><i class="fas fa-times"></i></button>
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -388,9 +403,10 @@ $stmt->close();
           </table>
         </div>
       </div>
-    </section>
-  </main>
+    </div>
+  </div>
 
+  <!-- Scripts -->
   <script>
     function switchTab(tabName) {
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -433,6 +449,35 @@ $stmt->close();
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+      // User Dropdown Toggle
+      const userDropdownButton = document.getElementById('userDropdownButton');
+      const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+      if (userDropdownButton && userDropdownMenu) {
+        userDropdownButton.addEventListener('click', function() {
+          userDropdownMenu.classList.toggle('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+          if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+            userDropdownMenu.classList.add('hidden');
+          }
+        });
+      }
+
+      // Sidebar Toggle (assuming sidebar toggle functionality from sidebar.php)
+      const sidebarToggle = document.getElementById('sidebarToggle');
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+      if (sidebarToggle && sidebar && sidebarOverlay) {
+        sidebarToggle.addEventListener('click', function() {
+          sidebar.classList.remove('-translate-x-full');
+          sidebarOverlay.classList.remove('hidden');
+        });
+      }
+
       const storedTab = localStorage.getItem('activeTransportTab');
       if (storedTab) {
         switchTab(storedTab);
@@ -590,7 +635,7 @@ $stmt->close();
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
+            cancelButtonColor: '#4f46e5',
             confirmButtonText: 'Yes, delete everything!'
           }).then((result) => {
             if (result.isConfirmed) {
@@ -648,22 +693,6 @@ $stmt->close();
             }
           });
         });
-      });
-      // Sidebar and Dropdown Handlers
-      document.getElementById('sidebarToggle').addEventListener('click', function() {
-        document.querySelector('aside').classList.toggle('hidden');
-      });
-
-      document.getElementById('userDropdown').addEventListener('click', function() {
-        document.getElementById('userDropdownMenu').classList.toggle('hidden');
-      });
-
-      document.addEventListener('click', function(e) {
-        const dropdown = document.getElementById('userDropdownMenu');
-        const button = document.getElementById('userDropdown');
-        if (!dropdown.contains(e.target) && !button.contains(e.target)) {
-          dropdown.classList.add('hidden');
-        }
       });
     });
   </script>

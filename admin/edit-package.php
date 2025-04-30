@@ -165,46 +165,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit Umrah Package | UmrahFlights</title>
-  <!-- Bootstrap 5 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Edit Umrah Package | UmrahFlights Admin</title>
+  <!-- Tailwind CSS -->
+  <link rel="stylesheet" href="../src/output.css">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="assets/css/index.css">
 </head>
 
-<body>
+<body class="bg-gray-100">
   <?php include 'includes/sidebar.php'; ?>
-  <!-- Main Content -->
-  <div class="main-content col-md-12">
-    <!-- Top Navbar -->
-    <nav class="navbar navbar-expand-lg top-navbar mb-4">
-      <div class="container-fluid">
-        <button id="sidebarToggle" class="btn d-lg-none">
-          <i class="fas fa-bars"></i>
-        </button>
-        <h4 class="mb-0 ms-2">Edit Package</h4>
 
-        <div class="d-flex align-items-center">
-          <div class="position-relative me-3">
-            <button class="btn position-relative" id="notificationBtn">
-              <i class="fas fa-bell fs-5"></i>
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+  <!-- Main Content -->
+  <div class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300">
+    <!-- Top Navbar -->
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <h4 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-box text-indigo-600 mr-2"></i> Edit Umrah Package
+          </h4>
+        </div>
+
+        <div class="flex items-center space-x-4">
+          <!-- Notification -->
+          <div class="relative">
+            <button class="flex items-center text-gray-500 hover:text-gray-700 focus:outline-none">
+              <i class="fas fa-bell text-xl"></i>
+              <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                 3
               </span>
             </button>
           </div>
 
-          <div class="dropdown">
-            <button class="btn dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-              <div class="rounded-circle overflow-hidden me-2" style="width: 32px; height: 32px;">
-                <!-- <img src="../assets/img/admin.jpg" alt="Admin User" class="img-fluid"> -->
+          <!-- User Dropdown -->
+          <div class="relative">
+            <button id="userDropdownButton" class="flex items-center space-x-2 text-gray-700 hover:bg-indigo-50 rounded-lg px-3 py-2 focus:outline-none">
+              <div class="rounded-full overflow-hidden" style="width: 32px; height: 32px;">
+                <div class="bg-gray-200 w-full h-full flex items-center justify-center">
+                  <i class="fas fa-user text-gray-500"></i>
+                </div>
               </div>
-              <span class="d-none d-md-inline">Admin User</span>
+              <span class="hidden md:inline text-sm font-medium">Admin User</span>
+              <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-              <li><a class="dropdown-item text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+            <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
+              <li>
+                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </a>
+              </li>
             </ul>
           </div>
         </div>
@@ -213,31 +227,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <!-- Messages -->
     <?php if (!empty($errors)): ?>
-      <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <ul class="mb-0">
-          <?php foreach ($errors as $error): ?>
-            <li><?php echo htmlspecialchars($error); ?></li>
-          <?php endforeach; ?>
-        </ul>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow" role="alert">
+        <div class="flex">
+          <div class="py-1"><i class="fas fa-exclamation-circle text-red-500 mr-2"></i></div>
+          <div>
+            <ul class="list-disc ml-5">
+              <?php foreach ($errors as $error): ?>
+                <li><?php echo htmlspecialchars($error); ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </div>
+          <button type="button" class="ml-auto -mx-1.5 -my-1.5 text-red-500 hover:text-red-900 focus:outline-none p-1.5" onclick="this.parentElement.parentElement.remove()">
+            <span class="sr-only">Close</span>
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
     <?php endif; ?>
+
     <?php if (!empty($success)): ?>
-      <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <?php echo htmlspecialchars($success); ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow" role="alert">
+        <div class="flex">
+          <div class="py-1"><i class="fas fa-check-circle text-green-500 mr-2"></i></div>
+          <div><?php echo htmlspecialchars($success); ?></div>
+          <button type="button" class="ml-auto -mx-1.5 -my-1.5 text-green-500 hover:text-green-900 focus:outline-none p-1.5" onclick="this.parentElement.parentElement.remove()">
+            <span class="sr-only">Close</span>
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
     <?php endif; ?>
 
     <!-- Form Section -->
-    <div class="container mx-auto px-4 py-8">
-      <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
-        <h2 class="text-2xl font-bold text-primary mb-6">Edit Umrah Package</h2>
-        <form action="" method="POST" enctype="multipart/form-data">
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-6">
+      <div class="p-6">
+        <div class="mb-6">
+          <h2 class="text-xl font-semibold text-indigo-600">
+            <i class="fas fa-edit mr-2"></i>Edit Umrah Package
+          </h2>
+          <p class="text-gray-500 mt-1">Update package details and offerings</p>
+        </div>
+
+        <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
           <!-- Package Type -->
-          <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Package Type</label>
-            <select name="package_type" class="form-select w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-primary" required>
+          <div>
+            <label for="package_type" class="block text-sm font-medium text-gray-700 mb-1">Package Type <span class="text-red-500">*</span></label>
+            <select name="package_type" id="package_type" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
               <option value="single" <?php echo $package['package_type'] === 'single' ? 'selected' : ''; ?>>Single Umrah Package</option>
               <option value="group" <?php echo $package['package_type'] === 'group' ? 'selected' : ''; ?>>Group Umrah Package</option>
               <option value="vip" <?php echo $package['package_type'] === 'vip' ? 'selected' : ''; ?>>VIP Umrah Package</option>
@@ -245,72 +284,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
 
           <!-- Package Title -->
-          <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Package Title</label>
+          <div>
+            <label for="packageTitle" class="block text-sm font-medium text-gray-700 mb-1">Package Title <span class="text-red-500">*</span></label>
             <input
               type="text"
               id="packageTitle"
               name="title"
-              class="form-control w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-primary"
+              class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               required
               value="<?php echo htmlspecialchars($package['title']); ?>"
               oninput="validateTitle()">
-            <small id="error-message" class="text-danger"></small>
+            <div id="error-message" class="text-red-500 text-xs mt-1 hidden"></div>
           </div>
 
-          <script>
-            function validateTitle() {
-              const input = document.getElementById("packageTitle");
-              const errorMessage = document.getElementById("error-message");
-              const regex = /^[A-Za-z ]{0,35}$/;
-
-              if (regex.test(input.value)) {
-                errorMessage.textContent = "";
-              } else {
-                errorMessage.textContent = "Only English letters and spaces are allowed, no numbers or special characters!";
-                input.value = input.value.replace(/[^A-Za-z ]/g, "");
-              }
-
-              if (input.value.length > 35) {
-                input.value = input.value.slice(0, 35);
-              }
-            }
-          </script>
-
           <!-- Package Description -->
-          <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+          <div>
+            <label for="packageDescription" class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-red-500">*</span></label>
             <textarea
               id="packageDescription"
               name="description"
               rows="3"
-              class="form-control w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-primary"
+              class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               required
               oninput="validateDescription()"><?php echo htmlspecialchars($package['description']); ?></textarea>
-            <small id="desc-error-message" class="text-danger"></small>
+            <div id="desc-error-message" class="text-red-500 text-xs mt-1 hidden"></div>
           </div>
 
-          <script>
-            function validateDescription() {
-              const textarea = document.getElementById("packageDescription");
-              const errorMessage = document.getElementById("desc-error-message");
-              const maxWords = 200;
-
-              const words = textarea.value.trim().split(/\s+/);
-
-              if (words.length > maxWords) {
-                errorMessage.textContent = "Description cannot exceed 200 words! Please remove extra words.";
-                textarea.value = words.slice(0, maxWords).join(" ");
-              } else {
-                errorMessage.textContent = "";
-              }
-            }
-          </script>
-
           <!-- Flight Class -->
-          <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Flight Class</label>
-            <select name="flight_class" class="form-select w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-primary" required>
+          <div>
+            <label for="flight_class" class="block text-sm font-medium text-gray-700 mb-1">Flight Class <span class="text-red-500">*</span></label>
+            <select name="flight_class" id="flight_class" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
               <option value="economy" <?php echo $package['flight_class'] === 'economy' ? 'selected' : ''; ?>>Economy</option>
               <option value="business" <?php echo $package['flight_class'] === 'business' ? 'selected' : ''; ?>>Business</option>
               <option value="first" <?php echo $package['flight_class'] === 'first' ? 'selected' : ''; ?>>First Class</option>
@@ -318,130 +321,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
 
           <!-- Package Inclusions -->
-          <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Package Inclusions</label>
-            <div class="space-y-2">
-              <label class="flex items-center">
-                <input type="checkbox" name="inclusions[]" value="flight" class="form-check-input mr-2" <?php echo in_array('flight', $package['inclusions']) ? 'checked' : ''; ?>>
-                Flight
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Package Inclusions</label>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="inclusions[]" value="flight" class="rounded text-indigo-600 focus:ring-indigo-500" <?php echo in_array('flight', $package['inclusions']) ? 'checked' : ''; ?>>
+                <span class="ml-2">Flight</span>
               </label>
-              <label class="flex items-center">
-                <input type="checkbox" name="inclusions[]" value="hotel" class="form-check-input mr-2" <?php echo in_array('hotel', $package['inclusions']) ? 'checked' : ''; ?>>
-                Hotel
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="inclusions[]" value="hotel" class="rounded text-indigo-600 focus:ring-indigo-500" <?php echo in_array('hotel', $package['inclusions']) ? 'checked' : ''; ?>>
+                <span class="ml-2">Hotel</span>
               </label>
-              <label class="flex items-center">
-                <input type="checkbox" name="inclusions[]" value="transport" class="form-check-input mr-2" <?php echo in_array('transport', $package['inclusions']) ? 'checked' : ''; ?>>
-                Transport
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="inclusions[]" value="transport" class="rounded text-indigo-600 focus:ring-indigo-500" <?php echo in_array('transport', $package['inclusions']) ? 'checked' : ''; ?>>
+                <span class="ml-2">Transport</span>
               </label>
-              <label class="flex items-center">
-                <input type="checkbox" name="inclusions[]" value="guide" class="form-check-input mr-2" <?php echo in_array('guide', $package['inclusions']) ? 'checked' : ''; ?>>
-                Guide
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="inclusions[]" value="guide" class="rounded text-indigo-600 focus:ring-indigo-500" <?php echo in_array('guide', $package['inclusions']) ? 'checked' : ''; ?>>
+                <span class="ml-2">Guide</span>
               </label>
-              <label class="flex items-center">
-                <input type="checkbox" name="inclusions[]" value="vip_services" class="form-check-input mr-2" <?php echo in_array('vip_services', $package['inclusions']) ? 'checked' : ''; ?>>
-                VIP Services
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="inclusions[]" value="vip_services" class="rounded text-indigo-600 focus:ring-indigo-500" <?php echo in_array('vip_services', $package['inclusions']) ? 'checked' : ''; ?>>
+                <span class="ml-2">VIP Services</span>
               </label>
             </div>
           </div>
 
           <!-- Price -->
-          <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Price (PKR)</label>
-            <input type="text" name="price" id="price" class="form-control w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-primary" required value="<?php echo htmlspecialchars($package['price']); ?>">
-            <p id="priceError" class="text-danger text-xs mt-1 hidden">Invalid price! Please enter a valid number (e.g., 100.99).</p>
+          <div>
+            <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Price (PKR) <span class="text-red-500">*</span></label>
+            <input
+              type="text"
+              name="price"
+              id="price"
+              class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              required
+              value="<?php echo htmlspecialchars($package['price']); ?>">
+            <div id="priceError" class="text-red-500 text-xs mt-1 hidden">Invalid price! Please enter a valid number (e.g., 100.99).</div>
           </div>
-
-          <script>
-            const priceInput = document.getElementById('price');
-            const priceError = document.getElementById('priceError');
-            const maxPrice = 500000;
-
-            let isInputValid = true;
-
-            priceInput.addEventListener('input', function(e) {
-              let val = e.target.value;
-
-              val = val.replace(/[^0-9.]/g, '');
-              const parts = val.split('.');
-              if (parts.length > 2) {
-                val = parts[0] + '.' + parts[1].slice(0, 2);
-              }
-
-              if (parseFloat(val) > maxPrice) {
-                val = maxPrice.toString();
-              }
-
-              e.target.value = val;
-
-              validatePrice(val);
-            });
-
-            priceInput.addEventListener('blur', function(e) {
-              const value = e.target.value;
-              validatePrice(value);
-            });
-
-            function validatePrice(value) {
-              const isValid = /^([1-9]\d{0,5})(?:\.\d{1,2})?$/.test(value) || /^0(\.\d{1,2})?$/.test(value);
-
-              if (parseFloat(value) > maxPrice) {
-                priceError.classList.remove('hidden');
-                priceInput.classList.add('border-danger');
-                isInputValid = false;
-              } else if (value && !isValid) {
-                priceError.classList.remove('hidden');
-                priceInput.classList.add('border-danger');
-                isInputValid = false;
-              } else {
-                priceError.classList.add('hidden');
-                priceInput.classList.remove('border-danger');
-                isInputValid = true;
-              }
-            }
-
-            priceInput.addEventListener('keydown', function(e) {
-              if (!isInputValid && e.key !== 'Backspace' && e.key !== 'Delete') {
-                e.preventDefault();
-              }
-            });
-          </script>
 
           <!-- Package Image -->
-          <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Package Image</label>
+          <div>
+            <label for="package_image" class="block text-sm font-medium text-gray-700 mb-1">Package Image</label>
             <div class="mb-2">
-              <img src="../<?php echo htmlspecialchars($package['package_image']); ?>" alt="Current Image" class="img-fluid" style="max-width: 100px; max-height: 100px;">
-              <p class="text-muted text-sm">Current image</p>
+              <img src="../<?php echo htmlspecialchars($package['package_image']); ?>" alt="Current Image" class="h-24 w-auto object-cover rounded-lg">
+              <p class="text-xs text-gray-500 mt-1">Current image</p>
             </div>
-            <input type="file" name="package_image" id="package_image" accept="image/*" class="form-control w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-primary">
-            <p id="imageError" class="text-danger text-xs mt-1 hidden">File size must be 2MB or less.</p>
-            <p class="text-muted text-sm">Leave blank to keep current image.</p>
+            <div class="mt-2">
+              <input
+                type="file"
+                name="package_image"
+                id="package_image"
+                accept="image/*"
+                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+              <div id="imageError" class="text-red-500 text-xs mt-1 hidden">File size must be 2MB or less.</div>
+              <p class="text-xs text-gray-500 mt-1">Leave blank to keep current image.</p>
+            </div>
           </div>
 
-          <script>
-            const imageInput = document.getElementById('package_image');
-            const imageError = document.getElementById('imageError');
-
-            imageInput.addEventListener('change', function(e) {
-              const file = e.target.files[0];
-              if (file) {
-                const fileSize = file.size / 1024 / 1024;
-
-                if (fileSize > 2) {
-                  imageError.classList.remove('hidden');
-                  imageInput.value = '';
-                } else {
-                  imageError.classList.add('hidden');
-                }
-              }
-            });
-          </script>
-
-          <!-- Submit Button -->
-          <div class="flex justify-end">
-            <a href="view-packages.php" class="btn btn-secondary px-6 py-3 rounded-lg me-2">Cancel</a>
-            <button type="submit" class="btn btn-primary px-6 py-3 rounded-lg hover:bg-primary-dark transition-all duration-300">
-              Update Package
+          <!-- Submit Buttons -->
+          <div class="flex flex-wrap gap-4 pt-6 border-t border-gray-200">
+            <a href="view-packages.php" class="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <i class="fas fa-times mr-2"></i>Cancel
+            </a>
+            <button type="submit" class="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <i class="fas fa-save mr-2"></i>Update Package
             </button>
           </div>
         </form>
@@ -449,10 +393,144 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </div>
 
-  <!-- Bootstrap 5 JS Bundle with Popper -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Custom JavaScript -->
-  <script src="assets/js/index.js"></script>
+  <!-- Scripts -->
+  <script>
+    // Form validation scripts
+    function validateTitle() {
+      const input = document.getElementById("packageTitle");
+      const errorMessage = document.getElementById("error-message");
+      const regex = /^[A-Za-z ]{0,35}$/;
+
+      if (regex.test(input.value)) {
+        errorMessage.textContent = "";
+        errorMessage.classList.add("hidden");
+      } else {
+        errorMessage.textContent = "Only English letters and spaces are allowed, no numbers or special characters!";
+        errorMessage.classList.remove("hidden");
+        input.value = input.value.replace(/[^A-Za-z ]/g, "");
+      }
+
+      if (input.value.length > 35) {
+        input.value = input.value.slice(0, 35);
+      }
+    }
+
+    function validateDescription() {
+      const textarea = document.getElementById("packageDescription");
+      const errorMessage = document.getElementById("desc-error-message");
+      const maxWords = 200;
+
+      const words = textarea.value.trim().split(/\s+/);
+
+      if (words.length > maxWords) {
+        errorMessage.textContent = "Description cannot exceed 200 words! Please remove extra words.";
+        errorMessage.classList.remove("hidden");
+        textarea.value = words.slice(0, maxWords).join(" ");
+      } else {
+        errorMessage.textContent = "";
+        errorMessage.classList.add("hidden");
+      }
+    }
+
+    // Price validation
+    const priceInput = document.getElementById('price');
+    const priceError = document.getElementById('priceError');
+    const maxPrice = 500000;
+    let isInputValid = true;
+
+    priceInput.addEventListener('input', function(e) {
+      let val = e.target.value;
+
+      val = val.replace(/[^0-9.]/g, '');
+      const parts = val.split('.');
+      if (parts.length > 2) {
+        val = parts[0] + '.' + parts[1].slice(0, 2);
+      }
+
+      if (parseFloat(val) > maxPrice) {
+        val = maxPrice.toString();
+      }
+
+      e.target.value = val;
+      validatePrice(val);
+    });
+
+    priceInput.addEventListener('blur', function(e) {
+      const value = e.target.value;
+      validatePrice(value);
+    });
+
+    function validatePrice(value) {
+      const isValid = /^([1-9]\d{0,5})(?:\.\d{1,2})?$/.test(value) || /^0(\.\d{1,2})?$/.test(value);
+
+      if (parseFloat(value) > maxPrice) {
+        priceError.classList.remove('hidden');
+        priceInput.classList.add('border-red-500');
+        isInputValid = false;
+      } else if (value && !isValid) {
+        priceError.classList.remove('hidden');
+        priceInput.classList.add('border-red-500');
+        isInputValid = false;
+      } else {
+        priceError.classList.add('hidden');
+        priceInput.classList.remove('border-red-500');
+        isInputValid = true;
+      }
+    }
+
+    priceInput.addEventListener('keydown', function(e) {
+      if (!isInputValid && e.key !== 'Backspace' && e.key !== 'Delete') {
+        e.preventDefault();
+      }
+    });
+
+    // Image validation
+    const imageInput = document.getElementById('package_image');
+    const imageError = document.getElementById('imageError');
+
+    imageInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const fileSize = file.size / 1024 / 1024;
+
+        if (fileSize > 2) {
+          imageError.classList.remove('hidden');
+          imageInput.value = '';
+        } else {
+          imageError.classList.add('hidden');
+        }
+      }
+    });
+
+    // User Dropdown Toggle
+    const userDropdownButton = document.getElementById('userDropdownButton');
+    const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+    if (userDropdownButton && userDropdownMenu) {
+      userDropdownButton.addEventListener('click', function() {
+        userDropdownMenu.classList.toggle('hidden');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(event) {
+        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+          userDropdownMenu.classList.add('hidden');
+        }
+      });
+    }
+
+    // Sidebar Toggle (assuming sidebar toggle functionality from sidebar.php)
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    if (sidebarToggle && sidebar && sidebarOverlay) {
+      sidebarToggle.addEventListener('click', function() {
+        sidebar.classList.remove('-translate-x-full');
+        sidebarOverlay.classList.remove('hidden');
+      });
+    }
+  </script>
 </body>
 
 </html>

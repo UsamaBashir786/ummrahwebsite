@@ -263,64 +263,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Edit Hotel | UmrahFlights Admin</title>
   <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../src/output.css">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 
-<body class="bg-gray-100 min-h-screen flex">
-  <!-- Sidebar -->
+<body class="bg-gray-100">
   <?php include 'includes/sidebar.php'; ?>
 
   <!-- Main Content -->
-  <div class="main flex-1 flex flex-col">
-    <!-- Navbar -->
-    <div class="bg-white shadow-md py-4 px-6 flex justify-between items-center">
-      <button class="md:hidden text-gray-800" id="menu-btn">
-        <i class="fas fa-bars"></i>
-      </button>
-      <h1 class="text-xl font-semibold">
-        <i class="text-blue-600 fas fa-hotel mx-2"></i> Edit Hotel: <?= htmlspecialchars($hotel['hotel_name']) ?>
-      </h1>
-    </div>
+  <div class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300">
+    <!-- Top Navbar -->
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <h4 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-hotel text-indigo-600 mr-2"></i> Edit Hotel: <?= htmlspecialchars($hotel['hotel_name']) ?>
+          </h4>
+        </div>
+
+        <div>
+          <button onclick="window.location.href='view-hotels.php'" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            <i class="fas fa-arrow-left mr-2"></i> Back to Hotels
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Alerts -->
+    <?php if (isset($_GET['success'])): ?>
+      <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow" role="alert">
+        <div class="flex">
+          <div class="py-1"><i class="fas fa-check-circle text-green-500 mr-2"></i></div>
+          <div>Hotel updated successfully!</div>
+          <button type="button" class="ml-auto -mx-1.5 -my-1.5 text-green-500 hover:text-green-900 focus:outline-none p-1.5" onclick="this.parentElement.parentElement.remove()">
+            <span class="sr-only">Close</span>
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    <?php endif; ?>
+
+    <?php if (isset($message) && !empty($message)): ?>
+      <div class="<?= $success ? 'bg-green-100 border-l-4 border-green-500 text-green-700' : 'bg-red-100 border-l-4 border-red-500 text-red-700' ?> p-4 mb-6 rounded shadow" role="alert">
+        <div class="flex">
+          <div class="py-1">
+            <i class="fas <?= $success ? 'fa-check-circle text-green-500' : 'fa-exclamation-circle text-red-500' ?> mr-2"></i>
+          </div>
+          <div><?= htmlspecialchars($message) ?></div>
+          <button type="button" class="ml-auto -mx-1.5 -my-1.5 <?= $success ? 'text-green-500 hover:text-green-900' : 'text-red-500 hover:text-red-900' ?> focus:outline-none p-1.5" onclick="this.parentElement.parentElement.remove()">
+            <span class="sr-only">Close</span>
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    <?php endif; ?>
 
     <!-- Form Container -->
-    <div class="overflow-auto container mx-auto px-4 py-8">
-      <?php if (isset($_GET['success'])): ?>
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6">
-          Hotel updated successfully!
-        </div>
-      <?php endif; ?>
-
-      <?php if (isset($message) && !empty($message)): ?>
-        <div class="<?= $success ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700' ?> border px-4 py-3 rounded mb-6">
-          <?= htmlspecialchars($message) ?>
-        </div>
-      <?php endif; ?>
-
-      <div class="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-6">
+      <div class="p-6">
         <div class="mb-6">
-          <h2 class="text-2xl font-bold text-blue-600">
+          <h2 class="text-xl font-semibold text-indigo-600">
             <i class="fas fa-edit mr-2"></i>Edit Hotel Information
           </h2>
-          <p class="text-gray-600 mt-2">Update the details for this hotel</p>
+          <p class="text-gray-500 mt-1">Update the details for this hotel</p>
         </div>
 
         <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
           <!-- Existing Images -->
           <div class="mb-6">
-            <label class="block text-gray-700 font-semibold mb-2">Current Images</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Current Images</label>
             <?php if (count($images) > 0): ?>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                 <?php foreach ($images as $image): ?>
                   <div class="relative group">
                     <img src="../<?= htmlspecialchars($image['image_path']) ?>" alt="Hotel Image" class="w-full h-32 object-cover rounded-lg">
-                    <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                      <label class="flex items-center space-x-1 text-white cursor-pointer">
+                    <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                      <label class="flex items-center text-white cursor-pointer">
                         <input type="radio" name="primary_image" value="<?= $image['id'] ?>" <?= $image['is_primary'] ? 'checked' : '' ?> class="mr-1">
                         <span>Primary</span>
                       </label>
-                      <label class="flex items-center space-x-1 text-red-300 hover:text-red-100 ml-4 cursor-pointer">
+                      <label class="flex items-center text-red-300 hover:text-red-100 ml-4 cursor-pointer">
                         <input type="checkbox" name="delete_images[]" value="<?= $image['id'] ?>" class="mr-1">
                         <span>Delete</span>
                       </label>
@@ -333,7 +363,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <!-- New Image Upload -->
-            <label class="block text-gray-700 font-semibold mb-2">Add More Images</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Add More Images</label>
             <div class="flex items-center justify-center w-full">
               <label class="flex flex-col w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 relative">
                 <div id="upload-area" class="flex flex-col items-center justify-center pt-7">
@@ -356,10 +386,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <!-- Hotel Basic Information -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="mb-4">
-              <label class="block text-gray-700 font-semibold mb-2">Hotel Name *</label>
+            <div>
+              <label for="hotel_name" class="block text-sm font-medium text-gray-700 mb-1">Hotel Name <span class="text-red-500">*</span></label>
               <input type="text" name="hotel_name" id="hotel_name"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 value="<?= htmlspecialchars($hotel['hotel_name']) ?>"
                 placeholder="Enter hotel name (letters only)"
                 maxlength="25"
@@ -373,9 +403,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <div>
-              <label class="block text-gray-700 font-semibold mb-2">Location *</label>
+              <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location <span class="text-red-500">*</span></label>
               <select name="location"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 required>
                 <option value="">Select Location</option>
                 <option value="makkah" <?= $hotel['location'] === 'makkah' ? 'selected' : '' ?>>Makkah</option>
@@ -385,25 +415,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
 
           <!-- Room Count Field -->
-          <div class="mb-4">
-            <label class="block text-gray-700 font-semibold mb-2">Number of Rooms *</label>
+          <div>
+            <label for="room_count" class="block text-sm font-medium text-gray-700 mb-1">Number of Rooms <span class="text-red-500">*</span></label>
             <input type="number" name="room_count" id="room_count" min="1" max="10"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               value="<?= htmlspecialchars($hotel['room_count']) ?>"
               placeholder="Enter number of rooms (1-10)"
               required>
             <div id="room_count_error" class="text-red-500 text-xs mt-1 hidden">
               Please enter a number between 1 and 10
             </div>
-            <p class="text-sm text-gray-500 mt-1">Room IDs (r1, r2, etc.) will be automatically generated based on this count</p>
+            <p class="text-xs text-gray-500 mt-1">Room IDs (r1, r2, etc.) will be automatically generated based on this count</p>
           </div>
 
           <!-- Price and Rating -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="mb-4">
-              <label class="block text-gray-700 font-semibold mb-2">Price per Night (PKR) *</label>
+            <div>
+              <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Price per Night (PKR) <span class="text-red-500">*</span></label>
               <input type="number" name="price" id="price"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 value="<?= htmlspecialchars($hotel['price']) ?>"
                 placeholder="Enter price (PKR1-PKR50,000)"
                 required>
@@ -413,25 +443,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <div>
-              <label class="block text-gray-700 font-semibold mb-2">Hotel Rating</label>
-              <div class="flex items-center space-x-2">
-                <select name="rating"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  <option value="5" <?= $hotel['rating'] == 5 ? 'selected' : '' ?>>5 Stars</option>
-                  <option value="4" <?= $hotel['rating'] == 4 ? 'selected' : '' ?>>4 Stars</option>
-                  <option value="3" <?= $hotel['rating'] == 3 ? 'selected' : '' ?>>3 Stars</option>
-                  <option value="2" <?= $hotel['rating'] == 2 ? 'selected' : '' ?>>2 Stars</option>
-                  <option value="1" <?= $hotel['rating'] == 1 ? 'selected' : '' ?>>1 Star</option>
-                </select>
-              </div>
+              <label for="rating" class="block text-sm font-medium text-gray-700 mb-1">Hotel Rating</label>
+              <select name="rating"
+                class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <option value="5" <?= $hotel['rating'] == 5 ? 'selected' : '' ?>>5 Stars</option>
+                <option value="4" <?= $hotel['rating'] == 4 ? 'selected' : '' ?>>4 Stars</option>
+                <option value="3" <?= $hotel['rating'] == 3 ? 'selected' : '' ?>>3 Stars</option>
+                <option value="2" <?= $hotel['rating'] == 2 ? 'selected' : '' ?>>2 Stars</option>
+                <option value="1" <?= $hotel['rating'] == 1 ? 'selected' : '' ?>>1 Star</option>
+              </select>
             </div>
           </div>
 
           <!-- Hotel Description -->
-          <div class="mb-4">
-            <label class="block text-gray-700 font-semibold mb-2">Hotel Description *</label>
+          <div>
+            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Hotel Description <span class="text-red-500">*</span></label>
             <textarea name="description" id="description" rows="6"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               placeholder="Enter hotel description (200 words maximum)"
               required><?= htmlspecialchars($hotel['description']) ?></textarea>
             <div id="desc_error" class="text-red-500 text-xs mt-1 hidden">
@@ -445,49 +473,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <!-- Amenities -->
           <div>
-            <label class="block text-gray-700 font-semibold mb-2">Hotel Amenities</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Hotel Amenities</label>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" name="amenities[]" value="wifi" class="text-blue-600" <?= in_array('wifi', $amenities) ? 'checked' : '' ?>>
-                <span>Free WiFi</span>
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="amenities[]" value="wifi" class="rounded text-indigo-600 focus:ring-indigo-500" <?= in_array('wifi', $amenities) ? 'checked' : '' ?>>
+                <span class="ml-2">Free WiFi</span>
               </label>
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" name="amenities[]" value="parking" class="text-blue-600" <?= in_array('parking', $amenities) ? 'checked' : '' ?>>
-                <span>Parking</span>
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="amenities[]" value="parking" class="rounded text-indigo-600 focus:ring-indigo-500" <?= in_array('parking', $amenities) ? 'checked' : '' ?>>
+                <span class="ml-2">Parking</span>
               </label>
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" name="amenities[]" value="restaurant" class="text-blue-600" <?= in_array('restaurant', $amenities) ? 'checked' : '' ?>>
-                <span>Restaurant</span>
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="amenities[]" value="restaurant" class="rounded text-indigo-600 focus:ring-indigo-500" <?= in_array('restaurant', $amenities) ? 'checked' : '' ?>>
+                <span class="ml-2">Restaurant</span>
               </label>
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" name="amenities[]" value="gym" class="text-blue-600" <?= in_array('gym', $amenities) ? 'checked' : '' ?>>
-                <span>Gym</span>
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="amenities[]" value="gym" class="rounded text-indigo-600 focus:ring-indigo-500" <?= in_array('gym', $amenities) ? 'checked' : '' ?>>
+                <span class="ml-2">Gym</span>
               </label>
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" name="amenities[]" value="pool" class="text-blue-600" <?= in_array('pool', $amenities) ? 'checked' : '' ?>>
-                <span>Swimming Pool</span>
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="amenities[]" value="pool" class="rounded text-indigo-600 focus:ring-indigo-500" <?= in_array('pool', $amenities) ? 'checked' : '' ?>>
+                <span class="ml-2">Swimming Pool</span>
               </label>
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" name="amenities[]" value="ac" class="text-blue-600" <?= in_array('ac', $amenities) ? 'checked' : '' ?>>
-                <span>Air Conditioning</span>
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="amenities[]" value="ac" class="rounded text-indigo-600 focus:ring-indigo-500" <?= in_array('ac', $amenities) ? 'checked' : '' ?>>
+                <span class="ml-2">Air Conditioning</span>
               </label>
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" name="amenities[]" value="room_service" class="text-blue-600" <?= in_array('room_service', $amenities) ? 'checked' : '' ?>>
-                <span>Room Service</span>
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="amenities[]" value="room_service" class="rounded text-indigo-600 focus:ring-indigo-500" <?= in_array('room_service', $amenities) ? 'checked' : '' ?>>
+                <span class="ml-2">Room Service</span>
               </label>
-              <label class="flex items-center space-x-2">
-                <input type="checkbox" name="amenities[]" value="spa" class="text-blue-600" <?= in_array('spa', $amenities) ? 'checked' : '' ?>>
-                <span>Spa</span>
+              <label class="inline-flex items-center">
+                <input type="checkbox" name="amenities[]" value="spa" class="rounded text-indigo-600 focus:ring-indigo-500" <?= in_array('spa', $amenities) ? 'checked' : '' ?>>
+                <span class="ml-2">Spa</span>
               </label>
             </div>
           </div>
 
           <!-- Submit Buttons -->
-          <div class="flex gap-4 pt-4 border-t border-gray-200">
-            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
-              <i class="fas fa-save mr-2"></i>Update Hotel
+          <div class="flex flex-wrap gap-4 pt-6 border-t border-gray-200">
+            <button type="submit" class="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+              <i class="fas fa-save mr-2"></i> Update Hotel
             </button>
-            <button type="button" onclick="window.location.href='view-hotels.php'" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition duration-200">
+            <button type="button" onclick="window.location.href='view-hotels.php'" class="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
               <i class="fas fa-times mr-2"></i>Cancel
             </button>
           </div>
@@ -600,11 +628,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     });
 
     function highlight() {
-      dropArea.classList.add('border-blue-500', 'bg-blue-50');
+      dropArea.classList.add('border-indigo-500', 'bg-indigo-50');
     }
 
     function unhighlight() {
-      dropArea.classList.remove('border-blue-500', 'bg-blue-50');
+      dropArea.classList.remove('border-indigo-500', 'bg-indigo-50');
     }
 
     dropArea.addEventListener('drop', handleDrop, false);
@@ -714,6 +742,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         this.classList.remove('border-red-300');
       }
     });
+
+    // Sidebar Toggle (assuming sidebar toggle functionality from sidebar.php)
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    if (sidebarToggle && sidebar && sidebarOverlay) {
+      sidebarToggle.addEventListener('click', function() {
+        sidebar.classList.remove('-translate-x-full');
+        sidebarOverlay.classList.remove('hidden');
+      });
+    }
   </script>
 </body>
 

@@ -216,17 +216,15 @@ if ($result) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>View Umrah Packages | UmrahFlights</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>View Umrah Packages | UmrahFlights Admin</title>
+  <!-- Tailwind CSS -->
+  <link rel="stylesheet" href="../src/output.css">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <!-- DataTables CSS -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.tailwindcss.min.css">
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="assets/css/index.css">
   <style>
     .modal {
       transition: opacity 0.3s ease-in-out;
@@ -269,33 +267,54 @@ if ($result) {
   </style>
 </head>
 
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100">
   <?php include 'includes/sidebar.php'; ?>
+
   <!-- Main Content -->
-  <main class="ml-0 md:ml-64 p-6 min-h-screen" role="main" aria-label="Main content">
+  <div class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300">
     <!-- Top Navbar -->
-    <nav class="flex items-center justify-between bg-white shadow-md p-4 rounded-lg mb-6">
-      <div class="flex items-center">
-        <button id="sidebarToggle" class="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Toggle sidebar">
-          <i class="fas fa-bars text-xl"></i>
-        </button>
-        <h1 class="text-xl font-semibold text-gray-800 ml-4">View Packages</h1>
-      </div>
-      <div class="flex items-center space-x-4">
-        <div class="relative">
-          <button id="notificationBtn" class="text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Notifications">
-            <i class="fas fa-bell text-xl"></i>
-            <span class="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
+            <i class="fas fa-bars text-xl"></i>
           </button>
+          <h4 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-box text-indigo-600 mr-2"></i> Umrah Packages
+          </h4>
         </div>
-        <div class="relative">
-          <button id="userDropdown" class="flex items-center text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="User menu" aria-expanded="false">
-            <!-- <img src="../assets/img/admin.jpg" alt="Admin User" class="w-8 h-8 rounded-full mr-2"> -->
-            <span class="hidden md:inline text-gray-800">Admin User</span>
-            <i class="fas fa-chevron-down ml-1"></i>
-          </button>
-          <div id="userDropdownMenu" class="hidden absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg py-2 z-10">
-            <a href="logout.php" class="block px-4 py-2 text-red-600 hover:bg-gray-100"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+
+        <div class="flex items-center space-x-4">
+          <!-- Notification -->
+          <div class="relative">
+            <button class="flex items-center text-gray-500 hover:text-gray-700 focus:outline-none">
+              <i class="fas fa-bell text-xl"></i>
+              <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                3
+              </span>
+            </button>
+          </div>
+
+          <!-- User Dropdown -->
+          <div class="relative">
+            <button id="userDropdownButton" class="flex items-center space-x-2 text-gray-700 hover:bg-indigo-50 rounded-lg px-3 py-2 focus:outline-none">
+              <div class="rounded-full overflow-hidden" style="width: 32px; height: 32px;">
+                <div class="bg-gray-200 w-full h-full flex items-center justify-center">
+                  <i class="fas fa-user text-gray-500"></i>
+                </div>
+              </div>
+              <span class="hidden md:inline text-sm font-medium">Admin User</span>
+              <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
+              <li>
+                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                  <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -322,31 +341,59 @@ if ($result) {
     <?php endif; ?>
 
     <!-- Statistics Section -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" aria-label="Package statistics">
-      <div class="stats-card bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
-        <h3 class="text-lg font-semibold text-gray-800">Total Packages</h3>
-        <p class="text-2xl font-bold text-blue-600"><?php echo $stats['total_packages'] ?: 'N/A'; ?></p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" aria-label="Package statistics">
+      <div class="stats-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-indigo-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800">Total Packages</h3>
+            <p class="text-2xl font-bold text-indigo-600"><?php echo $stats['total_packages'] ?: 'N/A'; ?></p>
+          </div>
+          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-indigo-100 text-indigo-500">
+            <i class="fas fa-box text-xl"></i>
+          </div>
+        </div>
       </div>
-      <div class="stats-card bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
-        <h3 class="text-lg font-semibold text-gray-800">Average Price (PKR)</h3>
-        <p class="text-2xl font-bold text-blue-600"><?php echo $stats['avg_price'] ?: 'N/A'; ?></p>
+      <div class="stats-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-green-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800">Average Price</h3>
+            <p class="text-2xl font-bold text-green-600">₨<?php echo $stats['avg_price'] ?: 'N/A'; ?></p>
+          </div>
+          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-500">
+            <i class="fas fa-tag text-xl"></i>
+          </div>
+        </div>
       </div>
-      <div class="stats-card bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
-        <h3 class="text-lg font-semibold text-gray-800">Recent Packages (30 Days)</h3>
-        <p class="text-2xl font-bold text-blue-600"><?php echo $stats['recent_packages'] ?: 'N/A'; ?></p>
+      <div class="stats-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-purple-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800">Recent Packages</h3>
+            <p class="text-2xl font-bold text-purple-600"><?php echo $stats['recent_packages'] ?: 'N/A'; ?></p>
+          </div>
+          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 text-purple-500">
+            <i class="fas fa-clock text-xl"></i>
+          </div>
+        </div>
       </div>
-      <div class="stats-card bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
-        <h3 class="text-lg font-semibold text-gray-800">By Package Type</h3>
-        <p class="text-sm text-gray-600">
-          Single: <?php echo $stats['by_type']['single'] ?: '0'; ?><br>
-          Group: <?php echo $stats['by_type']['group'] ?: '0'; ?><br>
-          VIP: <?php echo $stats['by_type']['vip'] ?: '0'; ?>
-        </p>
+      <div class="stats-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-yellow-500">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800">By Package Type</h3>
+            <p class="text-sm text-gray-600">
+              Single: <?php echo $stats['by_type']['single'] ?: '0'; ?><br>
+              Group: <?php echo $stats['by_type']['group'] ?: '0'; ?><br>
+              VIP: <?php echo $stats['by_type']['vip'] ?: '0'; ?>
+            </p>
+          </div>
+          <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 text-yellow-500">
+            <i class="fas fa-th-list text-xl"></i>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
 
     <!-- Chart Section -->
-    <section class="bg-white p-6 rounded-lg shadow-md mb-6" aria-label="Package distribution charts">
+    <div class="bg-white shadow-lg rounded-lg p-6 mb-6" aria-label="Package distribution charts">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h3 class="text-lg font-semibold text-gray-800 mb-4">Packages by Type</h3>
@@ -357,15 +404,15 @@ if ($result) {
           <canvas id="flightChart" class="w-full h-64"></canvas>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- Filters Section -->
-    <section class="bg-white p-6 rounded-lg shadow-md mb-6" aria-label="Package filters">
+    <div class="bg-white shadow-lg rounded-lg p-6 mb-6" aria-label="Package filters">
       <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter Packages</h3>
       <form class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" method="GET">
         <div>
-          <label for="package_type" class="block text-sm font-medium text-gray-700">Package Type</label>
-          <select id="package_type" name="package_type" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+          <label for="package_type" class="block text-sm font-medium text-gray-700 mb-1">Package Type</label>
+          <select id="package_type" name="package_type" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
             <option value="">All Types</option>
             <option value="single" <?php echo $filters['package_type'] === 'single' ? 'selected' : ''; ?>>Single</option>
             <option value="group" <?php echo $filters['package_type'] === 'group' ? 'selected' : ''; ?>>Group</option>
@@ -373,8 +420,8 @@ if ($result) {
           </select>
         </div>
         <div>
-          <label for="flight_class" class="block text-sm font-medium text-gray-700">Flight Class</label>
-          <select id="flight_class" name="flight_class" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+          <label for="flight_class" class="block text-sm font-medium text-gray-700 mb-1">Flight Class</label>
+          <select id="flight_class" name="flight_class" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
             <option value="">All Classes</option>
             <option value="economy" <?php echo $filters['flight_class'] === 'economy' ? 'selected' : ''; ?>>Economy</option>
             <option value="business" <?php echo $filters['flight_class'] === 'business' ? 'selected' : ''; ?>>Business</option>
@@ -382,8 +429,8 @@ if ($result) {
           </select>
         </div>
         <div>
-          <label for="inclusion" class="block text-sm font-medium text-gray-700">Inclusion</label>
-          <select id="inclusion" name="inclusion" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+          <label for="inclusion" class="block text-sm font-medium text-gray-700 mb-1">Inclusion</label>
+          <select id="inclusion" name="inclusion" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
             <option value="">Any Inclusion</option>
             <option value="flight" <?php echo $filters['inclusion'] === 'flight' ? 'selected' : ''; ?>>Flight</option>
             <option value="hotel" <?php echo $filters['inclusion'] === 'hotel' ? 'selected' : ''; ?>>Hotel</option>
@@ -393,52 +440,54 @@ if ($result) {
           </select>
         </div>
         <div>
-          <label for="price_min" class="block text-sm font-medium text-gray-700">Min Price (PKR)</label>
-          <input type="number" id="price_min" name="price_min" value="<?php echo htmlspecialchars($filters['price_min'] !== null ? $filters['price_min'] : ''); ?>" min="0" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+          <label for="price_min" class="block text-sm font-medium text-gray-700 mb-1">Min Price (PKR)</label>
+          <input type="number" id="price_min" name="price_min" value="<?php echo htmlspecialchars($filters['price_min'] !== null ? $filters['price_min'] : ''); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
         </div>
         <div>
-          <label for="price_max" class="block text-sm font-medium text-gray-700">Max Price (PKR)</label>
-          <input type="number" id="price_max" name="price_max" value="<?php echo htmlspecialchars($filters['price_max'] !== null ? $filters['price_max'] : ''); ?>" max="500000" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+          <label for="price_max" class="block text-sm font-medium text-gray-700 mb-1">Max Price (PKR)</label>
+          <input type="number" id="price_max" name="price_max" value="<?php echo htmlspecialchars($filters['price_max'] !== null ? $filters['price_max'] : ''); ?>" max="500000" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
         </div>
         <div>
-          <label for="date_from" class="block text-sm font-medium text-gray-700">Created From</label>
-          <input type="date" id="date_from" name="date_from" value="<?php echo htmlspecialchars($filters['date_from']); ?>" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+          <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">Created From</label>
+          <input type="date" id="date_from" name="date_from" value="<?php echo htmlspecialchars($filters['date_from']); ?>" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
         </div>
         <div>
-          <label for="date_to" class="block text-sm font-medium text-gray-700">Created To</label>
-          <input type="date" id="date_to" name="date_to" value="<?php echo htmlspecialchars($filters['date_to']); ?>" class="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+          <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">Created To</label>
+          <input type="date" id="date_to" name="date_to" value="<?php echo htmlspecialchars($filters['date_to']); ?>" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
         </div>
         <div class="flex items-end space-x-2">
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Apply Filters</button>
-          <a href="view-packages.php" class="text-blue-600 hover:underline">Clear</a>
+          <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <i class="fas fa-search mr-2"></i>Apply Filters
+          </button>
+          <a href="view-packages.php" class="text-indigo-600 hover:text-indigo-900">Clear</a>
         </div>
       </form>
-    </section>
+    </div>
 
     <!-- Packages Table -->
-    <section class="bg-white p-6 rounded-lg shadow-md" aria-label="Umrah packages table">
+    <div class="bg-white shadow-lg rounded-lg p-6" aria-label="Umrah packages table">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold text-gray-800">Umrah Packages</h3>
         <div class="flex space-x-2">
-          <a href="add-packages.php" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+          <a href="add-packages.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
             <i class="fas fa-plus mr-2"></i>Add New Package
           </a>
-          <a href="?export_csv=1" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
+          <a href="?export_csv=1" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
             <i class="fas fa-download mr-2"></i>Export CSV
           </a>
         </div>
       </div>
       <form id="bulkDeleteForm" method="POST">
         <div class="flex justify-end mb-4">
-          <button type="submit" name="bulk_delete" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 hidden" id="bulkDeleteBtn" onclick="return confirm('Are you sure you want to delete selected packages?');" aria-label="Delete selected packages">
+          <button type="submit" name="bulk_delete" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 hidden" id="bulkDeleteBtn" onclick="return confirm('Are you sure you want to delete selected packages?');" aria-label="Delete selected packages">
             <i class="fas fa-trash mr-2"></i>Delete Selected
           </button>
         </div>
         <div class="overflow-x-auto">
           <table id="packagesTable" class="w-full text-left border-collapse">
             <thead>
-              <tr class="bg-gray-200">
-                <th class="p-3"><input type="checkbox" id="selectAll" aria-label="Select all packages"></th>
+              <tr class="bg-gray-50">
+                <th class="p-3"><input type="checkbox" id="selectAll" class="rounded text-indigo-600 focus:ring-indigo-500" aria-label="Select all packages"></th>
                 <th class="p-3">#</th>
                 <th class="p-3">Image</th>
                 <th class="p-3">Title</th>
@@ -459,7 +508,7 @@ if ($result) {
                 <?php foreach ($packages as $index => $package): ?>
                   <tr class="border-b hover:bg-gray-50">
                     <td class="p-3">
-                      <input type="checkbox" name="package_ids[]" value="<?php echo $package['id']; ?>" class="package-checkbox" aria-label="Select package <?php echo htmlspecialchars($package['title']); ?>">
+                      <input type="checkbox" name="package_ids[]" value="<?php echo $package['id']; ?>" class="package-checkbox rounded text-indigo-600 focus:ring-indigo-500" aria-label="Select package <?php echo htmlspecialchars($package['title']); ?>">
                     </td>
                     <td class="p-3"><?php echo $index + 1; ?></td>
                     <td class="p-3">
@@ -477,7 +526,7 @@ if ($result) {
                     <td class="p-3"><?php echo number_format($package['price'], 2); ?></td>
                     <td class="p-3"><?php echo date('d M Y', strtotime($package['created_at'])); ?></td>
                     <td class="p-3 flex space-x-2">
-                      <button type="button" class="text-blue-600 hover:text-blue-800 view-details" data-id="<?php echo $package['id']; ?>" data-tooltip="View Details" aria-label="View details for <?php echo htmlspecialchars($package['title']); ?>">
+                      <button type="button" class="text-indigo-600 hover:text-indigo-800 view-details" data-id="<?php echo $package['id']; ?>" data-tooltip="View Details" aria-label="View details for <?php echo htmlspecialchars($package['title']); ?>">
                         <i class="fas fa-eye"></i>
                       </button>
                       <a href="edit-package.php?id=<?php echo $package['id']; ?>" class="text-yellow-600 hover:text-yellow-800" data-tooltip="Edit Package" aria-label="Edit <?php echo htmlspecialchars($package['title']); ?>">
@@ -494,7 +543,7 @@ if ($result) {
           </table>
         </div>
       </form>
-    </section>
+    </div>
 
     <!-- Details Modal -->
     <div id="detailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center modal modal-hidden" role="dialog" aria-labelledby="modalTitle" aria-hidden="true">
@@ -510,16 +559,44 @@ if ($result) {
         </div>
       </div>
     </div>
-  </main>
+  </div>
 
   <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <!-- DataTables JS -->
   <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.4/js/dataTables.tailwindcss.min.js"></script>
-  <!-- Custom JavaScript -->
-  <script src="assets/js/index.js"></script>
+
   <script>
+    // User Dropdown Toggle
+    const userDropdownButton = document.getElementById('userDropdownButton');
+    const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+    if (userDropdownButton && userDropdownMenu) {
+      userDropdownButton.addEventListener('click', function() {
+        userDropdownMenu.classList.toggle('hidden');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(event) {
+        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+          userDropdownMenu.classList.add('hidden');
+        }
+      });
+    }
+
+    // Sidebar Toggle (assuming sidebar toggle functionality from sidebar.php)
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    if (sidebarToggle && sidebar && sidebarOverlay) {
+      sidebarToggle.addEventListener('click', function() {
+        sidebar.classList.remove('-translate-x-full');
+        sidebarOverlay.classList.remove('hidden');
+      });
+    }
+
     // Suppress DataTables alerts
     $.fn.dataTable.ext.errMode = 'none';
 
@@ -646,26 +723,6 @@ if ($result) {
       }
     });
 
-    // User Dropdown Toggle
-    document.getElementById('userDropdown').addEventListener('click', function() {
-      const menu = document.getElementById('userDropdownMenu');
-      menu.classList.toggle('hidden');
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-      const dropdown = document.getElementById('userDropdownMenu');
-      const button = document.getElementById('userDropdown');
-      if (!dropdown.contains(e.target) && !button.contains(e.target)) {
-        dropdown.classList.add('hidden');
-      }
-    });
-
-    // Sidebar Toggle
-    document.getElementById('sidebarToggle').addEventListener('click', function() {
-      document.querySelector('aside').classList.toggle('hidden');
-    });
-
     // Bulk Delete Checkbox Handling
     document.getElementById('selectAll').addEventListener('change', function() {
       document.querySelectorAll('.package-checkbox').forEach(cb => cb.checked = this.checked);
@@ -692,7 +749,7 @@ if ($result) {
             <?php echo $stats['by_type']['group'] ?: 0; ?>,
             <?php echo $stats['by_type']['vip'] ?: 0; ?>
           ],
-          backgroundColor: ['#3B82F6', '#10B981', '#F59E0B']
+          backgroundColor: ['#6366F1', '#10B981', '#F59E0B']
         }]
       },
       options: {
@@ -716,7 +773,7 @@ if ($result) {
             <?php echo $stats['by_flight_class']['business'] ?: 0; ?>,
             <?php echo $stats['by_flight_class']['first'] ?: 0; ?>
           ],
-          backgroundColor: '#3B82F6'
+          backgroundColor: '#6366F1'
         }]
       },
       options: {

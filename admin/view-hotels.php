@@ -273,7 +273,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>View Hotels | UmrahFlights Admin</title>
   <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../src/output.css">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <style>
@@ -306,26 +306,30 @@ if ($stats_result && $stats_result->num_rows > 0) {
   </style>
 </head>
 
-<body class="bg-gray-100 min-h-screen">
-  <!-- Sidebar -->
+<body class="bg-gray-100">
   <?php include 'includes/sidebar.php'; ?>
 
   <!-- Main Content -->
-  <div class="mt-10 p-6">
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-800 flex items-center">
-          <i class="fas fa-hotel text-blue-600 mr-2"></i> Hotel Management
-        </h1>
-        <p class="text-gray-600">View and manage all hotel listings</p>
+  <div class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300">
+    <!-- Top Navbar -->
+    <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+          <h4 class="text-lg font-semibold text-gray-800">
+            <i class="fas fa-hotel text-indigo-600 mr-2"></i> Hotel Management
+          </h4>
+        </div>
+
+        <div>
+          <a href="add-hotels.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <i class="fas fa-plus mr-2"></i> Add New Hotel
+          </a>
+        </div>
       </div>
-      <div class="mt-4 md:mt-0">
-        <a href="add-hotels.php" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <i class="fas fa-plus mr-2"></i> Add New Hotel
-        </a>
-      </div>
-    </div>
+    </nav>
 
     <!-- Stats Section -->
     <?php include 'includes/hotel-stats.php'; ?>
@@ -333,27 +337,31 @@ if ($stats_result && $stats_result->num_rows > 0) {
     <!-- Alert Messages -->
     <?php if (!empty($message)): ?>
       <div class="mb-6">
-        <div class="rounded-lg p-4 <?php echo $message_type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?> flex items-center">
-          <i class="fas <?php echo $message_type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'; ?> mr-3"></i>
-          <?php echo htmlspecialchars($message); ?>
+        <div class="<?php echo $message_type === 'success' ? 'bg-green-100 border-l-4 border-green-500 text-green-700' : 'bg-red-100 border-l-4 border-red-500 text-red-700'; ?> p-4 rounded shadow" role="alert">
+          <div class="flex">
+            <div class="py-1">
+              <i class="fas <?php echo $message_type === 'success' ? 'fa-check-circle text-green-500' : 'fa-exclamation-circle text-red-500'; ?> mr-2"></i>
+            </div>
+            <div><?php echo htmlspecialchars($message); ?></div>
+          </div>
         </div>
       </div>
     <?php endif; ?>
 
     <!-- Filter and Search Bar -->
-    <div class="bg-white rounded-lg shadow p-4 mb-6">
+    <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
       <form action="" method="GET" class="space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($search); ?>"
               placeholder="Search hotels..."
-              class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+              class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
           </div>
 
           <div>
             <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-            <select id="location" name="location" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="location" name="location" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
               <option value="">All Locations</option>
               <option value="makkah" <?php echo $location === 'makkah' ? 'selected' : ''; ?>>Makkah</option>
               <option value="madinah" <?php echo $location === 'madinah' ? 'selected' : ''; ?>>Madinah</option>
@@ -362,7 +370,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
 
           <div>
             <label for="rating" class="block text-sm font-medium text-gray-700 mb-1">Rating</label>
-            <select id="rating" name="rating" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="rating" name="rating" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
               <option value="">All Ratings</option>
               <option value="5" <?php echo $rating === '5' ? 'selected' : ''; ?>>5 Stars</option>
               <option value="4" <?php echo $rating === '4' ? 'selected' : ''; ?>>4 Stars</option>
@@ -374,7 +382,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
 
           <div>
             <label for="sort" class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-            <select id="sort" name="sort" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <select id="sort" name="sort" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
               <option value="newest" <?php echo $sort === 'newest' ? 'selected' : ''; ?>>Newest First</option>
               <option value="oldest" <?php echo $sort === 'oldest' ? 'selected' : ''; ?>>Oldest First</option>
               <option value="name_asc" <?php echo $sort === 'name_asc' ? 'selected' : ''; ?>>Name (A-Z)</option>
@@ -387,22 +395,22 @@ if ($stats_result && $stats_result->num_rows > 0) {
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <a href="view-hotels.php" class="inline-flex items-center px-3 py-1 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
+          <a href="view-hotels.php" class="px-3 py-1 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center">
             <i class="fas fa-sync-alt mr-1"></i> Reset
           </a>
-          <a href="view-hotels.php?filter=high-rated" class="inline-flex items-center px-3 py-1 <?php echo $filter === 'high-rated' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'; ?> rounded-lg hover:bg-blue-600 hover:text-white transition-colors">
+          <a href="view-hotels.php?filter=high-rated" class="px-3 py-1 <?php echo $filter === 'high-rated' ? 'bg-indigo-600 text-white border border-transparent' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'; ?> rounded-md flex items-center">
             <i class="fas fa-star mr-1"></i> High Rated
           </a>
-          <a href="view-hotels.php?filter=low-price" class="inline-flex items-center px-3 py-1 <?php echo $filter === 'low-price' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'; ?> rounded-lg hover:bg-blue-600 hover:text-white transition-colors">
+          <a href="view-hotels.php?filter=low-price" class="px-3 py-1 <?php echo $filter === 'low-price' ? 'bg-indigo-600 text-white border border-transparent' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'; ?> rounded-md flex items-center">
             <i class="fas fa-tags mr-1"></i> Budget
           </a>
-          <a href="view-hotels.php?filter=makkah" class="inline-flex items-center px-3 py-1 <?php echo $filter === 'makkah' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'; ?> rounded-lg hover:bg-blue-600 hover:text-white transition-colors">
+          <a href="view-hotels.php?filter=makkah" class="px-3 py-1 <?php echo $filter === 'makkah' ? 'bg-indigo-600 text-white border border-transparent' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'; ?> rounded-md flex items-center">
             <i class="fas fa-mosque mr-1"></i> Makkah
           </a>
-          <a href="view-hotels.php?filter=madinah" class="inline-flex items-center px-3 py-1 <?php echo $filter === 'madinah' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'; ?> rounded-lg hover:bg-blue-600 hover:text-white transition-colors">
+          <a href="view-hotels.php?filter=madinah" class="px-3 py-1 <?php echo $filter === 'madinah' ? 'bg-indigo-600 text-white border border-transparent' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'; ?> rounded-md flex items-center">
             <i class="fas fa-mosque mr-1"></i> Madinah
           </a>
-          <button type="submit" class="ml-auto px-4 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button type="submit" class="ml-auto px-4 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
             <i class="fas fa-search mr-1"></i> Apply Filters
           </button>
         </div>
@@ -411,20 +419,20 @@ if ($stats_result && $stats_result->num_rows > 0) {
 
     <!-- Hotels Grid -->
     <?php if (empty($hotels)): ?>
-      <div class="bg-white rounded-lg shadow p-8 text-center">
+      <div class="bg-white shadow-lg rounded-lg p-8 text-center">
         <div class="w-20 h-20 mx-auto mb-4 flex items-center justify-center rounded-full bg-gray-100">
           <i class="fas fa-hotel text-4xl text-gray-400"></i>
         </div>
         <h3 class="text-xl font-bold text-gray-800 mb-2">No Hotels Found</h3>
         <p class="text-gray-600 mb-4">There are no hotels matching your search criteria.</p>
-        <a href="add-hotels.php" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <a href="add-hotels.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
           <i class="fas fa-plus mr-2"></i> Add New Hotel
         </a>
       </div>
     <?php else: ?>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <?php foreach ($hotels as $hotel): ?>
-          <div class="hotel-card bg-white rounded-lg shadow overflow-hidden flex flex-col">
+          <div class="hotel-card bg-white rounded-lg shadow-lg overflow-hidden flex flex-col">
             <!-- Main Image -->
             <div class="relative">
               <?php if (!empty($hotel['primary_image'])): ?>
@@ -437,7 +445,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
 
               <!-- Location Badge -->
               <div class="absolute top-2 left-2">
-                <span class="px-2 py-1 bg-blue-600 text-white text-xs rounded-lg capitalize">
+                <span class="px-2 py-1 bg-indigo-600 text-white text-xs rounded-lg capitalize">
                   <?php echo htmlspecialchars($hotel['location']); ?>
                 </span>
               </div>
@@ -456,7 +464,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
             <div class="p-4 flex-grow">
               <div class="flex justify-between items-start mb-2">
                 <h3 class="text-lg font-bold text-gray-800 truncate"><?php echo htmlspecialchars($hotel['hotel_name']); ?></h3>
-                <span class="text-lg font-bold text-blue-600">PKR<?php echo number_format($hotel['price']); ?></span>
+                <span class="text-lg font-bold text-indigo-600">PKR<?php echo number_format($hotel['price']); ?></span>
               </div>
 
               <!-- Room Status -->
@@ -492,7 +500,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
               <div class="mb-3">
                 <div class="flex flex-wrap gap-1">
                   <?php foreach ($hotel['amenities_array'] as $amenity): ?>
-                    <span class="amenity-badge bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                    <span class="amenity-badge bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">
                       <?php
                       $icon = '';
                       switch ($amenity) {
@@ -535,10 +543,10 @@ if ($stats_result && $stats_result->num_rows > 0) {
 
             <!-- Action Buttons -->
             <div class="p-4 pt-0 flex items-center space-x-2 border-t border-gray-100">
-              <a href="edit-hotel.php?id=<?php echo $hotel['id']; ?>" class="flex-1 text-center py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+              <a href="edit-hotel.php?id=<?php echo $hotel['id']; ?>" class="flex-1 text-center py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 <i class="fas fa-edit mr-1"></i> Edit
               </a>
-              <button onclick="confirmDelete(<?php echo $hotel['id']; ?>, '<?php echo htmlspecialchars($hotel['hotel_name']); ?>')" class="flex-1 text-center py-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors">
+              <button onclick="confirmDelete(<?php echo $hotel['id']; ?>, '<?php echo htmlspecialchars($hotel['hotel_name']); ?>')" class="flex-1 text-center py-2 border border-transparent text-sm font-medium rounded-md text-red-600 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                 <i class="fas fa-trash-alt mr-1"></i> Delete
               </button>
             </div>
@@ -554,17 +562,47 @@ if ($stats_result && $stats_result->num_rows > 0) {
       <h2 class="text-xl font-bold text-gray-800 mb-4">Confirm Deletion</h2>
       <p class="text-gray-600 mb-6">Are you sure you want to delete <span id="hotelName" class="font-semibold"></span>? This action cannot be undone and will remove all associated data, including bookings.</p>
       <div class="flex justify-end space-x-3">
-        <button id="cancelDelete" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors">
+        <button id="cancelDelete" class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
           Cancel
         </button>
-        <a id="confirmDelete" href="#" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+        <a id="confirmDelete" href="#" class="px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
           Yes, Delete
         </a>
       </div>
     </div>
   </div>
 
+  <!-- Scripts -->
   <script>
+    // User Dropdown Toggle
+    const userDropdownButton = document.getElementById('userDropdownButton');
+    const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+    if (userDropdownButton && userDropdownMenu) {
+      userDropdownButton.addEventListener('click', function() {
+        userDropdownMenu.classList.toggle('hidden');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', function(event) {
+        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+          userDropdownMenu.classList.add('hidden');
+        }
+      });
+    }
+
+    // Sidebar Toggle (assuming sidebar toggle functionality from sidebar.php)
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    if (sidebarToggle && sidebar && sidebarOverlay) {
+      sidebarToggle.addEventListener('click', function() {
+        sidebar.classList.remove('-translate-x-full');
+        sidebarOverlay.classList.remove('hidden');
+      });
+    }
+
     // Delete confirmation modal
     function confirmDelete(id, name) {
       const modal = document.getElementById('deleteModal');
