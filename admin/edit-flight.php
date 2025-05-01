@@ -632,7 +632,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     </div>
   </div>
-
+<script src="assets/js/validate.js"></script>
+<script src="assets/js/add-flight.js"></script>
   <!-- JavaScript for form functionality -->
   <script>
     // Toggle stops section

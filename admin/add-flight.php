@@ -680,19 +680,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
       }
 
-      // Add return stop row
-      if (addReturnStopButton) {
-        addReturnStopButton.addEventListener('click', () => {
-          const returnStopRow = document.querySelector('.return-stop-row').cloneNode(true);
-          returnStopRow.querySelectorAll('input').forEach(input => input.value = '');
-          addReturnStopButton.closest('.text-right').before(returnStopRow);
-          // Re-initialize validation for new inputs
-          const newCityInput = returnStopRow.querySelector('input[name="return_stop_city[]"]');
-          const newDurationInput = returnStopRow.querySelector('input[name="return_stop_duration[]"]');
-          if (window.addNewStopCity) window.addNewStopCity(newCityInput);
-          if (window.initStopDurationValidation) window.initStopDurationValidation(newDurationInput);
-        });
-      }
+
     });
   </script>
   <!-- Validation Script -->

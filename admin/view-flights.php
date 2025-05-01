@@ -376,7 +376,7 @@ if (!empty($filter)) {
     </div>
 
     <!-- Flights List -->
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+    <div class="grid grid-cols-1 xl:grid-cols-1 gap-6 mb-6">
       <?php if (empty($filteredFlights)): ?>
         <div class="col-span-1 xl:col-span-2 bg-white rounded-lg shadow-sm p-10 text-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400 mb-4" viewBox="0 0 20 20" fill="currentColor">
