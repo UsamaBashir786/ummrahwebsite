@@ -242,7 +242,6 @@ $avg_transportation_booking = round((float)$avg_bookings['avg_transportation_boo
 $stmt->close();
 ?>
 
-```html
 <!DOCTYPE html>
 <html lang="en">
 
