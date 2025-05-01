@@ -737,6 +737,85 @@ if (!empty($filter)) {
       }
     });
   </script>
+  <script>
+    /**
+     * Fixed Delete Flight Button Functionality
+     * 
+     * The issue is that the confirmDelete function might not be defined in the global scope
+     * or the modal elements might not be properly accessed.
+     */
+
+    // Fix for Delete Flight Modal
+    document.addEventListener('DOMContentLoaded', function() {
+      // Explicitly define the confirmDelete function in the global scope
+      window.confirmDelete = function(flightId, flightNumber) {
+        console.log("Deleting flight:", flightId, flightNumber); // Debug log
+
+        const modal = document.getElementById('deleteModal');
+        const confirmBtn = document.getElementById('confirmDeleteBtn');
+        const flightNumberSpan = document.getElementById('deleteFlightNumber');
+
+        if (!modal || !confirmBtn || !flightNumberSpan) {
+          console.error("Missing modal elements:", {
+            modal: !!modal,
+            confirmBtn: !!confirmBtn,
+            flightNumberSpan: !!flightNumberSpan
+          });
+          alert("System error: Could not open delete confirmation dialog");
+          return;
+        }
+
+        // Set the flight number in the modal
+        flightNumberSpan.textContent = flightNumber;
+
+        // Set the href for the confirmation button
+        confirmBtn.href = 'delete-flight.php?id=' + flightId;
+
+        // Show the modal by removing the hidden class
+        modal.classList.remove('hidden');
+
+        // Prevent body scrolling
+        document.body.style.overflow = 'hidden';
+      };
+
+      // Cancel delete button
+      const cancelDeleteBtn = document.getElementById('cancelDelete');
+      if (cancelDeleteBtn) {
+        cancelDeleteBtn.addEventListener('click', function() {
+          const modal = document.getElementById('deleteModal');
+          if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+          }
+        });
+      }
+
+      // Close modal when clicking outside
+      const deleteModal = document.getElementById('deleteModal');
+      if (deleteModal) {
+        deleteModal.addEventListener('click', function(e) {
+          if (e.target === this) {
+            this.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+          }
+        });
+      }
+
+      // Make sure the confirm button also closes the modal after clicking
+      const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+      if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', function() {
+          // The link will navigate away, but we'll close the modal anyway
+          // in case something prevents navigation
+          const modal = document.getElementById('deleteModal');
+          if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+          }
+        });
+      }
+    });
+  </script>
 </body>
 
 </html>
