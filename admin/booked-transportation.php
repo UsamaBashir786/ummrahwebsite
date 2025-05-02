@@ -505,81 +505,79 @@ if (!$conn) {
 
       <!-- Bookings Table -->
       <div class="bg-white rounded-lg shadow">
-        <div class="p-4 border-b border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-800">Transportation Bookings</h3>
+        <div class="p-3 border-b border-gray-200">
+          <h3 class="text-base font-semibold text-gray-800">Transportation Bookings</h3>
         </div>
-        <div class="overflow-x-auto p-4">
-          <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+        <div class="overflow-x-auto p-3">
+          <table class="min-w-full bg-white border border-gray-200 text-sm">
             <thead>
-              <tr class="bg-gray-100">
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">ID</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Customer</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Type</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Route</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Vehicle</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Pickup Date</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Price</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Booking Status</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Payment Status</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Actions</th>
+              <tr class="bg-gray-100 text-xs text-gray-600 uppercase tracking-wider">
+                <th class="p-2 text-left border-b">ID</th>
+                <th class="p-2 text-left border-b">Customer</th>
+                <th class="p-2 text-left border-b">Type</th>
+                <th class="p-2 text-left border-b">Route</th>
+                <th class="p-2 text-left border-b">Vehicle</th>
+                <th class="p-2 text-left border-b">Pickup Date</th>
+                <th class="p-2 text-left border-b">Price</th>
+                <th class="p-2 text-left border-b">Booking Status</th>
+                <th class="p-2 text-left border-b">Payment Status</th>
+                <th class="p-2 text-left border-b">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-gray-100">
               <?php if (empty($bookings)): ?>
-                <tr>
-                  <td colspan="10" class="py-4 px-4 text-center text-gray-500">No bookings found</td>
+                <tr class="bg-white">
+                  <td colspan="10" class="p-2 text-center text-gray-400">No bookings found</td>
                 </tr>
               <?php else: ?>
                 <?php foreach ($bookings as $booking): ?>
                   <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4"><?php echo $booking['id']; ?></td>
-                    <td class="py-2 px-4">
+                    <td class="p-2"><?php echo $booking['id']; ?></td>
+                    <td class="p-2">
                       <div class="font-medium"><?php echo htmlspecialchars($booking['full_name']); ?></div>
-                      <div class="text-sm text-gray-500"><?php echo htmlspecialchars($booking['email']); ?></div>
-                      <div class="text-sm text-gray-500"><?php echo htmlspecialchars($booking['phone'] ?? ''); ?></div>
+                      <div class="text-gray-500"><?php echo htmlspecialchars($booking['email']); ?></div>
+                      <div class="text-gray-500"><?php echo htmlspecialchars($booking['phone'] ?? ''); ?></div>
                     </td>
-                    <td class="py-2 px-4">
+                    <td class="p-2">
                       <span class="transport-type-badge <?php echo 'transport-' . $booking['transport_type']; ?>">
                         <?php echo ucfirst($booking['transport_type']); ?>
                       </span>
                     </td>
-                    <td class="py-2 px-4">
-                      <div class="font-medium"><?php echo htmlspecialchars($booking['route_name']); ?></div>
-                    </td>
-                    <td class="py-2 px-4"><?php echo htmlspecialchars($booking['vehicle_type'] ?? ''); ?></td>
-                    <td class="py-2 px-4">
+                    <td class="p-2 font-medium"><?php echo htmlspecialchars($booking['route_name']); ?></td>
+                    <td class="p-2"><?php echo htmlspecialchars($booking['vehicle_type'] ?? ''); ?></td>
+                    <td class="p-2">
                       <div><?php echo date('M d, Y', strtotime($booking['pickup_date'])); ?></div>
-                      <div class="text-sm text-gray-500"><?php echo date('h:i A', strtotime($booking['pickup_time'] ?? '00:00:00')); ?></div>
+                      <div class="text-gray-500"><?php echo date('h:i A', strtotime($booking['pickup_time'] ?? '00:00:00')); ?></div>
                     </td>
-                    <td class="py-2 px-4 font-medium">PKR <?php echo number_format($booking['price'] ?? 0, 0); ?></td>
-                    <td class="py-2 px-4">
+                    <td class="p-2 font-medium">PKR <?php echo number_format($booking['price'] ?? 0, 0); ?></td>
+                    <td class="p-2">
                       <span class="status-badge <?php echo 'status-' . $booking['booking_status']; ?>">
                         <?php echo ucfirst($booking['booking_status']); ?>
                       </span>
                     </td>
-                    <td class="py-2 px-4">
+                    <td class="p-2">
                       <span class="status-badge <?php echo 'payment-' . ($booking['payment_status'] ?? 'pending'); ?>">
                         <?php echo ucfirst($booking['payment_status'] ?? 'pending'); ?>
                       </span>
                     </td>
-                    <td class="py-2 px-4">
-                      <div class="flex space-x-2">
+                    <td class="p-2">
+                      <div class="flex space-x-1">
                         <?php if ($booking['booking_status'] === 'pending'): ?>
-                          <a href="?action=confirm&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-green-600 hover:text-green-800" title="Confirm Booking">
+                          <a href="?action=confirm&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="text-green-600 hover:text-green-800" title="Confirm Booking">
                             <i class="fas fa-check"></i>
                           </a>
                         <?php endif; ?>
                         <?php if ($booking['booking_status'] !== 'cancelled'): ?>
-                          <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-red-600 hover:text-red-800 cancel-booking" title="Cancel Booking" data-id="<?php echo $booking['id']; ?>">
+                          <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="text-red-600 hover:text-red-800" title="Cancel Booking">
                             <i class="fas fa-times"></i>
                           </a>
                         <?php endif; ?>
                         <?php if (($booking['payment_status'] ?? 'pending') === 'pending'): ?>
-                          <a href="?action=complete_payment&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-indigo-600 hover:text-indigo-800" title="Mark Payment as Paid">
+                          <a href="?action=complete_payment&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="text-indigo-600 hover:text-indigo-800" title="Mark Payment as Paid">
                             <i class="fas fa-dollar-sign"></i>
                           </a>
                         <?php endif; ?>
-                        <button type="button" class="action-btn text-gray-600 hover:text-gray-800 view-details" data-id="<?php echo $booking['id']; ?>" title="View Details">
+                        <button type="button" class="text-gray-600 hover:text-gray-800 view-details" data-id="<?php echo $booking['id']; ?>" title="View Details">
                           <i class="fas fa-eye"></i>
                         </button>
                       </div>
@@ -591,6 +589,8 @@ if (!$conn) {
           </table>
         </div>
       </div>
+
+
     </section>
   </main>
 

@@ -440,7 +440,7 @@ if ($result) {
           <h3 class="text-lg font-semibold text-gray-800">Hotel Bookings</h3>
         </div>
         <div class="overflow-x-auto p-4">
-          <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+          <table class="min-w-max table-auto w-full bg-white border border-gray-200 rounded-lg whitespace-nowrap">
             <thead>
               <tr class="bg-gray-100">
                 <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">ID</th>
@@ -520,6 +520,8 @@ if ($result) {
           </table>
         </div>
       </div>
+
+
     </section>
   </main>
 

@@ -553,25 +553,26 @@ if (!empty($filter)) {
     </div>
 
     <!-- Bookings Table -->
+    <!-- Bookings Table -->
     <div class="bg-white rounded-lg shadow">
       <div class="p-4 border-b border-gray-200">
         <h2 class="text-lg font-semibold text-gray-800">Flight Bookings</h2>
       </div>
       <div class="overflow-x-auto p-4">
-        <table id="bookingsTable" class="w-full stripe hover">
+        <table id="bookingsTable" class="min-w-max table-auto w-full whitespace-nowrap">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Passenger</th>
-              <th>Flight</th>
-              <th>Route</th>
-              <th>Date</th>
-              <th>Cabin Class</th>
-              <th>Passengers</th>
-              <th>Total Price</th>
-              <th>Booking Status</th>
-              <th>Payment Status</th>
-              <th>Actions</th>
+              <th class="px-4 py-2 text-left">ID</th>
+              <th class="px-4 py-2 text-left">Passenger</th>
+              <th class="px-4 py-2 text-left">Flight</th>
+              <th class="px-4 py-2 text-left">Route</th>
+              <th class="px-4 py-2 text-left">Date</th>
+              <th class="px-4 py-2 text-left">Cabin Class</th>
+              <th class="px-4 py-2 text-left">Passengers</th>
+              <th class="px-4 py-2 text-left">Total Price</th>
+              <th class="px-4 py-2 text-left">Booking Status</th>
+              <th class="px-4 py-2 text-left">Payment Status</th>
+              <th class="px-4 py-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -582,56 +583,53 @@ if (!empty($filter)) {
             <?php else: ?>
               <?php foreach ($bookings as $booking): ?>
                 <tr>
-                  <td class="py-3"><?php echo $booking['id']; ?></td>
-                  <td>
+                  <td class="px-4 py-2"><?php echo $booking['id']; ?></td>
+                  <td class="px-4 py-2">
                     <div class="font-medium"><?php echo htmlspecialchars($booking['passenger_name']); ?></div>
                     <div class="text-sm text-gray-500"><?php echo htmlspecialchars($booking['passenger_email']); ?></div>
                   </td>
-                  <td>
+                  <td class="px-4 py-2">
                     <div class="font-medium"><?php echo htmlspecialchars($booking['flight_number']); ?></div>
                     <div class="text-sm text-gray-500"><?php echo htmlspecialchars($booking['airline_name']); ?></div>
                   </td>
-                  <td><?php echo htmlspecialchars($booking['departure_city']); ?> → <?php echo htmlspecialchars($booking['arrival_city']); ?></td>
-                  <td>
+                  <td class="px-4 py-2"><?php echo htmlspecialchars($booking['departure_city']); ?> → <?php echo htmlspecialchars($booking['arrival_city']); ?></td>
+                  <td class="px-4 py-2">
                     <div><?php echo date('M d, Y', strtotime($booking['departure_date'])); ?></div>
                     <div class="text-sm text-gray-500"><?php echo date('h:i A', strtotime($booking['departure_time'])); ?></div>
                   </td>
-                  <td><?php echo ucfirst(htmlspecialchars(str_replace('_', ' ', $booking['cabin_class']))); ?></td>
-                  <td>
+                  <td class="px-4 py-2"><?php echo ucfirst(htmlspecialchars(str_replace('_', ' ', $booking['cabin_class']))); ?></td>
+                  <td class="px-4 py-2">
                     <div>Adults: <?php echo $booking['adult_count']; ?></div>
                     <div>Children: <?php echo $booking['children_count']; ?></div>
                   </td>
-                  <td class="font-medium">PKR <?php echo number_format($booking['total_price'] ?? 0, 0); ?></td>
-                  <td>
+                  <td class="px-4 py-2 font-medium">PKR <?php echo number_format($booking['total_price'] ?? 0, 0); ?></td>
+                  <td class="px-4 py-2">
                     <span class="status-badge <?php echo 'status-' . $booking['booking_status']; ?>">
                       <?php echo ucfirst($booking['booking_status']); ?>
                     </span>
                   </td>
-                  <td>
+                  <td class="px-4 py-2">
                     <span class="status-badge <?php echo 'payment-' . $booking['payment_status']; ?>">
                       <?php echo ucfirst($booking['payment_status']); ?>
                     </span>
                   </td>
-                  <td>
+                  <td class="px-4 py-2">
                     <div class="flex space-x-2">
                       <?php if ($booking['booking_status'] === 'pending'): ?>
                         <a href="?action=confirm&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-green-600 hover:text-green-800" title="Confirm Booking">
                           <i class="fas fa-check"></i>
                         </a>
                       <?php endif; ?>
-
                       <?php if ($booking['booking_status'] !== 'cancelled'): ?>
                         <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-red-600 hover:text-red-800" title="Cancel Booking" onclick="return confirm('Are you sure you want to cancel this booking?')">
                           <i class="fas fa-times"></i>
                         </a>
                       <?php endif; ?>
-
                       <?php if ($booking['payment_status'] === 'pending'): ?>
                         <a href="?action=complete_payment&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-blue-600 hover:text-blue-800" title="Mark Payment as Completed">
                           <i class="fas fa-dollar-sign"></i>
                         </a>
                       <?php endif; ?>
-
                       <button type="button" class="action-btn text-gray-600 hover:text-gray-800 view-details" data-id="<?php echo $booking['id']; ?>" title="View Details">
                         <i class="fas fa-eye"></i>
                       </button>
@@ -644,6 +642,7 @@ if (!empty($filter)) {
         </table>
       </div>
     </div>
+
   </div>
 
   <!-- View Details Modal -->

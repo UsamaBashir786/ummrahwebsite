@@ -481,80 +481,78 @@ if (!$conn) {
       </div>
 
       <!-- Bookings Table -->
-      <div class="bg-white rounded-lg shadow">
+      <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="p-4 border-b border-gray-200">
           <h3 class="text-lg font-semibold text-gray-800">Package Bookings</h3>
         </div>
-        <div class="overflow-x-auto p-4">
-          <table class="min-w-full bg-white border border-gray-200 rounded-lg">
+        <div class="w-full overflow-x-auto">
+          <table class="min-w-full table-auto whitespace-nowrap">
             <thead>
-              <tr class="bg-gray-100">
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">ID</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Guest</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Package</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Type</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Travel Date</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Travelers</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Reference</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Total Price</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Booking Status</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Payment Status</th>
-                <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Actions</th>
+              <tr class="bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <th class="px-6 py-3 text-left">ID</th>
+                <th class="px-6 py-3 text-left">Guest</th>
+                <th class="px-6 py-3 text-left">Package</th>
+                <th class="px-6 py-3 text-left">Type</th>
+                <th class="px-6 py-3 text-left">Travel Date</th>
+                <th class="px-6 py-3 text-center">Travelers</th>
+                <th class="px-6 py-3 text-left">Reference</th>
+                <th class="px-6 py-3 text-left">Total Price</th>
+                <th class="px-6 py-3 text-left">Booking Status</th>
+                <th class="px-6 py-3 text-left">Payment Status</th>
+                <th class="px-6 py-3 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
+            <tbody class="divide-y divide-gray-200 text-sm">
               <?php if (empty($bookings)): ?>
                 <tr>
-                  <td colspan="11" class="py-4 px-4 text-center text-gray-500">No bookings found</td>
+                  <td colspan="11" class="text-center py-4 text-gray-500">No bookings found</td>
                 </tr>
               <?php else: ?>
                 <?php foreach ($bookings as $booking): ?>
                   <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4"><?php echo $booking['id']; ?></td>
-                    <td class="py-2 px-4">
+                    <td class="px-6 py-3"><?php echo $booking['id']; ?></td>
+                    <td class="px-6 py-3">
                       <div class="font-medium"><?php echo htmlspecialchars($booking['user_name']); ?></div>
-                      <div class="text-sm text-gray-500"><?php echo htmlspecialchars($booking['user_email']); ?></div>
+                      <div class="text-gray-500 text-xs"><?php echo htmlspecialchars($booking['user_email']); ?></div>
                     </td>
-                    <td class="py-2 px-4">
-                      <div class="font-medium"><?php echo htmlspecialchars($booking['package_title']); ?></div>
-                    </td>
-                    <td class="py-2 px-4">
-                      <span class="package-type-badge <?php echo 'package-' . $booking['package_type']; ?>">
+                    <td class="px-6 py-3"><?php echo htmlspecialchars($booking['package_title']); ?></td>
+                    <td class="px-6 py-3">
+                      <span class="inline-block px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-medium">
                         <?php echo ucfirst($booking['package_type']); ?>
                       </span>
                     </td>
-                    <td class="py-2 px-4"><?php echo date('M d, Y', strtotime($booking['travel_date'])); ?></td>
-                    <td class="py-2 px-4 text-center"><?php echo $booking['num_travelers'] ?? 0; ?></td>
-                    <td class="py-2 px-4"><?php echo htmlspecialchars($booking['booking_reference']); ?></td>
-                    <td class="py-2 px-4 font-medium">PKR <?php echo number_format($booking['total_price'] ?? 0, 0); ?></td>
-                    <td class="py-2 px-4">
-                      <span class="status-badge <?php echo 'status-' . $booking['booking_status']; ?>">
+                    <td class="px-6 py-3"><?php echo date('M d, Y', strtotime($booking['travel_date'])); ?></td>
+                    <td class="px-6 py-3 text-center"><?php echo $booking['num_travelers'] ?? 0; ?></td>
+                    <td class="px-6 py-3"><?php echo htmlspecialchars($booking['booking_reference']); ?></td>
+                    <td class="px-6 py-3 font-medium">PKR <?php echo number_format($booking['total_price'] ?? 0, 0); ?></td>
+                    <td class="px-6 py-3">
+                      <span class="inline-block px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-medium">
                         <?php echo ucfirst($booking['booking_status']); ?>
                       </span>
                     </td>
-                    <td class="py-2 px-4">
-                      <span class="status-badge <?php echo 'payment-' . $booking['payment_status']; ?>">
+                    <td class="px-6 py-3">
+                      <span class="inline-block px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-medium">
                         <?php echo ucfirst($booking['payment_status']); ?>
                       </span>
                     </td>
-                    <td class="py-2 px-4">
-                      <div class="flex space-x-2">
+                    <td class="px-6 py-3 text-center">
+                      <div class="flex justify-center space-x-2">
                         <?php if ($booking['booking_status'] === 'pending'): ?>
-                          <a href="?action=confirm&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-green-600 hover:text-green-800" title="Confirm Booking">
+                          <a href="?action=confirm&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" title="Confirm Booking" class="text-green-600 hover:text-green-800">
                             <i class="fas fa-check"></i>
                           </a>
                         <?php endif; ?>
                         <?php if ($booking['booking_status'] !== 'cancelled'): ?>
-                          <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-red-600 hover:text-red-800 cancel-booking" title="Cancel Booking" data-id="<?php echo $booking['id']; ?>">
+                          <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" title="Cancel Booking" class="text-red-600 hover:text-red-800">
                             <i class="fas fa-times"></i>
                           </a>
                         <?php endif; ?>
                         <?php if ($booking['payment_status'] === 'pending'): ?>
-                          <a href="?action=complete_payment&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="action-btn text-indigo-600 hover:text-indigo-800" title="Mark Payment as Paid">
+                          <a href="?action=complete_payment&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" title="Mark Paid" class="text-indigo-600 hover:text-indigo-800">
                             <i class="fas fa-dollar-sign"></i>
                           </a>
                         <?php endif; ?>
-                        <button type="button" class="action-btn text-gray-600 hover:text-gray-800 view-details" data-id="<?php echo $booking['id']; ?>" title="View Details">
+                        <button type="button" title="View Details" class="text-gray-600 hover:text-gray-800 view-details" data-id="<?php echo $booking['id']; ?>">
                           <i class="fas fa-eye"></i>
                         </button>
                       </div>
@@ -566,6 +564,7 @@ if (!$conn) {
           </table>
         </div>
       </div>
+
     </section>
   </main>
 
