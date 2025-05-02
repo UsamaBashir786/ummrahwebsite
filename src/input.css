@@ -1,2 +1,15 @@
 @import "tailwindcss";
-       
+
+:root {
+  --color-primary: #047857;
+  --color-secondary: #10B981;
+  --color-accent: #F59E0B;
+}
+
+@layer base {
+  :root {
+    --color-primary: oklch(60% 0.15 170); /* #047857 */
+    --color-secondary: oklch(70% 0.14 160); /* #10B981 */
+    --color-accent: oklch(80% 0.18 85); /* #F59E0B */
+  }
+}

@@ -162,19 +162,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
   <link rel="stylesheet" href="src/output.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#047857',
-            secondary: '#10B981',
-            accent: '#F59E0B',
-          },
-        },
-      },
-    }
-  </script>
+
   <style>
     .booking-form {
       background-color: #f9fafb;
