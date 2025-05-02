@@ -30,30 +30,20 @@ if ($packages_result && $packages_result->num_rows > 0) {
   <!-- Navbar -->
   <?php include 'includes/navbar.php'; ?>
 
-  <!-- Floating CTA -->
-  <a href="packages.php" class="floating-cta hover:bg-green-800 transition duration-300">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-    </svg>
-  </a>
 
   <!-- Hero Section -->
-  <section class="hero-section" style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
-    url('/assets/img/hero.jpg');">
+  <section class="hero-section relative bg-cover bg-center min-h-screen flex items-center justify-center" style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/assets/img/hero.jpg');">
     <div class="container mx-auto px-4 text-center">
       <div data-aos="fade-up" data-aos-duration="1000" class="max-w-4xl mx-auto text-white">
-        <h1 class="text-5xl md:text-6xl font-bold mb-6">Begin Your Sacred Journey to Umrah</h1>
-        <p class="text-xl mb-8 opacity-90">Embark on a transformative spiritual experience with our comprehensive and carefully curated Umrah packages.</p>
-        <div class="flex flex-col sm:flex-row justify-center gap-4">
-          <a href="packages.php" class="btn-primary bg-green-700 hover:bg-green-800 text-white font-medium py-3 px-8 rounded-lg text-lg transition duration-300">
+        <h1 class="text-5xl md:text-6xl font-bold mb-6 leading-tight">Journey to Umrah</h1>
+        <p class="text-xl mb-8 opacity-90 max-w-2xl mx-auto">Embark on a transformative spiritual experience with our comprehensive and carefully curated Umrah packages.</p>
+        <div class="flex justify-center">
+          <a href="packages.php" class="btn-primary bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-8 rounded-lg text-lg transition duration-300">
             Explore Packages
-          </a>
-          <a href="#services" class="bg-transparent border-2 border-white text-white font-medium py-3 px-8 rounded-lg text-lg hover:bg-white hover:text-green-700 transition duration-300">
-            Our Services
           </a>
         </div>
       </div>
-      <div class="scroll-down text-white">
+      <div class="scroll-down absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white animate-bounce">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
         </svg>
@@ -480,7 +470,7 @@ if ($packages_result && $packages_result->num_rows > 0) {
   <!-- Stats Section -->
   <section class="py-16 animated-bg text-white">
     <div class="container mx-auto px-4">
-      <div class="text-center mb-12" data-aos ="fade-up">
+      <div class="text-center mb-12" data-aos="fade-up">
         <span class="inline-block px-3 py-1 bg-white text-green-700 rounded-full text-sm font-semibold mb-2">OUR ACHIEVEMENTS</span>
         <h2 class="text-4xl font-bold mb-4">Trusted by Thousands of Pilgrims</h2>
         <p class="max-w-2xl mx-auto opacity-90">We have been privileged to serve numerous pilgrims over the years, helping them fulfill their spiritual journey with comfort and peace of mind.</p>

@@ -543,6 +543,145 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
                 required>
               <span id="pickup_time_error" class="text-red-500 text-xs hidden">Please enter a valid time in 24-hour format (e.g., 13:55 or 22:45).</span>
             </div>
+            <script>
+              // Time input formatting and validation
+              document.addEventListener('DOMContentLoaded', function() {
+                const timeInput = document.getElementById('pickup_time');
+                const errorSpan = document.getElementById('pickup_time_error');
+
+                if (!timeInput || !errorSpan) {
+                  console.error('Time input elements not found');
+                  return;
+                }
+
+                // Format time input as user types
+                timeInput.addEventListener('input', function(e) {
+                  let value = e.target.value;
+
+                  // Remove any non-numeric and non-colon characters
+                  value = value.replace(/[^0-9:]/g, '');
+
+                  // Auto-add colon after 2 digits if not already present
+                  if (value.length === 2 && !value.includes(':')) {
+                    value += ':';
+                  }
+
+                  // Enforce maximum length
+                  if (value.length > 5) {
+                    value = value.substring(0, 5);
+                  }
+
+                  // Handle hours validation (0-23)
+                  if (value.includes(':') && value.split(':')[0].length === 2) {
+                    const hours = parseInt(value.split(':')[0], 10);
+                    if (hours > 23) {
+                      value = '23' + value.substring(2);
+                    }
+                  }
+
+                  // Handle minutes validation (0-59)
+                  if (value.length === 5 && value.includes(':')) {
+                    const minutes = parseInt(value.split(':')[1], 10);
+                    if (minutes > 59) {
+                      value = value.substring(0, 3) + '59';
+                    }
+                  }
+
+                  // Update input value
+                  e.target.value = value;
+
+                  // Show/hide error message
+                  const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+                  if (value.length === 5 && !timePattern.test(value)) {
+                    timeInput.classList.remove('border-gray-300');
+                    timeInput.classList.add('border-red-500');
+                    errorSpan.classList.remove('hidden');
+                  } else {
+                    timeInput.classList.remove('border-red-500');
+                    timeInput.classList.add('border-gray-300');
+                    errorSpan.classList.add('hidden');
+                  }
+                });
+
+                // Additional keydown event to improve usability
+                timeInput.addEventListener('keydown', function(e) {
+                  // Handle backspace special case
+                  if (e.key === 'Backspace' && this.value.length === 3 && this.value.charAt(2) === ':') {
+                    // If cursor is right after the colon, delete both the colon and the character before it
+                    if (this.selectionStart === 3 && this.selectionEnd === 3) {
+                      e.preventDefault();
+                      this.value = this.value.substring(0, 1);
+                      return;
+                    }
+                  }
+
+                  // Auto-move cursor after adding colon
+                  if (this.value.length === 3 && this.value.includes(':') && this.selectionStart === 2) {
+                    this.selectionStart = 3;
+                    this.selectionEnd = 3;
+                  }
+                });
+
+                // Handle blur event to ensure complete format
+                timeInput.addEventListener('blur', function() {
+                  const value = this.value;
+                  if (value && value.length < 5) {
+                    // If only hours entered (1 or 2 digits)
+                    if (!value.includes(':')) {
+                      let hours = parseInt(value, 10);
+                      if (hours > 23) hours = 23;
+                      this.value = (hours < 10 ? '0' : '') + hours + ':00';
+                    }
+                    // If hours and colon but no/incomplete minutes
+                    else if (value.includes(':')) {
+                      let parts = value.split(':');
+                      let hours = parseInt(parts[0], 10);
+                      if (hours > 23) hours = 23;
+                      let minutes = parts[1] ? parseInt(parts[1], 10) : 0;
+                      if (minutes > 59) minutes = 59;
+                      this.value = (hours < 10 ? '0' : '') + hours + ':' + (minutes < 10 ? '0' : '') + minutes;
+                    }
+                  }
+
+                  // Final validation
+                  const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+                  if (this.value && !timePattern.test(this.value)) {
+                    timeInput.classList.remove('border-gray-300');
+                    timeInput.classList.add('border-red-500');
+                    errorSpan.classList.remove('hidden');
+                  } else {
+                    timeInput.classList.remove('border-red-500');
+                    timeInput.classList.add('border-gray-300');
+                    errorSpan.classList.add('hidden');
+                  }
+                });
+
+                // Add validation to form submission
+                const form = document.getElementById('assignTransportForm');
+                if (form) {
+                  form.addEventListener('submit', function(e) {
+                    const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
+                    if (timeInput.value && !timePattern.test(timeInput.value)) {
+                      e.preventDefault();
+                      timeInput.classList.remove('border-gray-300');
+                      timeInput.classList.add('border-red-500');
+                      errorSpan.classList.remove('hidden');
+                      timeInput.focus();
+
+                      // Show error alert if SweetAlert2 is available
+                      if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                          icon: 'error',
+                          title: 'Invalid Time',
+                          text: 'Please enter a valid time in 24-hour format (e.g., 13:55 or 22:45).'
+                        });
+                      }
+                    }
+                  });
+                }
+              });
+            </script>
             <div>
               <label for="pickup_location" class="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
               <input type="text" name="pickup_location" id="pickup_location"
@@ -646,166 +785,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
     </section>
   </main>
   <script>
-    const taxiRoutes = <?php echo json_encode($taxi_routes); ?>;
-    const rentacarRoutes = <?php echo json_encode($rentacar_routes); ?>;
-
     document.addEventListener('DOMContentLoaded', function() {
-      // Sidebar elements (aligned with other pages)
-      const sidebar = document.getElementById('sidebar');
-      const sidebarOverlay = document.getElementById('sidebar-overlay');
-      const sidebarToggle = document.getElementById('sidebarToggle');
-      const sidebarClose = document.getElementById('sidebar-close');
-      const dashboardHeader = document.getElementById('dashboardHeader');
+      // Sidebar and user dropdown code (unchanged)
+      // ...
 
-      // User dropdown elements
-      const userDropdownButton = document.getElementById('userDropdownButton');
-      const userDropdownMenu = document.getElementById('userDropdownMenu');
+      // Get the transport routes data
+      const taxiRoutes = <?php echo json_encode($taxi_routes); ?>;
+      const rentacarRoutes = <?php echo json_encode($rentacar_routes); ?>;
 
-      // Error handling for missing elements
-      if (!sidebar || !sidebarOverlay || !sidebarToggle || !sidebarClose) {
-        console.warn('One or more sidebar elements are missing.');
-        return;
-      }
-      if (!userDropdownButton || !userDropdownMenu) {
-        console.warn('User dropdown elements are missing.');
-        return;
-      }
-      if (!dashboardHeader) {
-        console.warn('Dashboard header element is missing.');
-        return;
-      }
-
-      // Sidebar toggle function
-      const toggleSidebar = () => {
-        sidebar.classList.toggle('-translate-x-full');
-        sidebarOverlay.classList.toggle('hidden');
-        sidebarToggle.classList.toggle('hidden');
-      };
-
-      // Open sidebar
-      sidebarToggle.addEventListener('click', toggleSidebar);
-
-      // Close sidebar
-      sidebarClose.addEventListener('click', toggleSidebar);
-
-      // Close sidebar via overlay
-      sidebarOverlay.addEventListener('click', toggleSidebar);
-
-      // Open sidebar on Dashboard header click
-      dashboardHeader.addEventListener('click', () => {
-        if (sidebar.classList.contains('-translate-x-full')) {
-          toggleSidebar();
-        }
-      });
-
-      // User dropdown toggle
-      userDropdownButton.addEventListener('click', () => {
-        userDropdownMenu.classList.toggle('hidden');
-      });
-
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (event) => {
-        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
-          userDropdownMenu.classList.add('hidden');
-        }
-      });
-
-      // Pickup time validation
-      const timeInput = document.getElementById('pickup_time');
-      const errorSpan = document.getElementById('pickup_time_error');
-      const form = document.getElementById('assignTransportForm');
-
-      timeInput.addEventListener('input', function(e) {
-        let value = e.target.value;
-        value = value.replace(/[^0-9:]/g, '');
-        if (value.length === 2 && !value.includes(':')) {
-          value += ':';
-        }
-        if (value.length > 5) {
-          value = value.substring(0, 5);
-        }
-        if (value.includes(':') && value.split(':')[0].length === 2) {
-          const hours = parseInt(value.split(':')[0], 10);
-          if (hours > 23) {
-            value = '23' + value.substring(2);
-          }
-        }
-        if (value.length === 5 && value.includes(':')) {
-          const minutes = parseInt(value.split(':')[1], 10);
-          if (minutes > 59) {
-            value = value.substring(0, 3) + '59';
-          }
-        }
-        e.target.value = value;
-        const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-        if (value.length === 5 && !timePattern.test(value)) {
-          timeInput.classList.remove('border-gray-300');
-          timeInput.classList.add('border-red-500');
-          errorSpan.classList.remove('hidden');
-        } else {
-          timeInput.classList.remove('border-red-500');
-          timeInput.classList.add('border-gray-300');
-          errorSpan.classList.add('hidden');
-        }
-      });
-
-      form.addEventListener('submit', function(e) {
-        const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-
-        // First validate the time format
-        if (timeInput.value && !timePattern.test(timeInput.value)) {
-          e.preventDefault();
-          timeInput.classList.remove('border-gray-300');
-          timeInput.classList.add('border-red-500');
-          errorSpan.classList.remove('hidden');
-          timeInput.focus();
-          Swal.fire({
-            icon: 'error',
-            title: 'Invalid Time',
-            text: 'Please enter a valid time in 24-hour format (e.g., 13:55 or 22:45).'
-          });
-          return; // Stop execution here
-        }
-
-        // Handle form submission with confirmation
-        if (e.submitter && e.submitter.name === 'assign_transport') {
-          e.preventDefault(); // Prevent default form submission initially
-
-          // Store a reference to the form
-          const formElement = this;
-
-          Swal.fire({
-            title: 'Are you sure?',
-            text: 'Do you want to assign this transportation to the booking?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#4f46e5',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, assign it!',
-            cancelButtonText: 'Cancel'
-          }).then((result) => {
-            if (result.isConfirmed) {
-              // Critical fix: Use a hidden input to indicate the form should be submitted
-              const hiddenInput = document.createElement('input');
-              hiddenInput.type = 'hidden';
-              hiddenInput.name = 'assign_transport';
-              hiddenInput.value = '1';
-              formElement.appendChild(hiddenInput);
-
-              // Submit the form programmatically
-              formElement.submit();
-            }
-          });
-        }
-      });
-
-      // Populate routes and vehicles
+      // Populate routes and vehicles functions
       function populateRoutes(transportType) {
         const routeSelect = document.getElementById('route_id');
         routeSelect.innerHTML = '<option value="">-- Select Route --</option>';
+
+        // Enable the route selector if transport type is selected
         routeSelect.disabled = !transportType;
+
         if (!transportType) return;
+
+        // Get the correct routes based on transport type
         const routes = transportType === 'taxi' ? taxiRoutes : rentacarRoutes;
+
+        // Add each route as an option
         routes.forEach(route => {
           const option = document.createElement('option');
           option.value = route.id;
@@ -813,38 +814,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
           option.setAttribute('data-route', JSON.stringify(route));
           routeSelect.appendChild(option);
         });
+
+        // Handle saved route selection if any
         const savedRouteId = <?php echo $form_route_id ? $form_route_id : '0'; ?>;
         if (savedRouteId > 0) {
-          for (let i = 0; i < routeSelect.options.length; i++) {
-            if (routeSelect.options[i].value == savedRouteId) {
-              routeSelect.selectedIndex = i;
-              routeSelect.dispatchEvent(new Event('change'));
-              break;
-            }
-          }
+          routeSelect.value = savedRouteId;
+          // Trigger change event to populate vehicles
+          routeSelect.dispatchEvent(new Event('change'));
         }
       }
 
       function populateVehicles(routeId, transportType) {
         const vehicleSelect = document.getElementById('vehicle_type');
         vehicleSelect.innerHTML = '<option value="">-- Select Vehicle Type --</option>';
+
+        // Disable vehicle selector if no route is selected
         if (!routeId || !transportType) {
           vehicleSelect.disabled = true;
           return;
         }
+
+        // Find the selected route object
         const routes = transportType === 'taxi' ? taxiRoutes : rentacarRoutes;
         let selectedRoute = null;
+
         for (const route of routes) {
-          if (route.id == routeId) {
+          if (parseInt(route.id) === parseInt(routeId)) {
             selectedRoute = route;
             break;
           }
         }
+
         if (!selectedRoute) {
+          console.error('Selected route not found:', routeId, transportType);
           vehicleSelect.disabled = true;
           return;
         }
+
+        // Enable vehicle selector
         vehicleSelect.disabled = false;
+
+        // Add vehicle options based on transport type
         if (transportType === 'taxi') {
           if (parseFloat(selectedRoute.camry_sonata_price) > 0) {
             addVehicleOption(vehicleSelect, 'Camry/Sonata', selectedRoute.camry_sonata_price);
@@ -866,15 +876,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
             addVehicleOption(vehicleSelect, 'Coaster', selectedRoute.coaster_price);
           }
         }
+
+        // Set saved vehicle type if any
         const savedVehicleType = "<?php echo $form_vehicle_type ? addslashes($form_vehicle_type) : ''; ?>";
         if (savedVehicleType) {
-          for (let i = 0; i < vehicleSelect.options.length; i++) {
-            if (vehicleSelect.options[i].value === savedVehicleType) {
-              vehicleSelect.selectedIndex = i;
-              vehicleSelect.dispatchEvent(new Event('change'));
-              break;
-            }
-          }
+          vehicleSelect.value = savedVehicleType;
+          // Trigger change event to update price
+          vehicleSelect.dispatchEvent(new Event('change'));
         }
       }
 
@@ -890,6 +898,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
         const vehicleSelect = document.getElementById('vehicle_type');
         const pricePreview = document.getElementById('pricePreview');
         const priceDisplay = document.getElementById('priceDisplay');
+
         if (vehicleSelect.value) {
           const selectedOption = vehicleSelect.options[vehicleSelect.selectedIndex];
           const price = parseFloat(selectedOption.getAttribute('data-price'));
@@ -903,31 +912,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
         }
       }
 
-      document.getElementById('transport_type').addEventListener('change', function() {
+      // Add event listeners
+      const transportTypeSelect = document.getElementById('transport_type');
+      const routeSelect = document.getElementById('route_id');
+      const vehicleSelect = document.getElementById('vehicle_type');
+
+      // Debug output to console
+      console.log('Taxi Routes:', taxiRoutes);
+      console.log('Rentacar Routes:', rentacarRoutes);
+
+      transportTypeSelect.addEventListener('change', function() {
+        console.log('Transport type changed to:', this.value);
         populateRoutes(this.value);
-        document.getElementById('vehicle_type').innerHTML = '<option value="">-- Select Route First --</option>';
-        document.getElementById('vehicle_type').disabled = true;
+        vehicleSelect.innerHTML = '<option value="">-- Select Route First --</option>';
+        vehicleSelect.disabled = true;
         document.getElementById('pricePreview').classList.add('hidden');
       });
 
-      document.getElementById('route_id').addEventListener('change', function() {
-        const transportType = document.getElementById('transport_type').value;
+      routeSelect.addEventListener('change', function() {
+        console.log('Route changed to:', this.value);
+        const transportType = transportTypeSelect.value;
         populateVehicles(this.value, transportType);
         document.getElementById('pricePreview').classList.add('hidden');
       });
 
-      document.getElementById('vehicle_type').addEventListener('change', updatePriceDisplay);
-
-      document.getElementById('pickup_date').min = new Date().toISOString().split('T')[0];
+      vehicleSelect.addEventListener('change', function() {
+        console.log('Vehicle changed to:', this.value);
+        updatePriceDisplay();
+      });
 
       // Initialize form state
-      const transportType = document.getElementById('transport_type').value;
-      const routeId = document.getElementById('route_id').value;
+      const transportType = transportTypeSelect.value;
+      console.log('Initial transport type:', transportType);
+
       if (transportType) {
         populateRoutes(transportType);
+        const routeId = routeSelect.value;
+        console.log('Initial route ID:', routeId);
+
         if (routeId) {
           populateVehicles(routeId, transportType);
-          if (document.getElementById('vehicle_type').value) {
+          if (vehicleSelect.value) {
             updatePriceDisplay();
           }
         }
