@@ -154,6 +154,10 @@
     --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     --default-font-family: var(--font-sans);
     --default-mono-font-family: var(--font-mono);
+    /* Custom colors from Tailwind config */
+    --color-primary: oklch(60% 0.15 170); /* #047857 */
+    --color-secondary: oklch(70% 0.14 160); /* #10B981 */
+    --color-accent: oklch(80% 0.18 85); /* #F59E0B */
   }
 }
 @layer base {
