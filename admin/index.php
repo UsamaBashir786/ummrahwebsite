@@ -20,6 +20,16 @@ if (!$conn) {
   die("Database connection failed: " . mysqli_connect_error());
 }
 
+// Function to format numbers to k format
+function format_number($number)
+{
+  if ($number >= 1000) {
+    $number = $number / 1000;
+    return number_format($number, $number >= 10 ? 0 : 1) . 'k';
+  }
+  return number_format($number, 2);
+}
+
 // Fetch comprehensive dashboard statistics using $conn
 // 1. Total Bookings (flight_bookings + hotel_bookings + package_bookings + transportation_bookings)
 $stmt = $conn->prepare("
@@ -141,7 +151,7 @@ $hotels = $stmt->get_result()->fetch_assoc();
 $total_hotels = $hotels['total_hotels'] ?? 0;
 $makkah_hotels = $hotels['makkah_hotels'] ?? 0;
 $madinah_hotels = $hotels['madinah_hotels'] ?? 0;
-$avg_hotel_rating = round((float)$hotels['avg_hotel_rating'], 1); // Line 116
+$avg_hotel_rating = round((float)$hotels['avg_hotel_rating'], 1);
 $stmt->close();
 
 // 7. Hotel Rooms Availability
@@ -249,7 +259,9 @@ $stmt->close();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard | UmrahFlights</title>
-  <!-- Tailwind CSS -->
+  <!-- Tailwind CSS CDN -->
+  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+  <link rel="stylesheet" href="../src/output.css">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <!-- Custom CSS -->
@@ -265,9 +277,9 @@ $stmt->close();
     <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
-          <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
+          <!-- <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
             <i class="fas fa-bars text-xl"></i>
-          </button>
+          </button> -->
           <h4 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">Dashboard</h4>
         </div>
 
@@ -297,13 +309,13 @@ $stmt->close();
     </nav>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
       <!-- Total Revenue -->
-      <div class="col-span-1 lg:col-span-4">
+      <div>
         <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-green-500">
           <div class="flex justify-between items-center">
             <div>
-              <h3 class="text-2xl font-bold text-gray-800">Rs.<?php echo number_format($total_revenue, 2); ?></h3>
+              <h3 class="text-2xl font-bold text-gray-800">Rs.<?php echo format_number($total_revenue); ?></h3>
               <p class="text-sm text-gray-500">Total Revenue</p>
             </div>
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-500">
@@ -314,11 +326,11 @@ $stmt->close();
       </div>
 
       <!-- Average Package Booking Value -->
-      <div class="col-span-1 lg:col-span-4">
+      <div>
         <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-yellow-500">
           <div class="flex justify-between items-center">
             <div>
-              <h3 class="text-2xl font-bold text-gray-800">Rs.<?php echo number_format($avg_package_booking, 2); ?></h3>
+              <h3 class="text-2xl font-bold text-gray-800">Rs.<?php echo format_number($avg_package_booking); ?></h3>
               <p class="text-sm text-gray-500">Avg Package Booking</p>
             </div>
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 text-yellow-500">
@@ -329,11 +341,11 @@ $stmt->close();
       </div>
 
       <!-- Average Flight Booking Value -->
-      <div class="col-span-1 lg:col-span-4">
+      <div>
         <div class="bg-white shadow-lg rounded-lg p-6 border-l-4 border-blue-500">
           <div class="flex justify-between items-center">
             <div>
-              <h3 class="text-2xl font-bold text-gray-800">Rs.<?php echo number_format($avg_flight_booking, 2); ?></h3>
+              <h3 class="text-2xl font-bold text-gray-800">Rs.<?php echo format_number($avg_flight_booking); ?></h3>
               <p class="text-sm text-gray-500">Avg Flight Booking</p>
             </div>
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-500">

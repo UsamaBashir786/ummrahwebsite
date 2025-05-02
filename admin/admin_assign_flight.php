@@ -11,6 +11,28 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
   exit;
 }
 
+
+
+// try {
+//     $conn = require_once '../config/db.php';
+
+//     session_name('admin_session');
+//     session_start();
+
+//     if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true) {
+//         header('Location: login.php');
+//         exit;
+//     }
+// } catch (Exception $e) {
+//     error_log("Error: " . $e->getMessage());
+//     die("An error occurred. Please contact support.");
+// }
+
+
+
+
+
+
 // Get booking ID from POST or GET
 $booking_id = isset($_POST['booking_id']) ? intval($_POST['booking_id']) : (isset($_GET['booking_id']) ? intval($_GET['booking_id']) : 0);
 
@@ -169,7 +191,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
                                   WHERE user_id = ?");
             $user_id = $booking['user_id'];
             $stmt->bind_param(
-              "issidssi",
+              "issidssii",
               $flight_id,
               $cabin_class,
               $adult_count,
@@ -529,12 +551,12 @@ if ($booking) {
         const totalPrice = pricePerSeat * totalSeats;
 
         // Highlight the selected cabin class
-        document.querySelectorAll('.bg-blue-50, .bg-purple-50, .bg-amber-50').forEach(el => {
+        document.querySelectorAll('.bg-indigo-50, .bg-purple-50, .bg-amber-50').forEach(el => {
           el.classList.remove('ring-2', 'ring-blue-500');
         });
 
         if (cabinClass === 'economy') {
-          document.querySelector('.bg-blue-50').classList.add('ring-2', 'ring-blue-500');
+          document.querySelector('.bg-indigo-50').classList.add('ring-2', 'ring-blue-500');
         } else if (cabinClass === 'business') {
           document.querySelector('.bg-purple-50').classList.add('ring-2', 'ring-blue-500');
         } else if (cabinClass === 'first_class') {

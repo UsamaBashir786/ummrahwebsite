@@ -392,19 +392,7 @@ if ($result) {
       </div>
     </div>
 
-    <!-- Chart Section -->
-    <div class="bg-white shadow-lg rounded-lg p-6 mb-6" aria-label="Package distribution charts">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">Packages by Type</h3>
-          <canvas id="typeChart" class="w-full h-64"></canvas>
-        </div>
-        <div>
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">Packages by Flight Class</h3>
-          <canvas id="flightChart" class="w-full h-64"></canvas>
-        </div>
-      </div>
-    </div>
+
 
     <!-- Filters Section -->
     <div class="bg-white shadow-lg rounded-lg p-6 mb-6" aria-label="Package filters">

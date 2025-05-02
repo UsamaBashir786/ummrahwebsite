@@ -330,8 +330,9 @@ if (!empty($filter)) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flight Bookings | UmrahFlights Admin</title>
   <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
   <!-- Font Awesome -->
+  <link rel="stylesheet" href="../src/output.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <!-- DataTables CSS -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
