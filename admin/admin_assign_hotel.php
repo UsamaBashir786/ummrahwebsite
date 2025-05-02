@@ -27,11 +27,6 @@ $hotels = [];
 $booking_details = [];
 $available_rooms = [];
 
-// Retrieve available rooms from session if they exist
-if (isset($_SESSION['available_rooms_' . $booking_id])) {
-  $available_rooms = $_SESSION['available_rooms_' . $booking_id];
-}
-
 // Store form values to maintain state after submission
 $form_hotel_id = isset($_POST['hotel_id']) ? intval($_POST['hotel_id']) : 0;
 $form_check_in_date = isset($_POST['check_in_date']) ? $_POST['check_in_date'] : '';
@@ -269,11 +264,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
       $conn->commit();
       $success_message = "Hotel assigned successfully to booking #$booking_id.";
 
-      // Clear the session variable after successful assignment
-      if (isset($_SESSION['available_rooms_' . $booking_id])) {
-        unset($_SESSION['available_rooms_' . $booking_id]);
-      }
-
       // Refresh booking details
       $stmt = $conn->prepare("SELECT * FROM hotel_bookings WHERE user_id = ?");
       $stmt->bind_param("i", $booking['user_id']);
@@ -386,9 +376,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
       }
     }
 
-    // Store available rooms in session
-    $_SESSION['available_rooms_' . $booking_id] = $available_rooms;
-
     if (empty($available_rooms)) {
       $error_message = "No rooms available for the selected dates. Please choose different dates.";
     } else {
@@ -397,6 +384,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
   }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -584,116 +572,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
   </main>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Sidebar elements (aligned with index.php, add-transportation.php, and assign-flight.php)
-      const sidebar = document.getElementById('sidebar');
-      const sidebarOverlay = document.getElementById('sidebar-overlay');
-      const sidebarToggle = document.getElementById('sidebarToggle');
-      const sidebarClose = document.getElementById('sidebar-close');
-      const dashboardHeader = document.getElementById('dashboardHeader');
+    // Validate dates
+    document.getElementById('check_in_date').addEventListener('change', function() {
+      const checkOutInput = document.getElementById('check_out_date');
+      checkOutInput.min = this.value;
 
-      // User dropdown elements
-      const userDropdownButton = document.getElementById('userDropdownButton');
-      const userDropdownMenu = document.getElementById('userDropdownMenu');
-
-      // Error handling for missing elements
-      // Error handling for missing elements
-      if (!sidebar || !sidebarOverlay || !sidebarToggle || !sidebarClose) {
-        console.warn('One or more sidebar elements are missing.');
-        return;
+      if (checkOutInput.value && new Date(checkOutInput.value) <= new Date(this.value)) {
+        // Set checkout to day after checkin
+        const nextDay = new Date(this.value);
+        nextDay.setDate(nextDay.getDate() + 1);
+        checkOutInput.value = nextDay.toISOString().split('T')[0];
       }
-      if (!userDropdownButton || !userDropdownMenu) {
-        console.warn('User dropdown elements are missing.');
-        return;
-      }
-      if (!dashboardHeader) {
-        console.warn('Dashboard header element is missing.');
-        return;
-      }
+    });
 
-      // Sidebar toggle function
-      const toggleSidebar = () => {
-        sidebar.classList.toggle('-translate-x-full');
-        sidebarOverlay.classList.toggle('hidden');
-        sidebarToggle.classList.toggle('hidden');
-      };
-
-      // Open sidebar
-      sidebarToggle.addEventListener('click', toggleSidebar);
-
-      // Close sidebar
-      sidebarClose.addEventListener('click', toggleSidebar);
-
-      // Close sidebar via overlay
-      sidebarOverlay.addEventListener('click', toggleSidebar);
-
-      // Open sidebar on Dashboard header click
-      dashboardHeader.addEventListener('click', () => {
-        if (sidebar.classList.contains('-translate-x-full')) {
-          toggleSidebar();
-        }
-      });
-
-      // User dropdown toggle
-      userDropdownButton.addEventListener('click', () => {
-        userDropdownMenu.classList.toggle('hidden');
-      });
-
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (event) => {
-        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
-          userDropdownMenu.classList.add('hidden');
-        }
-      });
-
-      // Validate dates
-      document.getElementById('check_in_date').addEventListener('change', function() {
-        const checkOutInput = document.getElementById('check_out_date');
-        checkOutInput.min = this.value;
-
-        if (checkOutInput.value && new Date(checkOutInput.value) <= new Date(this.value)) {
-          // Set checkout to day after checkin
-          const nextDay = new Date(this.value);
-          nextDay.setDate(nextDay.getDate() + 1);
-          checkOutInput.value = nextDay.toISOString().split('T')[0];
-        }
-      });
-
-      // Form submission confirmation with SweetAlert2
-      document.getElementById('assignHotelForm').addEventListener('submit', function(e) {
-        if (e.submitter && e.submitter.name === 'assign_hotel') {
+    // Form submission confirmation
+    document.getElementById('assignHotelForm').addEventListener('submit', function(e) {
+      if (e.submitter && e.submitter.name === 'assign_hotel') {
+        if (!confirm('Are you sure you want to assign this hotel to the booking?')) {
           e.preventDefault();
-          Swal.fire({
-            title: 'Are you sure?',
-            text: 'Do you want to assign this hotel to the booking?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#4f46e5',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, assign it!',
-            cancelButtonText: 'Cancel'
-          }).then((result) => {
-            if (result.isConfirmed) {
-              this.submit();
-            }
-          });
         }
-      });
+      }
+    });
 
-      // Disable assign button if no room is selected
-      const roomSelect = document.getElementById('room_id');
-      const assignButton = document.querySelector('button[name="assign_hotel"]');
+    // Disable assign button if no room is selected
+    const roomSelect = document.getElementById('room_id');
+    const assignButton = document.querySelector('button[name="assign_hotel"]');
 
-      roomSelect.addEventListener('change', function() {
-        assignButton.disabled = !this.value;
-      });
+    roomSelect.addEventListener('change', function() {
+      assignButton.disabled = !this.value;
+    });
 
-      // Enable room selection dropdown when hotel_id changes and check availability button is clicked
-      document.getElementById('hotel_id').addEventListener('change', function() {
-        if (this.value) {
-          document.getElementById('check_in_date').focus();
-        }
-      });
+    // Enable room selection dropdown when hotel_id changes and check availability button is clicked
+    document.getElementById('hotel_id').addEventListener('change', function() {
+      if (this.value) {
+        document.getElementById('check_in_date').focus();
+      }
     });
   </script>
 </body>

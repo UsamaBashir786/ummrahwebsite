@@ -465,166 +465,92 @@ if ($booking) {
   </main>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Sidebar elements (aligned with index.php and add-transportation.php)
-      const sidebar = document.getElementById('sidebar');
-      const sidebarOverlay = document.getElementById('sidebar-overlay');
-      const sidebarToggle = document.getElementById('sidebarToggle');
-      const sidebarClose = document.getElementById('sidebar-close');
-      const dashboardHeader = document.getElementById('dashboardHeader');
+    // Show flight details when a flight is selected
+    document.getElementById('flight_id').addEventListener('change', function() {
+      const flightDetails = document.getElementById('flightDetails');
+      const option = this.options[this.selectedIndex];
 
-      // User dropdown elements
-      const userDropdownButton = document.getElementById('userDropdownButton');
-      const userDropdownMenu = document.getElementById('userDropdownMenu');
+      if (this.value) {
+        const flight = JSON.parse(option.getAttribute('data-flight'));
 
-      // Error handling for missing elements
-      if (!sidebar || !sidebarOverlay || !sidebarToggle || !sidebarClose) {
-        console.warn('One or more sidebar elements are missing.');
-        return;
-      }
-      if (!userDropdownButton || !userDropdownMenu) {
-        console.warn('User dropdown elements are missing.');
-        return;
-      }
-      if (!dashboardHeader) {
-        console.warn('Dashboard header element is missing.');
-        return;
-      }
+        document.getElementById('airlineName').textContent = flight.airline_name;
+        document.getElementById('flightNumber').textContent = flight.flight_number;
+        document.getElementById('flightRoute').textContent = flight.departure_city + ' to ' + flight.arrival_city;
 
-      // Sidebar toggle function
-      const toggleSidebar = () => {
-        sidebar.classList.toggle('-translate-x-full');
-        sidebarOverlay.classList.toggle('hidden');
-        sidebarToggle.classList.toggle('hidden');
-      };
-
-      // Open sidebar
-      sidebarToggle.addEventListener('click', toggleSidebar);
-
-      // Close sidebar
-      sidebarClose.addEventListener('click', toggleSidebar);
-
-      // Close sidebar via overlay
-      sidebarOverlay.addEventListener('click', toggleSidebar);
-
-      // Open sidebar on Dashboard header click
-      dashboardHeader.addEventListener('click', () => {
-        if (sidebar.classList.contains('-translate-x-full')) {
-          toggleSidebar();
-        }
-      });
-
-      // User dropdown toggle
-      userDropdownButton.addEventListener('click', () => {
-        userDropdownMenu.classList.toggle('hidden');
-      });
-
-      // Close dropdown when clicking outside
-      document.addEventListener('click', (event) => {
-        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
-          userDropdownMenu.classList.add('hidden');
-        }
-      });
-
-      // Show flight details when a flight is selected
-      document.getElementById('flight_id').addEventListener('change', function() {
-        const flightDetails = document.getElementById('flightDetails');
-        const option = this.options[this.selectedIndex];
-
-        if (this.value) {
-          const flight = JSON.parse(option.getAttribute('data-flight'));
-
-          document.getElementById('airlineName').textContent = flight.airline_name;
-          document.getElementById('flightNumber').textContent = flight.flight_number;
-          document.getElementById('flightRoute').textContent = flight.departure_city + ' to ' + flight.arrival_city;
-
-          const departureDate = new Date(flight.departure_date);
-          document.getElementById('flightDate').textContent = departureDate.toLocaleDateString('en-US', {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          });
-          document.getElementById('flightTime').textContent = flight.departure_time;
-          document.getElementById('flightDuration').textContent = flight.flight_duration;
-
-          document.getElementById('economyPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.economy_price);
-          document.getElementById('businessPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.business_price);
-          document.getElementById('firstClassPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.first_class_price);
-
-          document.getElementById('economySeats').textContent = flight.economy_seats;
-          document.getElementById('businessSeats').textContent = flight.business_seats;
-          document.getElementById('firstClassSeats').textContent = flight.first_class_seats;
-
-          flightDetails.classList.remove('hidden');
-        } else {
-          flightDetails.classList.add('hidden');
-        }
-      });
-
-      // Trigger the change event if a flight is already selected
-      if (document.getElementById('flight_id').value) {
-        document.getElementById('flight_id').dispatchEvent(new Event('change'));
-      }
-
-      // Form submission confirmation with SweetAlert2
-      document.getElementById('assignFlightForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        Swal.fire({
-          title: 'Are you sure?',
-          text: 'Do you want to assign this flight to the booking?',
-          icon: 'question',
-          showCancelButton: true,
-          confirmButtonColor: '#4f46e5',
-          cancelButtonColor: '#6b7280',
-          confirmButtonText: 'Yes, assign it!',
-          cancelButtonText: 'Cancel'
-        }).then((result) => {
-          if (result.isConfirmed) {
-            this.submit();
-          }
+        const departureDate = new Date(flight.departure_date);
+        document.getElementById('flightDate').textContent = departureDate.toLocaleDateString('en-US', {
+          weekday: 'short',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
         });
-      });
+        document.getElementById('flightTime').textContent = flight.departure_time;
+        document.getElementById('flightDuration').textContent = flight.flight_duration;
 
-      // Show pricing based on cabin class and passenger count
-      function updatePricing() {
-        const flightSelect = document.getElementById('flight_id');
-        const cabinClassSelect = document.getElementById('cabin_class');
-        const adultCountInput = document.getElementById('adult_count');
-        const childrenCountInput = document.getElementById('children_count');
+        document.getElementById('economyPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.economy_price);
+        document.getElementById('businessPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.business_price);
+        document.getElementById('firstClassPrice').textContent = new Intl.NumberFormat('en-PK').format(flight.first_class_price);
 
-        if (flightSelect.value && cabinClassSelect.value) {
-          const option = flightSelect.options[flightSelect.selectedIndex];
-          const flight = JSON.parse(option.getAttribute('data-flight'));
-          const cabinClass = cabinClassSelect.value;
-          const pricePerSeat = flight[cabinClass + '_price'];
-          const totalSeats = parseInt(adultCountInput.value) + parseInt(childrenCountInput.value);
-          const totalPrice = pricePerSeat * totalSeats;
+        document.getElementById('economySeats').textContent = flight.economy_seats;
+        document.getElementById('businessSeats').textContent = flight.business_seats;
+        document.getElementById('firstClassSeats').textContent = flight.first_class_seats;
 
-          // Highlight the selected cabin class
-          document.querySelectorAll('.bg-indigo-50, .bg-purple-50, .bg-amber-50').forEach(el => {
-            el.classList.remove('ring-2', 'ring-indigo-500');
-          });
-
-          if (cabinClass === 'economy') {
-            document.querySelector('.bg-indigo-50').classList.add('ring-2', 'ring-indigo-500');
-          } else if (cabinClass === 'business') {
-            document.querySelector('.bg-purple-50').classList.add('ring-2', 'ring-indigo-500');
-          } else if (cabinClass === 'first_class') {
-            document.querySelector('.bg-amber-50').classList.add('ring-2', 'ring-indigo-500');
-          }
-        }
-      }
-
-      document.getElementById('cabin_class').addEventListener('change', updatePricing);
-      document.getElementById('adult_count').addEventListener('change', updatePricing);
-      document.getElementById('children_count').addEventListener('change', updatePricing);
-
-      // Initialize pricing if values are already selected
-      if (document.getElementById('flight_id').value && document.getElementById('cabin_class').value) {
-        updatePricing();
+        flightDetails.classList.remove('hidden');
+      } else {
+        flightDetails.classList.add('hidden');
       }
     });
+
+    // Trigger the change event if a flight is already selected
+    if (document.getElementById('flight_id').value) {
+      document.getElementById('flight_id').dispatchEvent(new Event('change'));
+    }
+
+    // Form submission confirmation
+    document.getElementById('assignFlightForm').addEventListener('submit', function(e) {
+      if (!confirm('Are you sure you want to assign this flight to the booking?')) {
+        e.preventDefault();
+      }
+    });
+
+    // Show pricing based on cabin class and passenger count
+    function updatePricing() {
+      const flightSelect = document.getElementById('flight_id');
+      const cabinClassSelect = document.getElementById('cabin_class');
+      const adultCountInput = document.getElementById('adult_count');
+      const childrenCountInput = document.getElementById('children_count');
+
+      if (flightSelect.value && cabinClassSelect.value) {
+        const option = flightSelect.options[flightSelect.selectedIndex];
+        const flight = JSON.parse(option.getAttribute('data-flight'));
+        const cabinClass = cabinClassSelect.value;
+        const pricePerSeat = flight[cabinClass + '_price'];
+        const totalSeats = parseInt(adultCountInput.value) + parseInt(childrenCountInput.value);
+        const totalPrice = pricePerSeat * totalSeats;
+
+        // Highlight the selected cabin class
+        document.querySelectorAll('.bg-blue-50, .bg-purple-50, .bg-amber-50').forEach(el => {
+          el.classList.remove('ring-2', 'ring-blue-500');
+        });
+
+        if (cabinClass === 'economy') {
+          document.querySelector('.bg-blue-50').classList.add('ring-2', 'ring-blue-500');
+        } else if (cabinClass === 'business') {
+          document.querySelector('.bg-purple-50').classList.add('ring-2', 'ring-blue-500');
+        } else if (cabinClass === 'first_class') {
+          document.querySelector('.bg-amber-50').classList.add('ring-2', 'ring-blue-500');
+        }
+      }
+    }
+
+    document.getElementById('cabin_class').addEventListener('change', updatePricing);
+    document.getElementById('adult_count').addEventListener('change', updatePricing);
+    document.getElementById('children_count').addEventListener('change', updatePricing);
+
+    // Initialize pricing if values are already selected
+    if (document.getElementById('flight_id').value && document.getElementById('cabin_class').value) {
+      updatePricing();
+    }
   </script>
 </body>
 
