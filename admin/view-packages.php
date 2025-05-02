@@ -526,9 +526,7 @@ if ($result) {
                     <td class="p-3"><?php echo number_format($package['price'], 2); ?></td>
                     <td class="p-3"><?php echo date('d M Y', strtotime($package['created_at'])); ?></td>
                     <td class="p-3 flex space-x-2">
-                      <button type="button" class="text-indigo-600 hover:text-indigo-800 view-details" data-id="<?php echo $package['id']; ?>" data-tooltip="View Details" aria-label="View details for <?php echo htmlspecialchars($package['title']); ?>">
-                        <i class="fas fa-eye"></i>
-                      </button>
+
                       <a href="edit-package.php?id=<?php echo $package['id']; ?>" class="text-yellow-600 hover:text-yellow-800" data-tooltip="Edit Package" aria-label="Edit <?php echo htmlspecialchars($package['title']); ?>">
                         <i class="fas fa-edit"></i>
                       </a>
