@@ -111,6 +111,9 @@ while ($row = $result->fetch_assoc()) {
 $stmt->close();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
+  // Add debugging for form submission
+  error_log("Transport assignment form submitted for booking #$booking_id: " . json_encode($_POST));
+
   $transport_type = $form_transport_type;
   $route_id = $form_route_id;
   $vehicle_type = $form_vehicle_type;
@@ -122,23 +125,56 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
   $email = $form_email;
   $phone = $form_phone;
 
+  // Enhanced validation with debugging
+  $has_errors = false;
+
   if (!in_array($transport_type, $transport_types)) {
     $error_message = "Please select a valid transport type.";
+    error_log("Invalid transport type: $transport_type");
+    $has_errors = true;
   } elseif ($route_id <= 0) {
     $error_message = "Please select a valid route.";
+    error_log("Invalid route ID: $route_id");
+    $has_errors = true;
   } elseif (empty($vehicle_type)) {
     $error_message = "Please select a vehicle type.";
-  } elseif (empty($pickup_date) || empty($pickup_time)) {
-    $error_message = "Pickup date and time are required.";
+    error_log("Vehicle type is empty");
+    $has_errors = true;
+  } elseif (empty($pickup_date)) {
+    $error_message = "Pickup date is required.";
+    error_log("Pickup date is empty");
+    $has_errors = true;
+  } elseif (empty($pickup_time)) {
+    $error_message = "Pickup time is required.";
+    error_log("Pickup time is empty");
+    $has_errors = true;
   } elseif (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $pickup_time)) {
     $error_message = "Invalid pickup time. Please use 24-hour format (e.g., 13:55 or 22:45).";
+    error_log("Invalid pickup time format: $pickup_time");
+    $has_errors = true;
   } elseif (empty($pickup_location)) {
     $error_message = "Pickup location is required.";
-  } elseif (empty($full_name) || empty($email) || empty($phone)) {
-    $error_message = "Contact information is required.";
-  } else {
+    error_log("Pickup location is empty");
+    $has_errors = true;
+  } elseif (empty($full_name)) {
+    $error_message = "Contact name is required.";
+    error_log("Full name is empty");
+    $has_errors = true;
+  } elseif (empty($email)) {
+    $error_message = "Contact email is required.";
+    error_log("Email is empty");
+    $has_errors = true;
+  } elseif (empty($phone)) {
+    $error_message = "Contact phone is required.";
+    error_log("Phone is empty");
+    $has_errors = true;
+  }
+
+  if (!$has_errors) {
+    // Find the price and route name
     $price = 0;
     $route_name = '';
+    $price_found = false;
 
     if ($transport_type === 'taxi') {
       foreach ($taxi_routes as $route) {
@@ -147,12 +183,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
           switch ($vehicle_type) {
             case 'Camry/Sonata':
               $price = $route['camry_sonata_price'];
+              $price_found = true;
               break;
             case 'Starex/Staria':
               $price = $route['starex_staria_price'];
+              $price_found = true;
               break;
             case 'Hiace':
               $price = $route['hiace_price'];
+              $price_found = true;
               break;
           }
           break;
@@ -165,12 +204,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
           switch ($vehicle_type) {
             case 'GMC 16-19 Seats':
               $price = $route['gmc_16_19_price'];
+              $price_found = true;
               break;
             case 'GMC 22-23 Seats':
               $price = $route['gmc_22_23_price'];
+              $price_found = true;
               break;
             case 'Coaster':
               $price = $route['coaster_price'];
+              $price_found = true;
               break;
           }
           break;
@@ -178,16 +220,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
       }
     }
 
-    if ($price <= 0) {
-      $error_message = "Could not determine price for selected options.";
+    if (!$price_found || $price <= 0) {
+      $error_message = "Could not determine price for selected options. Please try different selections.";
+      error_log("Price determination failed for booking #$booking_id. Transport type: $transport_type, Route ID: $route_id, Vehicle type: $vehicle_type");
     } else {
+      // Format pickup time for database
       $pickup_time = $pickup_time . ':00';
+
+      // Database transaction
       $conn->begin_transaction();
       try {
         $payment_status = 'paid';
         $booking_status = 'confirmed';
+        $user_id = $booking['user_id'];
 
         if (!empty($booking_details)) {
+          // Update existing booking
           $stmt = $conn->prepare("UPDATE transportation_bookings 
                                 SET transport_type = ?, route_id = ?, route_name = ?,
                                     vehicle_type = ?, price = ?, pickup_date = ?,
@@ -196,7 +244,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
                                     email = ?, phone = ?, payment_status = ?,
                                     booking_status = ?
                                 WHERE user_id = ?");
-          $user_id = $booking['user_id'];
+
           $stmt->bind_param(
             "sissdsssssssssi",
             $transport_type,
@@ -215,18 +263,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
             $booking_status,
             $user_id
           );
+
           if (!$stmt->execute()) {
             throw new Exception("Error updating transportation booking: " . $stmt->error);
           }
+          error_log("Successfully updated transportation booking for user ID: $user_id, booking #$booking_id");
           $stmt->close();
         } else {
-          $user_id = $booking['user_id'];
+          // Create new booking
           $stmt = $conn->prepare("INSERT INTO transportation_bookings 
                                 (user_id, transport_type, route_id, route_name,
                                  vehicle_type, price, full_name, email, phone,
                                  pickup_date, pickup_time, pickup_location, 
                                  additional_notes, payment_status, booking_status) 
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
           $stmt->bind_param(
             "isissdsssssssss",
             $user_id,
@@ -245,17 +296,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
             $payment_status,
             $booking_status
           );
+
           if (!$stmt->execute()) {
             throw new Exception("Error creating transportation booking: " . $stmt->error);
           }
+          error_log("Successfully created transportation booking for user ID: $user_id, booking #$booking_id");
           $stmt->close();
         }
 
+        // Commit the transaction
         $conn->commit();
         $success_message = "Transportation assigned successfully to booking #$booking_id. Payment status set to 'paid' and booking status set to 'confirmed'.";
 
+        // Refresh booking details
         $stmt = $conn->prepare("SELECT * FROM transportation_bookings WHERE user_id = ?");
-        $stmt->bind_param("i", $booking['user_id']);
+        $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
         if ($result->num_rows > 0) {
@@ -265,6 +320,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
       } catch (Exception $e) {
         $conn->rollback();
         $error_message = $e->getMessage();
+        error_log("Transportation assignment transaction failed: " . $e->getMessage());
       }
     }
   }
@@ -346,7 +402,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
       <?php if ($success_message): ?>
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
           <span><?php echo htmlspecialchars($success_message); ?></span>
-          <button class="text-green-700 hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-green-500" onclick="this.parentElement.remove()" aria-label="Close alert">
+          <button class="text-green-700 hover:text-green-900 focus:outline-none focus:ring-2 focus:ring-green-500" onclick="this.parentElement.remove()" aria-label="Close alert">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -589,7 +645,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
       <?php endif; ?>
     </section>
   </main>
-
   <script>
     const taxiRoutes = <?php echo json_encode($taxi_routes); ?>;
     const rentacarRoutes = <?php echo json_encode($rentacar_routes); ?>;
@@ -696,6 +751,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
 
       form.addEventListener('submit', function(e) {
         const timePattern = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
+        // First validate the time format
         if (timeInput.value && !timePattern.test(timeInput.value)) {
           e.preventDefault();
           timeInput.classList.remove('border-gray-300');
@@ -707,8 +764,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
             title: 'Invalid Time',
             text: 'Please enter a valid time in 24-hour format (e.g., 13:55 or 22:45).'
           });
-        } else if (e.submitter && e.submitter.name === 'assign_transport') {
-          e.preventDefault();
+          return; // Stop execution here
+        }
+
+        // Handle form submission with confirmation
+        if (e.submitter && e.submitter.name === 'assign_transport') {
+          e.preventDefault(); // Prevent default form submission initially
+
+          // Store a reference to the form
+          const formElement = this;
+
           Swal.fire({
             title: 'Are you sure?',
             text: 'Do you want to assign this transportation to the booking?',
@@ -720,7 +785,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_transport'])) {
             cancelButtonText: 'Cancel'
           }).then((result) => {
             if (result.isConfirmed) {
-              this.submit();
+              // Critical fix: Use a hidden input to indicate the form should be submitted
+              const hiddenInput = document.createElement('input');
+              hiddenInput.type = 'hidden';
+              hiddenInput.name = 'assign_transport';
+              hiddenInput.value = '1';
+              formElement.appendChild(hiddenInput);
+
+              // Submit the form programmatically
+              formElement.submit();
             }
           });
         }

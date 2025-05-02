@@ -242,37 +242,127 @@
 </button>
 
 <script>
-  const sidebar = document.getElementById('sidebar');
-  const sidebarOverlay = document.getElementById('sidebar-overlay');
-  const sidebarToggle = document.getElementById('sidebar-toggle');
-  const sidebarClose = document.getElementById('sidebar-close');
-  const dropdownButtons = document.querySelectorAll('[data-target]');
+  document.addEventListener('DOMContentLoaded', function() {
+    // Mobile sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebarClose = document.getElementById('sidebar-close');
 
-  // Open Sidebar
-  sidebarToggle.addEventListener('click', () => {
-    sidebar.classList.remove('-translate-x-full');
-    sidebarOverlay.classList.remove('hidden');
-    sidebarToggle.classList.add('hidden');
-  });
+    if (sidebarToggle && sidebar && sidebarOverlay && sidebarClose) {
+      // Open Sidebar
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.add('translate-x-0');
+        sidebar.classList.remove('-translate-x-full');
+        sidebarOverlay.classList.remove('hidden');
+        sidebarToggle.classList.add('hidden');
+      });
 
-  // Close Sidebar
-  sidebarClose.addEventListener('click', () => {
-    sidebar.classList.add('-translate-x-full');
-    sidebarOverlay.classList.add('hidden');
-    sidebarToggle.classList.remove('hidden');
-  });
+      // Close Sidebar via Overlay
+      sidebarOverlay.addEventListener('click', () => {
+        sidebar.classList.remove('translate-x-0');
+        sidebar.classList.add('-translate-x-full');
+        sidebarOverlay.classList.add('hidden');
+        sidebarToggle.classList.remove('hidden');
+      });
 
-  sidebarOverlay.addEventListener('click', () => {
-    sidebar.classList.add('-translate-x-full');
-    sidebarOverlay.classList.add('hidden');
-    sidebarToggle.classList.remove('hidden');
-  });
+      // Close Sidebar via Close Button
+      sidebarClose.addEventListener('click', () => {
+        console.log('Close button clicked');
+        sidebar.classList.remove('translate-x-0');
+        sidebar.classList.add('-translate-x-full');
+        sidebar.style.transform = 'translateX(-100%)'; // Force close
+        sidebarOverlay.classList.add('hidden');
+        sidebarToggle.classList.remove('hidden');
+      });
+    } else {
+      console.error('One or more sidebar elements not found:', {
+        sidebarToggle: !!sidebarToggle,
+        sidebar: !!sidebar,
+        sidebarOverlay: !!sidebarOverlay,
+        sidebarClose: !!sidebarClose
+      });
+    }
 
-  // Dropdown Toggle
-  dropdownButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const target = document.querySelector(button.getAttribute('data-target'));
-      target.classList.toggle('hidden');
+    // Dropdown Toggle for Sidebar Menus
+    const dropdownButtons = document.querySelectorAll('[data-target]');
+    dropdownButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const target = document.querySelector(button.getAttribute('data-target'));
+        target.classList.toggle('hidden');
+      });
+    });
+
+    // User Dropdown Toggle (from index.php)
+    const userDropdownButton = document.getElementById('userDropdownButton');
+    const userDropdownMenu = document.getElementById('userDropdownMenu');
+    if (userDropdownButton && userDropdownMenu) {
+      userDropdownButton.addEventListener('click', () => {
+        userDropdownMenu.classList.toggle('hidden');
+      });
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (event) => {
+        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+          userDropdownMenu.classList.add('hidden');
+        }
+      });
+    }
+
+    // Initialize charts (placeholder for actual implementation)
+    function initCharts() {
+      // Example for bookings chart implementation would go here
+      // const bookingsCtx = document.getElementById('bookingsChart').getContext('2d');
+      // new Chart(bookingsCtx, { ... });
+
+      // Example for revenue chart implementation would go here
+      // const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+      // new Chart(revenueCtx, { ... });
+    }
+
+    // For demo purposes - actual implementation would connect to real data
+    function loadDashboardData() {
+      // Fetch bookings data
+      // fetch('/api/bookings/stats')
+      //   .then(response => response.json())
+      //   .then(data => {
+      //     // Update DOM with data
+      //   });
+    }
+
+    // Admin notification system
+    function setupNotifications() {
+      const notificationBtn = document.getElementById('notificationBtn');
+
+      if (notificationBtn) {
+        notificationBtn.addEventListener('click', function() {
+          // Show notification panel - this would be implemented with a dropdown or modal
+          console.log('Notification panel toggled');
+        });
+      }
+    }
+
+    // Initialize dashboard functions
+    // initCharts();
+    // loadDashboardData();
+    setupNotifications();
+
+    // Tailwind-compatible tooltip functionality
+    const tooltipTriggerList = document.querySelectorAll('[data-tooltip]');
+    tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+      tooltipTriggerEl.addEventListener('mouseover', function() {
+        const tooltipText = this.getAttribute('data-tooltip');
+        let tooltip = document.createElement('div');
+        tooltip.className = 'absolute z-50 px-2 py-1 text-sm text-white bg-gray-800 rounded shadow-lg';
+        tooltip.textContent = tooltipText;
+        tooltip.style.left = this.offsetLeft + 'px';
+        tooltip.style.top = (this.offsetTop - 30) + 'px';
+        document.body.appendChild(tooltip);
+
+        this.addEventListener('mouseout', function() {
+          tooltip.remove();
+        });
+      });
     });
   });
 </script>

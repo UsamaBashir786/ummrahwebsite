@@ -659,6 +659,8 @@ $stmt->close();
     </div>
   </div>
 
+  <!-- jQuery -->
+  <script src="assets/js/jquery-3.7.1.min.js"></script>
   <!-- Chart.js (retained for potential use in assets/js/index.js) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js"></script>
   <!-- Custom JavaScript -->

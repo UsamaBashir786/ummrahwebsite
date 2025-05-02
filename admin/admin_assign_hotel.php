@@ -27,6 +27,11 @@ $hotels = [];
 $booking_details = [];
 $available_rooms = [];
 
+// Retrieve available rooms from session if they exist
+if (isset($_SESSION['available_rooms_' . $booking_id])) {
+  $available_rooms = $_SESSION['available_rooms_' . $booking_id];
+}
+
 // Store form values to maintain state after submission
 $form_hotel_id = isset($_POST['hotel_id']) ? intval($_POST['hotel_id']) : 0;
 $form_check_in_date = isset($_POST['check_in_date']) ? $_POST['check_in_date'] : '';
@@ -264,6 +269,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
       $conn->commit();
       $success_message = "Hotel assigned successfully to booking #$booking_id.";
 
+      // Clear the session variable after successful assignment
+      if (isset($_SESSION['available_rooms_' . $booking_id])) {
+        unset($_SESSION['available_rooms_' . $booking_id]);
+      }
+
       // Refresh booking details
       $stmt = $conn->prepare("SELECT * FROM hotel_bookings WHERE user_id = ?");
       $stmt->bind_param("i", $booking['user_id']);
@@ -376,6 +386,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
       }
     }
 
+    // Store available rooms in session
+    $_SESSION['available_rooms_' . $booking_id] = $available_rooms;
+
     if (empty($available_rooms)) {
       $error_message = "No rooms available for the selected dates. Please choose different dates.";
     } else {
@@ -384,7 +397,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
   }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -584,6 +596,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
       const userDropdownButton = document.getElementById('userDropdownButton');
       const userDropdownMenu = document.getElementById('userDropdownMenu');
 
+      // Error handling for missing elements
       // Error handling for missing elements
       if (!sidebar || !sidebarOverlay || !sidebarToggle || !sidebarClose) {
         console.warn('One or more sidebar elements are missing.');
