@@ -1,9 +1,5 @@
 <?php
 require_once 'config/db.php';
-require_once 'vendor/autoload.php'; // PHPMailer via Composer (ensure PHPMailer is installed)
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
 session_start();
 
 // Initialize variables
@@ -36,67 +32,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
       $stmt->bind_param("ssssssss", $name, $email, $phone, $subject, $message, $ip_address, $status, $created_at);
 
       if ($stmt->execute()) {
-        // Initialize PHPMailer
-        $mail = new PHPMailer(true);
         try {
-          // Server settings
-          $mail->isSMTP();
-          $mail->Host = 'smtp.yourmailserver.com'; // Replace with your SMTP host
-          $mail->SMTPAuth = true;
-          $mail->Username = 'your_smtp_username'; // Replace with your SMTP username
-          $mail->Password = 'your_smtp_password'; // Replace with your SMTP password
-          $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-          $mail->Port = 587; // TCP port to connect to
+          // Send email to User
+          $to = $email;
+          $email_subject = 'Thank You for Contacting Umrah Partner';
+          $email_message = "Thank You for Your Message, $name!\n\n";
+          $email_message .= "We have received your inquiry and will get back to you within 24 hours.\n\n";
+          $email_message .= "Your Submitted Details:\n";
+          $email_message .= "Name: $name\n";
+          $email_message .= "Email: $email\n";
+          $email_message .= "Phone: $phone\n";
+          $email_message .= "Subject: $subject\n";
+          $email_message .= "Message: $message\n\n";
+          $email_message .= "Best regards,\nUmrah Partner Team";
 
-          // Sender info
-          $mail->setFrom('no-reply@umrahpartner.com', 'Umrah Partner');
-          $mail->addReplyTo('info@umrahpartner.com', 'Umrah Partner');
+          $headers = "From: no-reply@umrahpartner.com\r\n";
+          $headers .= "Reply-To: info@umrahpartner.com\r\n";
+          $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
 
-          // Email to User
-          $mail->addAddress($email, $name);
-          $mail->isHTML(true);
-          $mail->Subject = 'Thank You for Contacting Umrah Partner';
-          $mail->Body = "
-            <h2>Thank You for Your Message, $name!</h2>
-            <p>We have received your inquiry and will get back to you within 24 hours.</p>
-            <h3>Your Submitted Details:</h3>
-            <p><strong>Name:</strong> $name</p>
-            <p><strong>Email:</strong> $email</p>
-            <p><strong>Phone:</strong> $phone</p>
-            <p><strong>Subject:</strong> $subject</p>
-            <p><strong>Message:</strong> $message</p>
-            <p>Best regards,<br>Umrah Partner Team</p>
-          ";
-          $mail->AltBody = "Thank you for your message, $name!\n\nWe have received your inquiry and will get back to you within 24 hours.\n\nYour Details:\nName: $name\nEmail: $email\nPhone: $phone\nSubject: $subject\nMessage: $message\n\nBest regards,\nUmrah Partner Team";
+          if (!mail($to, $email_subject, $email_message, $headers)) {
+            throw new Exception('Failed to send user email.');
+          }
 
-          $mail->send();
-          $mail->clearAddresses();
+          // Send email to Admin
+          $to = 'info@umrahpartner.com';
+          $email_subject = 'New Contact Form Submission';
+          $email_message = "New Contact Form Submission\n\n";
+          $email_message .= "A new message has been received from the contact form.\n\n";
+          $email_message .= "Details:\n";
+          $email_message .= "Name: $name\n";
+          $email_message .= "Email: $email\n";
+          $email_message .= "Phone: $phone\n";
+          $email_message .= "Subject: $subject\n";
+          $email_message .= "Message: $message\n";
+          $email_message .= "IP Address: $ip_address\n";
+          $email_message .= "Submitted At: $created_at";
 
-          // Email to Admin
-          $mail->addAddress('info@umrahpartner.com', 'Admin');
-          $mail->Subject = 'New Contact Form Submission';
-          $mail->Body = "
-            <h2>New Contact Form Submission</h2>
-            <p>A new message has been received from the contact form.</p>
-            <h3>Details:</h3>
-            <p><strong>Name:</strong> $name</p>
-            <p><strong>Email:</strong> $email</p>
-            <p><strong>Phone:</strong> $phone</p>
-            <p><strong>Subject:</strong> $subject</p>
-            <p><strong>Message:</strong> $message</p>
-            <p><strong>IP Address:</strong> $ip_address</p>
-            <p><strong>Submitted At:</strong> $created_at</p>
-          ";
-          $mail->AltBody = "New Contact Form Submission\n\nA new message has been received from the contact form.\n\nDetails:\nName: $name\nEmail: $email\nPhone: $phone\nSubject: $subject\nMessage: $message\nIP Address: $ip_address\nSubmitted At: $created_at";
-
-          $mail->send();
+          if (!mail($to, $email_subject, $email_message, $headers)) {
+            throw new Exception('Failed to send admin email.');
+          }
 
           // Set success message
           $success_message = "Thank you for your message! We will get back to you soon.";
           // Clear form fields
           $name = $email = $message = $phone = $subject = '';
         } catch (Exception $e) {
-          $error_message = "Message sent, but email notification failed. Please contact us directly. Error: {$mail->ErrorInfo}";
+          $error_message = "Message sent, but email notification failed. Please contact us directly. Error: " . $e->getMessage();
+          error_log("Mail Error: " . $e->getMessage());
         }
       } else {
         $error_message = "Sorry, there was an error sending your message. Please try again later.";
