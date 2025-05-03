@@ -2,23 +2,19 @@
 require_once '../config/db.php';
 session_start();
 
-// Redirect to login if not authenticated
 if (!isset($_SESSION['user_id'])) {
   header("Location: login.php");
   exit();
 }
 
-// Use MySQLi (matching index.php)
 $user_id = $_SESSION['user_id'];
 
-// Fetch user details
 $user_query = $conn->prepare("SELECT full_name, email, phone, dob, profile_image FROM users WHERE id = ?");
 $user_query->bind_param("i", $user_id);
 $user_query->execute();
 $user = $user_query->get_result()->fetch_assoc();
 $user_query->close();
 
-// Fetch bookings with error handling
 $flights = [];
 $flight_query = $conn->prepare("
     SELECT fb.id, fb.flight_id, fb.cabin_class, fb.total_price, fb.booking_status, fb.created_at, 
@@ -75,7 +71,6 @@ $transport_query->execute();
 $transports = $transport_query->get_result()->fetch_all(MYSQLI_ASSOC);
 $transport_query->close();
 
-// Handle booking cancellation
 if (isset($_POST['cancel_booking'])) {
     $booking_type = $_POST['booking_type'] ?? '';
     $booking_id = $_POST['booking_id'] ?? 0;
@@ -90,19 +85,16 @@ if (isset($_POST['cancel_booking'])) {
     if (isset($table_map[$booking_type])) {
         $table = $table_map[$booking_type];
 
-        // Validate that the booking belongs to the user
         $check_stmt = $conn->prepare("SELECT id FROM {$table} WHERE id = ? AND user_id = ? AND booking_status = 'pending'");
         $check_stmt->bind_param("ii", $booking_id, $user_id);
         $check_stmt->execute();
         $check_result = $check_stmt->get_result();
 
         if ($check_result->num_rows > 0) {
-            // Booking exists and belongs to user, proceed with cancellation
             $cancel_stmt = $conn->prepare("UPDATE {$table} SET booking_status = 'cancelled' WHERE id = ? AND user_id = ?");
             $cancel_stmt->bind_param("ii", $booking_id, $user_id);
 
             if ($cancel_stmt->execute()) {
-                // Special handling for hotel bookings to update room status
                 if ($booking_type === 'hotel') {
                     $room_update_stmt = $conn->prepare("
                         UPDATE hotel_rooms hr
@@ -135,7 +127,6 @@ if (isset($_POST['cancel_booking'])) {
     }
 }
 
-// Handle booking deletion
 if (isset($_POST['delete_booking'])) {
     $booking_type = $_POST['booking_type'] ?? '';
     $booking_id = $_POST['booking_id'] ?? 0;
@@ -150,14 +141,12 @@ if (isset($_POST['delete_booking'])) {
     if (isset($table_map[$booking_type])) {
         $table = $table_map[$booking_type];
 
-        // First, check if the booking belongs to the user
         $check_stmt = $conn->prepare("SELECT id FROM {$table} WHERE id = ? AND user_id = ?");
         $check_stmt->bind_param("ii", $booking_id, $user_id);
         $check_stmt->execute();
         $check_result = $check_stmt->get_result();
 
         if ($check_result->num_rows > 0) {
-            // Booking exists and belongs to user, proceed with deletion
             $delete_stmt = $conn->prepare("DELETE FROM {$table} WHERE id = ? AND user_id = ?");
             $delete_stmt->bind_param("ii", $booking_id, $user_id);
 
@@ -182,14 +171,12 @@ if (isset($_POST['delete_booking'])) {
     }
 }
 
-// Handle profile update
 if (isset($_POST['update_profile'])) {
     $full_name = filter_input(INPUT_POST, 'full_name', FILTER_SANITIZE_STRING);
     $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
     $phone = filter_input(INPUT_POST, 'phone', FILTER_SANITIZE_STRING);
     $dob = filter_input(INPUT_POST, 'dob', FILTER_SANITIZE_STRING);
 
-    // Handle profile image upload
     $profile_image = $user['profile_image'];
     if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
         $upload_dir = 'assets/uploads/profile_images/';
@@ -320,7 +307,6 @@ if (isset($_POST['update_profile'])) {
 </head>
 
 <body class="bg-gray-100">
-    <!-- Navbar -->
     <nav class="bg-gradient-to-r from-cyan-600 to-teal-500 p-4 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
             <div class="flex items-center space-x-4">
@@ -332,7 +318,6 @@ if (isset($_POST['update_profile'])) {
         </div>
     </nav>
 
-    <!-- Main Content -->
     <section class="container mx-auto px-4 py-12">
         <div class="text-center mb-12">
             <div class="text-cyan-500 font-semibold mb-3 tracking-wider">My Bookings</div>
@@ -340,7 +325,6 @@ if (isset($_POST['update_profile'])) {
             <p class="text-gray-600 max-w-2xl mx-auto">View, cancel, or delete your bookings with ease. Keep your travel plans organized in one place.</p>
         </div>
 
-        <!-- Filter Section -->
         <div class="filter-container">
             <div class="flex flex-col md:flex-row gap-4">
                 <select id="statusFilter" class="form-select border border-gray-200 rounded-xl p-3 bg-white focus:ring-2 focus:ring-cyan-500">
@@ -354,7 +338,6 @@ if (isset($_POST['update_profile'])) {
             </div>
         </div>
 
-        <!-- Tabs Navigation -->
         <ul class="nav nav-tabs mb-10 flex flex-wrap border-b-0" id="bookingTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active px-5 py-3 text-gray-700 font-semibold" data-tab="flights">Flights</button>
@@ -373,7 +356,6 @@ if (isset($_POST['update_profile'])) {
             </li>
         </ul>
 
-        <!-- Tabs Content -->
         <div id="flights" class="tab-content active">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <?php if (empty($flights)): ?>
@@ -644,12 +626,10 @@ if (isset($_POST['update_profile'])) {
         </div>
     </div>
 
-    <!-- Footer -->
     <?php include '../includes/footer.php'; ?>
     <?php include '../includes/js-links.php'; ?>
 
     <script>
-        // Tab switching
         const tabs = document.querySelectorAll('#bookingTabs .nav-link');
         const tabContents = document.querySelectorAll('.tab-content');
 
@@ -663,7 +643,6 @@ if (isset($_POST['update_profile'])) {
             });
         });
 
-        // Cancel booking confirmation
         document.querySelectorAll('.cancel-form').forEach(form => {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -696,7 +675,6 @@ if (isset($_POST['update_profile'])) {
             });
         });
 
-        // Delete booking confirmation
         document.querySelectorAll('.delete-form').forEach(form => {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -729,7 +707,6 @@ if (isset($_POST['update_profile'])) {
             });
         });
 
-        // Filter and search
         const statusFilter = document.getElementById('statusFilter');
         const searchInput = document.getElementById('searchInput');
 
@@ -751,7 +728,6 @@ if (isset($_POST['update_profile'])) {
         statusFilter.addEventListener('change', filterBookings);
         searchInput.addEventListener('input', filterBookings);
 
-        // Modal content functions
         function showFlightDetails(flight) {
             try {
                 document.getElementById('detailsModalLabel').textContent = `${flight.airline_name} - ${flight.flight_number} Details`;

@@ -12,14 +12,10 @@ if (isset($_SESSION['admin_loggedin']) && $_SESSION['admin_loggedin'] === true) 
 // Include database connection
 require_once '../config/db.php';
 
-// Predefined admin credentials as fallback
-$admin_email = 'admin@admin.com';
-$admin_password = 'admin123'; // In real app, store hashed password
-
 // Initialize variables
 $errors = [];
 
-// Rate limiting setup (basic)
+// Rate limiting setup
 $max_attempts = 5;
 $lockout_time = 15 * 60; // 15 minutes in seconds
 $attempt_key = 'login_attempts_' . md5($_SERVER['REMOTE_ADDR']);
@@ -28,7 +24,7 @@ if (!isset($_SESSION[$attempt_key])) {
 }
 
 // Process login if form submitted
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // Check for rate limiting
   if ($_SESSION[$attempt_key]['count'] >= $max_attempts && (time() - $_SESSION[$attempt_key]['time']) < $lockout_time) {
     $errors[] = "Too many login attempts. Please try again after " . ceil(($lockout_time - (time() - $_SESSION[$attempt_key]['time'])) / 60) . " minutes.";
@@ -39,21 +35,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     // Sanitize and validate inputs
-    $email = trim($_POST['email']);
-    $password = trim($_POST['password']);
+    $email = trim($_POST['email'] ?? '');
+    $password = trim($_POST['password'] ?? '');
 
-    // Validate inputs
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-      $errors[] = "Valid email is required";
+    // Enhanced validation
+    if (empty($email)) {
+      $errors[] = "Email is required";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      $errors[] = "Invalid email format";
+    } elseif (strlen($email) > 255) {
+      $errors[] = "Email is too long";
     }
 
     if (empty($password)) {
       $errors[] = "Password is required";
+    } elseif (strlen($password) < 6) {
+      $errors[] = "Password must be at least 6 characters";
     }
 
+    // Process login if no validation errors
     if (empty($errors)) {
       try {
-        // Check database connection
+        // Verify database connection
         if (!$conn) {
           throw new Exception("Database connection failed");
         }
@@ -66,58 +69,53 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result === false) {
+        if (!$stmt->execute()) {
           throw new Exception("Query execution failed: " . $conn->error);
+        }
+
+        $result = $stmt->get_result();
+        if ($result === false) {
+          throw new Exception("Failed to retrieve results: " . $conn->error);
         }
 
         if ($result->num_rows > 0) {
           $admin = $result->fetch_assoc();
 
-          // Verify password from database
+          // Verify password
           if (password_verify($password, $admin['password'])) {
             // Regenerate session ID for security
             session_regenerate_id(true);
 
             // Set admin session variables
             $_SESSION['admin_loggedin'] = true;
+            $_SESSION['admin_id'] = $admin['id'];
             $_SESSION['admin_email'] = $admin['email'];
             $_SESSION['admin_last_login'] = time();
 
             // Reset login attempts on successful login
             $_SESSION[$attempt_key] = ['count' => 0, 'time' => time()];
 
-            // Redirect to dashboard
-            header('Location: index.php');
-            exit;
-          }
-        } else {
-          // Fallback to predefined credentials if no database match or table issue
-          if ($email === $admin_email && $password === $admin_password) {
-            // Regenerate session ID for security
-            session_regenerate_id(true);
-
-            // Set admin session variables
-            $_SESSION['admin_loggedin'] = true;
-            $_SESSION['admin_email'] = $admin_email;
-            $_SESSION['admin_last_login'] = time();
-
-            // Reset login attempts on successful login
-            $_SESSION[$attempt_key] = ['count' => 0, 'time' => time()];
+            // Handle "remember me" functionality
+            if (isset($_POST['remember']) && $_POST['remember'] == '1') {
+              // Set a cookie for 30 days
+              $token = bin2hex(random_bytes(32));
+              setcookie('admin_remember', $token, time() + (30 * 24 * 60 * 60), '/', '', true, true);
+              // In a real app, store the token in the database
+            }
 
             // Redirect to dashboard
             header('Location: index.php');
             exit;
           } else {
-            $errors[] = "Invalid email or password";
+            $errors[] = "Incorrect password";
           }
+        } else {
+          $errors[] = "No account found with that email";
         }
 
         $stmt->close();
       } catch (Exception $e) {
-        $errors[] = "An error occurred: " . $e->getMessage();
+        $errors[] = "An error occurred: " . htmlspecialchars($e->getMessage());
       }
     }
 
@@ -166,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       <div class="mb-5">
         <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
         <div class="relative">
-          <input type="email" id="email" name="email" class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-300" placeholder="admin@example.com" required>
+          <input type="email" id="email" name="email" class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-300" placeholder="admin@example.com" value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>" required>
           <span class="absolute inset-y-0 left-0 flex items-center pl-3">
             <i class="fas fa-envelope text-gray-400"></i>
           </span>
@@ -186,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       </div>
       <div class="flex items-center justify-between mb-6">
         <label class="flex items-center">
-          <input type="checkbox" name="remember" value="1" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+          <input type="checkbox" name="remember" value="1" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded" <?php echo isset($_POST['remember']) ? 'checked' : ''; ?>>
           <span class="ml-2 text-sm text-gray-600">Remember me</span>
         </label>
       </div>

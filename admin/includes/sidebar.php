@@ -45,13 +45,16 @@
   .nav-panel {
     overflow-y: auto;
   }
+  nav{
+      overflow-y:scroll;
+  }
 </style>
 
 <!-- Sidebar Overlay -->
 <div class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden transition-opacity duration-300" id="nav-overlay"></div>
 
 <!-- Sidebar -->
-<nav class="fixed top-0 left-0 w-72 h-full bg-gray-50 shadow-xl transform -translate-x-full transition-transform duration-300 lg:translate-x-0" id="nav-panel">
+<nav class="overflow-y-scroll fixed top-0 left-0 w-72 h-full bg-gray-50 shadow-xl transform -translate-x-full transition-transform duration-300 lg:translate-x-0" id="nav-panel">
   <div class="p-5">
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">

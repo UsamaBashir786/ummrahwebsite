@@ -1,14 +1,18 @@
 <?php
 require_once 'config/db.php';
+require_once 'vendor/autoload.php'; // PHPMailer via Composer (ensure PHPMailer is installed)
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
 session_start();
 
 // Initialize variables
-$name = $email = $message = '';
+$name = $email = $message = $phone = $subject = '';
 $success_message = $error_message = '';
 
 // Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
-  // Get and sanitize form data (using newer methods instead of deprecated FILTER_SANITIZE_STRING)
+  // Get and sanitize form data
   $name = htmlspecialchars(trim($_POST['name'] ?? ''), ENT_QUOTES, 'UTF-8');
   $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
   $message = htmlspecialchars(trim($_POST['message'] ?? ''), ENT_QUOTES, 'UTF-8');
@@ -26,20 +30,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
   } elseif (empty($message)) {
     $error_message = "Please enter your message.";
   } else {
-    // All validations passed, insert into database
+    // Insert into database
     $stmt = $conn->prepare("INSERT INTO contact_messages (name, email, phone, subject, message, ip_address, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-
     if ($stmt) {
       $stmt->bind_param("ssssssss", $name, $email, $phone, $subject, $message, $ip_address, $status, $created_at);
 
       if ($stmt->execute()) {
-        $success_message = "Thank you for your message! We will get back to you soon.";
-        // Clear form fields after successful submission
-        $name = $email = $message = $phone = $subject = '';
+        // Initialize PHPMailer
+        $mail = new PHPMailer(true);
+        try {
+          // Server settings
+          $mail->isSMTP();
+          $mail->Host = 'smtp.yourmailserver.com'; // Replace with your SMTP host
+          $mail->SMTPAuth = true;
+          $mail->Username = 'your_smtp_username'; // Replace with your SMTP username
+          $mail->Password = 'your_smtp_password'; // Replace with your SMTP password
+          $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+          $mail->Port = 587; // TCP port to connect to
+
+          // Sender info
+          $mail->setFrom('no-reply@umrahpartner.com', 'Umrah Partner');
+          $mail->addReplyTo('info@umrahpartner.com', 'Umrah Partner');
+
+          // Email to User
+          $mail->addAddress($email, $name);
+          $mail->isHTML(true);
+          $mail->Subject = 'Thank You for Contacting Umrah Partner';
+          $mail->Body = "
+            <h2>Thank You for Your Message, $name!</h2>
+            <p>We have received your inquiry and will get back to you within 24 hours.</p>
+            <h3>Your Submitted Details:</h3>
+            <p><strong>Name:</strong> $name</p>
+            <p><strong>Email:</strong> $email</p>
+            <p><strong>Phone:</strong> $phone</p>
+            <p><strong>Subject:</strong> $subject</p>
+            <p><strong>Message:</strong> $message</p>
+            <p>Best regards,<br>Umrah Partner Team</p>
+          ";
+          $mail->AltBody = "Thank you for your message, $name!\n\nWe have received your inquiry and will get back to you within 24 hours.\n\nYour Details:\nName: $name\nEmail: $email\nPhone: $phone\nSubject: $subject\nMessage: $message\n\nBest regards,\nUmrah Partner Team";
+
+          $mail->send();
+          $mail->clearAddresses();
+
+          // Email to Admin
+          $mail->addAddress('info@umrahpartner.com', 'Admin');
+          $mail->Subject = 'New Contact Form Submission';
+          $mail->Body = "
+            <h2>New Contact Form Submission</h2>
+            <p>A new message has been received from the contact form.</p>
+            <h3>Details:</h3>
+            <p><strong>Name:</strong> $name</p>
+            <p><strong>Email:</strong> $email</p>
+            <p><strong>Phone:</strong> $phone</p>
+            <p><strong>Subject:</strong> $subject</p>
+            <p><strong>Message:</strong> $message</p>
+            <p><strong>IP Address:</strong> $ip_address</p>
+            <p><strong>Submitted At:</strong> $created_at</p>
+          ";
+          $mail->AltBody = "New Contact Form Submission\n\nA new message has been received from the contact form.\n\nDetails:\nName: $name\nEmail: $email\nPhone: $phone\nSubject: $subject\nMessage: $message\nIP Address: $ip_address\nSubmitted At: $created_at";
+
+          $mail->send();
+
+          // Set success message
+          $success_message = "Thank you for your message! We will get back to you soon.";
+          // Clear form fields
+          $name = $email = $message = $phone = $subject = '';
+        } catch (Exception $e) {
+          $error_message = "Message sent, but email notification failed. Please contact us directly. Error: {$mail->ErrorInfo}";
+        }
       } else {
         $error_message = "Sorry, there was an error sending your message. Please try again later.";
       }
-
       $stmt->close();
     } else {
       $error_message = "Database error: " . $conn->error;
@@ -128,7 +189,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
 <body>
   <!-- Navbar -->
   <?php include 'includes/navbar.php'; ?>
-
 
   <section class="mt-5 py-16 bg-gray-50">
     <div class="container mx-auto px-4">
@@ -288,8 +348,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
                 </div>
                 <div>
                   <h3 class="text-lg font-semibold text-gray-800 mb-1">Email Addresses</h3>
-                  <p class="text-gray-600">General Inquiries: <a href="mailto:info@umrahflights.com" class="text-green-600 hover:text-green-800 transition">info@umrahflights.com</a></p>
-                  <p class="text-gray-600">Customer Support: <a href="mailto:support@umrahflights.com" class="text-green-600 hover:text-green-800 transition">support@umrahflights.com</a></p>
+                  <p class="text-gray-600">General Inquiries: <a href="mailto:info@umrahpartner.com" class="text-green-600 hover:text-green-800 transition">info@umrahpartner.com</a></p>
+                  <p class="text-gray-600">Customer Support: <a href="mailto:support@umrahpartner.com" class="text-green-600 hover:text-green-800 transition">support@umrahpartner.com</a></p>
                 </div>
               </div>
 
