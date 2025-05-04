@@ -12,7 +12,7 @@ $user_id = $_SESSION['user_id'];
 // Fetch package bookings
 $packages_query = $conn->prepare("
     SELECT pb.id, pb.package_id, pb.travel_date, pb.num_travelers, pb.total_price, pb.booking_status, pb.booking_reference,
-           up.title, up.package_type, up.duration, up.description, up.package_image
+           up.title, up.package_type, up.description, pb.created_at
     FROM package_bookings pb
     JOIN umrah_packages up ON pb.package_id = up.id
     WHERE pb.user_id = ?
@@ -189,13 +189,8 @@ if (isset($_POST['cancel_booking'])) {
             data-status="<?php echo htmlspecialchars($package['booking_status']); ?>"
             data-type="<?php echo htmlspecialchars($package['package_type']); ?>"
             data-reference="<?php echo htmlspecialchars($package['booking_reference']); ?>">
-            <?php if ($package['package_image']): ?>
-              <img src="../admin/<?php echo htmlspecialchars($package['package_image']); ?>" alt="<?php echo htmlspecialchars($package['title']); ?>" class="package-image w-full">
-            <?php else: ?>
-              <div class="package-image w-full bg-gray-200 flex items-center justify-center">
-                <i class="fas fa-box text-4xl text-gray-400"></i>
-              </div>
-            <?php endif; ?>
+
+
 
             <div class="p-6">
               <div class="flex justify-between items-center mb-4">
@@ -215,12 +210,7 @@ if (isset($_POST['cancel_booking'])) {
                 </svg>
                 Travel Date: <?php echo date('d M Y', strtotime($package['travel_date'])); ?>
               </p>
-              <p class="text-gray-600 mb-2 flex items-center">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Duration: <?php echo htmlspecialchars($package['duration']); ?> Days
-              </p>
+
               <p class="text-gray-600 mb-2 flex items-center">
                 <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
@@ -305,7 +295,6 @@ if (isset($_POST['cancel_booking'])) {
                         <h6 class="font-bold mb-3">Package Information</h6>
                         <p><strong>Package Name:</strong> ${package.title}</p>
                         <p><strong>Package Type:</strong> ${package.package_type.charAt(0).toUpperCase() + package.package_type.slice(1)}</p>
-                        <p><strong>Duration:</strong> ${package.duration} Days</p>
                         <p><strong>Status:</strong> <span class="status-badge status-${package.booking_status}">${package.booking_status.charAt(0).toUpperCase() + package.booking_status.slice(1)}</span></p>
                     </div>
                     <div class="col-md-6">

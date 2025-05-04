@@ -12,7 +12,7 @@ $user_id = $_SESSION['user_id'];
 // Fetch transportation bookings
 $transport_query = $conn->prepare("
     SELECT tb.id, tb.transport_type, tb.route_name, tb.vehicle_type, tb.price, tb.booking_status, 
-           tb.pickup_date, tb.pickup_time, tb.pickup_location, tb.dropoff_location, tb.additional_notes
+           tb.pickup_date, tb.pickup_time, tb.pickup_location, tb.additional_notes
     FROM transportation_bookings tb
     WHERE tb.user_id = ?
     ORDER BY tb.created_at DESC
@@ -209,12 +209,7 @@ if (isset($_POST['cancel_booking'])) {
               </svg>
               From: <?php echo htmlspecialchars($transport['pickup_location']); ?>
             </p>
-            <p class="text-gray-600 mb-2 flex items-center">
-              <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-              </svg>
-              To: <?php echo htmlspecialchars($transport['dropoff_location']); ?>
-            </p>
+
             <p class="text-cyan-600 font-bold text-lg mb-4">Rs<?php echo number_format($transport['price'], 2); ?></p>
             <div class="flex gap-3">
               <button class="bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-xl font-medium"
@@ -299,7 +294,6 @@ if (isset($_POST['cancel_booking'])) {
                         <p><strong>Pickup Date:</strong> ${new Date(transport.pickup_date).toLocaleDateString()}</p>
                         <p><strong>Pickup Time:</strong> ${transport.pickup_time}</p>
                         <p><strong>Pickup Location:</strong> ${transport.pickup_location}</p>
-                        <p><strong>Drop-off Location:</strong> ${transport.dropoff_location}</p>
                     </div>
                 </div>
                 ${transport.additional_notes ? `

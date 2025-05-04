@@ -36,19 +36,19 @@ $stats_query->close();
 // Fetch recent bookings
 $recent_bookings_query = $conn->prepare("
     (SELECT 'Flight' AS type, airline_name AS title, departure_city AS location, 
-            departure_date AS date, total_price AS price, booking_status, created_at, id, 'flight' AS booking_type
+            departure_date AS date, fb.total_price AS price, fb.booking_status, fb.created_at, fb.id, 'flight' AS booking_type
      FROM flight_bookings fb 
      JOIN flights f ON fb.flight_id = f.id 
      WHERE fb.user_id = ?)
     UNION
-    (SELECT 'Hotel' AS type, hotel_name AS title, location, 
-            check_in_date AS date, total_price AS price, booking_status, created_at, id, 'hotel' AS booking_type
+    (SELECT 'Hotel' AS type, hotel_name AS title, h.location, 
+            check_in_date AS date, hb.total_price AS price, hb.booking_status, hb.created_at, hb.id, 'hotel' AS booking_type
      FROM hotel_bookings hb 
      JOIN hotels h ON hb.hotel_id = h.id 
      WHERE hb.user_id = ?)
     UNION
-    (SELECT 'Package' AS type, title, 'Saudi Arabia' AS location, 
-            travel_date AS date, total_price AS price, booking_status, created_at, id, 'package' AS booking_type
+    (SELECT 'Package' AS type, up.title, 'Saudi Arabia' AS location, 
+            travel_date AS date, pb.total_price AS price, pb.booking_status, pb.created_at, pb.id, 'package' AS booking_type
      FROM package_bookings pb 
      JOIN umrah_packages up ON pb.package_id = up.id 
      WHERE pb.user_id = ?)
@@ -67,20 +67,20 @@ $recent_bookings_query->close();
 
 // Fetch upcoming trips
 $upcoming_trips_query = $conn->prepare("
-    (SELECT 'Flight' AS type, airline_name AS title, departure_date AS date, booking_status
+    (SELECT 'Flight' AS type, airline_name AS title, f.departure_date AS date, fb.booking_status
      FROM flight_bookings fb 
      JOIN flights f ON fb.flight_id = f.id 
-     WHERE fb.user_id = ? AND departure_date > NOW() AND booking_status != 'cancelled')
+     WHERE fb.user_id = ? AND f.departure_date > NOW() AND fb.booking_status != 'cancelled')
     UNION
-    (SELECT 'Hotel' AS type, hotel_name AS title, check_in_date AS date, booking_status
+    (SELECT 'Hotel' AS type, hotel_name AS title, hb.check_in_date AS date, hb.booking_status
      FROM hotel_bookings hb 
      JOIN hotels h ON hb.hotel_id = h.id 
-     WHERE hb.user_id = ? AND check_in_date > NOW() AND booking_status != 'cancelled')
+     WHERE hb.user_id = ? AND hb.check_in_date > NOW() AND hb.booking_status != 'cancelled')
     UNION
-    (SELECT 'Package' AS type, title, travel_date AS date, booking_status
+    (SELECT 'Package' AS type, up.title, pb.travel_date AS date, pb.booking_status
      FROM package_bookings pb 
      JOIN umrah_packages up ON pb.package_id = up.id 
-     WHERE pb.user_id = ? AND travel_date > NOW() AND booking_status != 'cancelled')
+     WHERE pb.user_id = ? AND pb.travel_date > NOW() AND pb.booking_status != 'cancelled')
     ORDER BY date ASC
     LIMIT 3
 ");
