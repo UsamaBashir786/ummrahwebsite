@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       }
 
       // Use prepared statement to prevent SQL injection
-      $query = "SELECT id, full_name, email, password FROM users WHERE email = ?";
+      $query = "SELECT id, full_name, email, password, is_approved FROM users WHERE email = ?";
       $stmt = $conn->prepare($query);
       if (!$stmt) {
         throw new Exception("Failed to prepare statement: " . $conn->error);
@@ -48,14 +48,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Verify password
         if (password_verify($password, $user['password'])) {
-          // Set session variables
-          $_SESSION['user_id'] = $user['id'];
-          $_SESSION['full_name'] = $user['full_name'];
-          $_SESSION['email'] = $user['email'];
+          // Check if the user is approved
+          if (isset($user['is_approved']) && $user['is_approved'] == 1) {
+            // User is approved, proceed with login
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['full_name'] = $user['full_name'];
+            $_SESSION['email'] = $user['email'];
 
-          // Redirect to dashboard or protected page only on success
-          header("Location: index.php");
-          exit;
+            // Redirect to dashboard or protected page only on success
+            header("Location: index.php");
+            exit;
+          } else {
+            // User is not approved yet
+            $errors[] = "Your account is pending approval. Please wait for admin verification before you can log in.";
+          }
         } else {
           $errors[] = "Invalid email or password";
         }
@@ -81,12 +87,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <link rel="stylesheet" href="src/output.css">
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <?php include 'includes/css-links.php'; ?>
+  <style>
+    .info-message {
+      background-color: #f3f4f6;
+      border: 1px solid #d1d5db;
+      color: #374151;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+    }
+  </style>
 </head>
 
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
   <?php include 'includes/navbar.php'; ?>
   <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md mt-10">
     <h2 class="text-2xl font-bold text-center text-gray-800 mb-2">Umrah Portal Login</h2>
+
+    <div class="info-message">
+      <p class="text-sm">
+        <strong>Note:</strong> All new accounts require admin approval. If you've recently registered, please wait for approval notification before attempting to log in.
+      </p>
+    </div>
 
     <?php if (!empty($errors)): ?>
       <div class="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
@@ -100,36 +122,63 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       <div class="mb-5">
         <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
         <div class="relative">
-          <input type="email" id="email" name="email" class="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-300" placeholder="you@example.com" required>
+          <input type="email"
+            id="email"
+            name="email"
+            class="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-300"
+            placeholder="you@example.com"
+            required>
           <span class="absolute inset-y-0 left-0 flex items-center pl-3">
             <i class="fas fa-envelope text-gray-400"></i>
           </span>
         </div>
       </div>
+
       <div class="mb-6">
         <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
         <div class="relative">
-          <input type="password" id="password" name="password" class="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-300" placeholder="••••••••" required>
+          <input type="password"
+            id="password"
+            name="password"
+            class="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition duration-300"
+            placeholder="••••••••"
+            required>
           <span class="absolute inset-y-0 left-0 flex items-center pl-3">
             <i class="fas fa-lock text-gray-400"></i>
           </span>
-          <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600">
+          <button type="button"
+            id="togglePassword"
+            class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600">
             <i class="fas fa-eye"></i>
           </button>
         </div>
       </div>
+
       <div class="flex items-center justify-between mb-6">
         <label class="flex items-center">
-          <input type="checkbox" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+          <input type="checkbox"
+            class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
           <span class="ml-2 text-sm text-gray-600">Remember me</span>
         </label>
         <a href="#" class="text-sm text-green-600 hover:underline">Forgot Password?</a>
       </div>
-      <button type="submit" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg shadow-sm hover:bg-green-700 transition duration-300">Sign In</button>
+
+      <button type="submit"
+        class="w-full bg-green-600 text-white py-3 px-4 rounded-lg shadow-sm hover:bg-green-700 transition duration-300">
+        Sign In
+      </button>
     </form>
+
     <p class="mt-6 text-center text-sm text-gray-600">
-      Don't have an account? <a href="register.php" class="text-green-600 font-medium hover:underline">Register here</a>
+      Don't have an account?
+      <a href="register.php" class="text-green-600 font-medium hover:underline">Register here</a>
     </p>
+
+    <div class="mt-6 text-center">
+      <p class="text-xs text-gray-500">
+        After registration, your account will need admin approval before you can access the system.
+      </p>
+    </div>
   </div>
 
   <?php include 'includes/js-links.php'; ?>

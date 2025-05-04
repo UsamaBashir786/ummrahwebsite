@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $errors[] = "Email already registered";
   }
 
-  // Handle file upload
+  // Handle profile image upload
   $profileImage = '';
   if (isset($_FILES['profileImage']) && $_FILES['profileImage']['error'] == 0) {
     $allowed = ['jpg', 'jpeg', 'png', 'gif'];
@@ -61,29 +61,65 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       if (move_uploaded_file($_FILES['profileImage']['tmp_name'], $destination)) {
         $profileImage = $destination;
       } else {
-        $errors[] = "Failed to upload Laud profile image";
+        $errors[] = "Failed to upload profile image";
       }
     } else {
-      $errors[] = "Invalid file type. Only JPG, JPEG, PNG, GIF allowed";
+      $errors[] = "Invalid file type for profile image. Only JPG, JPEG, PNG, GIF allowed";
+    }
+  }
+
+  // Handle visa image upload (required)
+  $visaImage = '';
+  if (!isset($_FILES['visaImage']) || $_FILES['visaImage']['error'] != 0) {
+    $errors[] = "Visa document is required";
+  } else {
+    $allowed = ['jpg', 'jpeg', 'png', 'gif', 'pdf'];
+    $ext = pathinfo($_FILES['visaImage']['name'], PATHINFO_EXTENSION);
+
+    if (in_array(strtolower($ext), $allowed)) {
+      $uploadDir = 'uploads/visa_documents/';
+      if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+      }
+
+      $filename = uniqid() . '.' . $ext;
+      $destination = $uploadDir . $filename;
+
+      if (move_uploaded_file($_FILES['visaImage']['tmp_name'], $destination)) {
+        $visaImage = $destination;
+      } else {
+        $errors[] = "Failed to upload visa document";
+      }
+    } else {
+      $errors[] = "Invalid file type for visa document. Only JPG, JPEG, PNG, GIF, PDF allowed";
     }
   }
 
   // If no errors, insert into database
   if (empty($errors)) {
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-    $query = "INSERT INTO users (full_name, email, password, phone, dob, profile_image, created_at) 
-                  VALUES ('$fullName', '$email', '$hashedPassword', '$phone', '$dob', '$profileImage', NOW())";
+
+    // First check if the users table has the new columns
+    $checkColumns = $conn->query("SHOW COLUMNS FROM users LIKE 'visa_image'");
+
+    if ($checkColumns->num_rows == 0) {
+      // Add missing columns
+      $alterTableQuery = "ALTER TABLE users 
+        ADD COLUMN visa_image VARCHAR(255) DEFAULT NULL,
+        ADD COLUMN is_approved TINYINT(1) DEFAULT 0,
+        ADD COLUMN approved_at DATETIME DEFAULT NULL,
+        ADD COLUMN approved_by INT(11) DEFAULT NULL";
+
+      $conn->query($alterTableQuery);
+    }
+
+    $query = "INSERT INTO users (full_name, email, password, phone, dob, profile_image, visa_image, is_approved, created_at) 
+              VALUES ('$fullName', '$email', '$hashedPassword', '$phone', '$dob', '$profileImage', '$visaImage', 0, NOW())";
 
     if ($conn->query($query)) {
-      // Set session variables
-      $_SESSION['user_id'] = $conn->insert_id;
-      $_SESSION['user_email'] = $email;
-      $_SESSION['user_fullname'] = $fullName;
-      $_SESSION['logged_in'] = true;
-
-      // Redirect to index.php
-      header("Location: index.php");
-      exit();
+      $success = "Registration successful! Please wait for admin approval before you can login. You will be notified once your account is approved.";
+      // Clear form fields
+      $fullName = $email = $phone = $dob = '';
     } else {
       $errors[] = "Registration failed: " . $conn->error;
     }
@@ -118,9 +154,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       </div>
     <?php endif; ?>
 
+    <?php if (!empty($success)): ?>
+      <div class="mb-6 bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded">
+        <p class="text-sm"><?php echo $success; ?></p>
+      </div>
+    <?php endif; ?>
+
     <form method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>" enctype="multipart/form-data">
       <div class="mb-4">
-        <label for="fullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+        <label for="fullName" class="block text-sm font-medium text-gray-700 mb-1">Full Name <span class="text-red-500">*</span></label>
         <input type="text"
           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
           id="fullName"
@@ -131,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       </div>
 
       <div class="mb-4">
-        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address <span class="text-red-500">*</span></label>
         <input type="email"
           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
           id="email"
@@ -142,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       </div>
 
       <div class="mb-4">
-        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number <span class="text-red-500">*</span></label>
         <input type="tel"
           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
           id="phone"
@@ -153,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       </div>
 
       <div class="mb-4">
-        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password <span class="text-red-500">*</span></label>
         <input type="password"
           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
           id="password"
@@ -163,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       </div>
 
       <div class="mb-4">
-        <label for="dob" class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+        <label for="dob" class="block text-sm font-medium text-gray-700 mb-1">Date of Birth <span class="text-red-500">*</span></label>
         <input type="date"
           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
           id="dob"
@@ -172,14 +214,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
           required>
       </div>
 
-      <div class="mb-6">
-        <label for="profileImage" class="block text-sm font-medium text-gray-700 mb-1">Profile Image</label>
+      <div class="mb-4">
+        <label for="profileImage" class="block text-sm font-medium text-gray-700 mb-1">Profile Image (Optional)</label>
         <input type="file"
           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
           id="profileImage"
           name="profileImage"
           accept="image/*">
-        <p class="mt-1 text-xs text-gray-500">Upload a profile picture (JPG, JPEG, PNG, GIF)</p>
+        <p class="mt-1 text-xs text-gray-500">Upload a profile picture (JPG, JPEG, PNG, GIF) - Max 5MB</p>
+      </div>
+
+      <div class="mb-6">
+        <label for="visaImage" class="block text-sm font-medium text-gray-700 mb-1">Visa Document <span class="text-red-500">*</span></label>
+        <input type="file"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          id="visaImage"
+          name="visaImage"
+          accept="image/*,.pdf"
+          required>
+        <p class="mt-1 text-xs text-gray-500">Upload your visa document (JPG, JPEG, PNG, GIF, PDF) - Max 10MB - Required for registration</p>
+      </div>
+
+      <div class="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
+        <p class="text-sm">
+          <strong>Important:</strong> Your account will require admin approval before you can login. Please ensure your visa document is clear and valid.
+        </p>
       </div>
 
       <button type="submit"
@@ -205,6 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       const passwordInput = document.getElementById('password');
       const dobInput = document.getElementById('dob');
       const profileImageInput = document.getElementById('profileImage');
+      const visaImageInput = document.getElementById('visaImage');
 
       // Function to create or update error messages
       function showError(input, message) {
@@ -325,6 +385,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         return true;
       }
 
+      function validateVisaImage() {
+        const file = visaImageInput.files[0];
+        if (!file) {
+          showError(visaImageInput, 'Visa document is required');
+          return false;
+        }
+
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (!allowedTypes.includes(file.type)) {
+          showError(visaImageInput, 'Only JPG, JPEG, PNG, GIF, PDF allowed');
+          return false;
+        } else if (file.size > maxSize) {
+          showError(visaImageInput, 'File size must be less than 10MB');
+          return false;
+        }
+        clearError(visaImageInput);
+        return true;
+      }
+
       // Real-time validation on input
       fullNameInput.addEventListener('input', validateFullName);
       emailInput.addEventListener('input', validateEmail);
@@ -332,6 +412,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       passwordInput.addEventListener('input', validatePassword);
       dobInput.addEventListener('input', validateDob);
       profileImageInput.addEventListener('change', validateProfileImage);
+      visaImageInput.addEventListener('change', validateVisaImage);
 
       // Form submission validation
       form.addEventListener('submit', function(e) {
@@ -341,7 +422,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
           validatePhone() &&
           validatePassword() &&
           validateDob() &&
-          validateProfileImage();
+          validateProfileImage() &&
+          validateVisaImage();
 
         if (!isValid) {
           e.preventDefault(); // Prevent form submission if validation fails

@@ -22,6 +22,22 @@ if (!is_dir($upload_dir)) {
   mkdir($upload_dir, 0755, true);
 }
 
+// Handle Approve Requests
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['approve_user'])) {
+  $user_id = (int)$_POST['user_id'];
+  $admin_id = $_SESSION['admin_id'];
+
+  $stmt = $conn->prepare("UPDATE users SET is_approved = 1, approved_at = NOW(), approved_by = ? WHERE id = ?");
+  $stmt->bind_param("ii", $admin_id, $user_id);
+
+  if ($stmt->execute()) {
+    $success_message = "User approved successfully!";
+  } else {
+    $error_message = "Error approving user: " . $conn->error;
+  }
+  $stmt->close();
+}
+
 // Handle Delete Requests
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_user'])) {
   $user_id = (int)$_POST['user_id'];
@@ -29,14 +45,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_user'])) {
   if ($user_id !== (int)$_SESSION['admin_id']) {
     $conn->begin_transaction();
     try {
-      // Get current profile image to delete it
-      $stmt = $conn->prepare("SELECT profile_image FROM users WHERE id = ?");
+      // Get current profile image and visa image to delete them
+      $stmt = $conn->prepare("SELECT profile_image, visa_image FROM users WHERE id = ?");
       $stmt->bind_param("i", $user_id);
       $stmt->execute();
       $result = $stmt->get_result();
       if ($user = $result->fetch_assoc()) {
         if ($user['profile_image'] && file_exists($user['profile_image'])) {
           unlink($user['profile_image']);
+        }
+        if ($user['visa_image'] && file_exists($user['visa_image'])) {
+          unlink($user['visa_image']);
         }
       } else {
         throw new Exception("User not found.");
@@ -136,7 +155,7 @@ $stats = [
   'total_users' => 0,
   'users_with_images' => 0,
   'recent_registrations' => 0,
-  'average_age' => 0
+  'pending_approvals' => 0
 ];
 
 // Total Users
@@ -151,15 +170,16 @@ $stats['users_with_images'] = $result->fetch_assoc()['total'];
 $result = $conn->query("SELECT COUNT(*) as total FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
 $stats['recent_registrations'] = $result->fetch_assoc()['total'];
 
-// Average Age
-$result = $conn->query("SELECT COALESCE(AVG(DATEDIFF(CURDATE(), dob)/365.25), 0) as avg_age FROM users WHERE dob IS NOT NULL");
-$stats['average_age'] = round((float)$result->fetch_assoc()['avg_age'], 1);
+// Pending Approvals
+$result = $conn->query("SELECT COUNT(*) as total FROM users WHERE is_approved = 0");
+$stats['pending_approvals'] = $result->fetch_assoc()['total'];
 
 // Fetch Users
 $search = isset($_GET['search']) ? $conn->real_escape_string($_GET['search']) : '';
 $filter_image = isset($_GET['filter_image']) ? $_GET['filter_image'] : '';
+$filter_approval = isset($_GET['filter_approval']) ? $_GET['filter_approval'] : '';
 
-$sql = "SELECT id, full_name, email, dob, profile_image, created_at FROM users WHERE 1=1";
+$sql = "SELECT id, full_name, email, dob, profile_image, visa_image, created_at, is_approved, approved_at FROM users WHERE 1=1";
 $params = [];
 $types = '';
 
@@ -176,6 +196,14 @@ if ($filter_image === 'with_image') {
 } elseif ($filter_image === 'without_image') {
   $sql .= " AND profile_image IS NULL";
 }
+
+if ($filter_approval === 'pending') {
+  $sql .= " AND is_approved = 0";
+} elseif ($filter_approval === 'approved') {
+  $sql .= " AND is_approved = 1";
+}
+
+$sql .= " ORDER BY is_approved ASC, created_at DESC";
 
 $stmt = $conn->prepare($sql);
 if (!empty($params)) {
@@ -330,11 +358,11 @@ $stmt->close();
       <div class="stat-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-yellow-500">
         <div class="flex justify-between items-center">
           <div>
-            <h3 class="text-lg font-semibold text-gray-800">Average Age</h3>
-            <p class="text-2xl font-bold text-yellow-600"><?php echo $stats['average_age']; ?> years</p>
+            <h3 class="text-lg font-semibold text-gray-800">Pending Approvals</h3>
+            <p class="text-2xl font-bold text-yellow-600"><?php echo $stats['pending_approvals']; ?></p>
           </div>
           <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 text-yellow-500">
-            <i class="fas fa-birthday-cake text-xl"></i>
+            <i class="fas fa-hourglass-half text-xl"></i>
           </div>
         </div>
       </div>
@@ -357,6 +385,15 @@ $stmt->close();
               <option value="" <?php echo $filter_image === '' ? 'selected' : ''; ?>>All</option>
               <option value="with_image" <?php echo $filter_image === 'with_image' ? 'selected' : ''; ?>>With Image</option>
               <option value="without_image" <?php echo $filter_image === 'without_image' ? 'selected' : ''; ?>>Without Image</option>
+            </select>
+          </div>
+          <div>
+            <label for="filter_approval" class="block text-sm font-medium text-gray-700 mb-1">Filter by Approval</label>
+            <select id="filter_approval" name="filter_approval"
+              class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+              <option value="" <?php echo $filter_approval === '' ? 'selected' : ''; ?>>All</option>
+              <option value="pending" <?php echo $filter_approval === 'pending' ? 'selected' : ''; ?>>Pending</option>
+              <option value="approved" <?php echo $filter_approval === 'approved' ? 'selected' : ''; ?>>Approved</option>
             </select>
           </div>
           <div class="flex items-end">
@@ -383,14 +420,16 @@ $stmt->close();
               <th class="p-3 text-left">Email</th>
               <th class="p-3 text-center">Date of Birth</th>
               <th class="p-3 text-center">Profile Image</th>
+              <th class="p-3 text-center">Visa Document</th>
+              <th class="p-3 text-center">Status</th>
               <th class="p-3 text-center">Registered</th>
-              <th class="p-3 w-24 text-center">Actions</th>
+              <th class="p-3 w-40 text-center">Actions</th>
             </tr>
           </thead>
           <tbody id="users-body">
             <?php if (empty($users)): ?>
               <tr>
-                <td colspan="7" class="p-3 text-center text-gray-500">No users found.</td>
+                <td colspan="9" class="p-3 text-center text-gray-500">No users found.</td>
               </tr>
             <?php else: ?>
               <?php foreach ($users as $user): ?>
@@ -407,9 +446,34 @@ $stmt->close();
                       <span class="text-gray-500">None</span>
                     <?php endif; ?>
                   </td>
+                  <td class="p-3 text-center">
+                    <?php if ($user['visa_image'] && file_exists('../' . $user['visa_image'])): ?>
+                      <a href="../<?php echo htmlspecialchars($user['visa_image']); ?>" target="_blank" class="text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-passport mr-1"></i>View
+                      </a>
+                    <?php else: ?>
+                      <span class="text-gray-500">None</span>
+                    <?php endif; ?>
+                  </td>
+                  <td class="p-3 text-center">
+                    <?php if ($user['is_approved'] == 1): ?>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Approved
+                      </span>
+                    <?php else: ?>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Pending
+                      </span>
+                    <?php endif; ?>
+                  </td>
                   <td class="p-3 text-center"><?php echo date('Y-m-d', strtotime($user['created_at'])); ?></td>
                   <td class="p-3 text-center">
-                    <button type="button" class="text-indigo-600 hover:text-indigo-800 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
+                    <?php if ($user['is_approved'] == 0): ?>
+                      <button type="button" class="text-green-600 hover:text-green-800 approve-btn" data-id="<?php echo $user['id']; ?>" title="Approve">
+                        <i class="fas fa-check"></i>
+                      </button>
+                    <?php endif; ?>
+                    <button type="button" class="text-indigo-600 hover:text-indigo-800 edit-btn ml-2" title="Edit"><i class="fas fa-edit"></i></button>
                     <button type="button" class="text-red-600 hover:text-red-800 delete-btn ml-2" title="Delete"><i class="fas fa-trash"></i></button>
                   </td>
                 </tr>
@@ -434,7 +498,7 @@ $stmt->close();
                       required>
                     <div class="text-red-500 text-xs error-msg-dob hidden">Invalid date</div>
                   </td>
-                  <td class="p-3">
+                  <td class="p-3" colspan="4">
                     <input type="file" name="profile_image" accept=".jpg,.jpeg,.png,.gif"
                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
                     <div class="text-red-500 text-xs error-msg-image hidden">Invalid file type or size (max 5MB)</div>
@@ -668,6 +732,51 @@ $stmt->close();
                     icon: 'error',
                     title: 'Error',
                     text: 'An error occurred while deleting the user.'
+                  });
+                });
+            }
+          });
+        });
+      });
+
+      // Approve Button Handler
+      document.querySelectorAll('.approve-btn').forEach(button => {
+        button.addEventListener('click', function() {
+          const userId = this.dataset.id;
+
+          Swal.fire({
+            title: 'Approve User?',
+            text: "Are you sure you want to approve this user?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#22c55e',
+            cancelButtonColor: '#4f46e5',
+            confirmButtonText: 'Yes, approve!'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              const formData = new FormData();
+              formData.append('approve_user', '1');
+              formData.append('user_id', userId);
+
+              fetch('', {
+                  method: 'POST',
+                  body: formData
+                }).then(response => response.text())
+                .then(() => {
+                  Swal.fire({
+                    icon: 'success',
+                    title: 'Approved!',
+                    text: 'User has been approved successfully.',
+                    showConfirmButton: false,
+                    timer: 1500
+                  }).then(() => {
+                    location.reload();
+                  });
+                }).catch(error => {
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while approving the user.'
                   });
                 });
             }
