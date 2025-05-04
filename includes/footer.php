@@ -2,50 +2,56 @@
 // Include database connection
 require_once 'config/db.php';
 
-// Include contact info functions or define them here
-function getContactInfo($conn, $type = null, $primary_only = false)
-{
-  $where_conditions = ["status = 'active'"];
-  $params = [];
-  $types = "";
+// Include contact info functions if they don't exist
+if (!function_exists('getContactInfo')) {
+  function getContactInfo($conn, $type = null, $primary_only = false)
+  {
+    $where_conditions = ["status = 'active'"];
+    $params = [];
+    $types = "";
 
-  if ($type) {
-    $where_conditions[] = "type = ?";
-    $params[] = $type;
-    $types .= "s";
+    if ($type) {
+      $where_conditions[] = "type = ?";
+      $params[] = $type;
+      $types .= "s";
+    }
+
+    if ($primary_only) {
+      $where_conditions[] = "is_primary = 1";
+    }
+
+    $query = "SELECT * FROM contact_info WHERE " . implode(" AND ", $where_conditions);
+    $query .= " ORDER BY is_primary DESC, created_at ASC";
+
+    $stmt = $conn->prepare($query);
+    if (!empty($params)) {
+      $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $contact_info = [];
+    while ($row = $result->fetch_assoc()) {
+      $contact_info[] = $row;
+    }
+
+    return $contact_info;
   }
-
-  if ($primary_only) {
-    $where_conditions[] = "is_primary = 1";
-  }
-
-  $query = "SELECT * FROM contact_info WHERE " . implode(" AND ", $where_conditions);
-  $query .= " ORDER BY is_primary DESC, created_at ASC";
-
-  $stmt = $conn->prepare($query);
-  if (!empty($params)) {
-    $stmt->bind_param($types, ...$params);
-  }
-  $stmt->execute();
-  $result = $stmt->get_result();
-
-  $contact_info = [];
-  while ($row = $result->fetch_assoc()) {
-    $contact_info[] = $row;
-  }
-
-  return $contact_info;
 }
 
-function getPrimaryContact($conn, $type)
-{
-  $contacts = getContactInfo($conn, $type, true);
-  return !empty($contacts) ? $contacts[0] : null;
+if (!function_exists('getPrimaryContact')) {
+  function getPrimaryContact($conn, $type)
+  {
+    $contacts = getContactInfo($conn, $type, true);
+    return !empty($contacts) ? $contacts[0] : null;
+  }
 }
 
-function getContactsByType($conn, $type)
-{
-  return getContactInfo($conn, $type);
+if (!function_exists('getContactsByType')) {
+  function getContactsByType($conn, $type)
+  {
+    return getContactInfo($conn, $type);
+  }
 }
 
 // Fetch contact information
@@ -98,7 +104,7 @@ $social_links = getContactsByType($conn, 'social');
           <li><a href="about.php" class="text-gray-400 hover:text-white transition-colors">About Us</a></li>
           <li><a href="packages.php" class="text-gray-400 hover:text-white transition-colors">Our Packages</a></li>
           <li><a href="faqs.php" class="text-gray-400 hover:text-white transition-colors">FAQs</a></li>
-          <li><a href="contact.php" class="text-gray-400 hover:text-white transition-colors">Contact Us</a></li>
+          <li><a href="contact-us.php" class="text-gray-400 hover:text-white transition-colors">Contact Us</a></li>
         </ul>
       </div>
 
