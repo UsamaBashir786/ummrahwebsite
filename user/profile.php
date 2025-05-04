@@ -25,7 +25,7 @@ if (isset($_POST['update_profile'])) {
 
   $profile_image = $user['profile_image'];
   if (isset($_FILES['profile_image']) && $_FILES['profile_image']['error'] == 0) {
-    $upload_dir = 'assets/uploads/profile_images/';
+    $upload_dir = '../assets/uploads/profile_images/';
     if (!is_dir($upload_dir)) {
       mkdir($upload_dir, 0755, true);
     }
@@ -287,12 +287,7 @@ if (isset($_POST['change_password'])) {
             <a href="booking-history.php" class="block text-center bg-cyan-600 text-white py-2 rounded-lg hover:bg-cyan-700 transition">
               View Booking History
             </a>
-            <a href="settings.php" class="block text-center bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition">
-              Account Settings
-            </a>
-            <a href="help.php" class="block text-center bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-              Help & Support
-            </a>
+
           </div>
         </div>
       </div>
