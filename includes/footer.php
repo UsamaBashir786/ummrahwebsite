@@ -1,82 +1,187 @@
-<footer class="bg-gray-800 text-gray-200 py-10">
-  <div class="container mx-auto px-4 max-w-6xl">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-      <!-- UmrahFlights Description -->
+<?php
+// Include database connection
+require_once 'config/db.php';
+
+// Include contact info functions or define them here
+function getContactInfo($conn, $type = null, $primary_only = false)
+{
+  $where_conditions = ["status = 'active'"];
+  $params = [];
+  $types = "";
+
+  if ($type) {
+    $where_conditions[] = "type = ?";
+    $params[] = $type;
+    $types .= "s";
+  }
+
+  if ($primary_only) {
+    $where_conditions[] = "is_primary = 1";
+  }
+
+  $query = "SELECT * FROM contact_info WHERE " . implode(" AND ", $where_conditions);
+  $query .= " ORDER BY is_primary DESC, created_at ASC";
+
+  $stmt = $conn->prepare($query);
+  if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+  }
+  $stmt->execute();
+  $result = $stmt->get_result();
+
+  $contact_info = [];
+  while ($row = $result->fetch_assoc()) {
+    $contact_info[] = $row;
+  }
+
+  return $contact_info;
+}
+
+function getPrimaryContact($conn, $type)
+{
+  $contacts = getContactInfo($conn, $type, true);
+  return !empty($contacts) ? $contacts[0] : null;
+}
+
+function getContactsByType($conn, $type)
+{
+  return getContactInfo($conn, $type);
+}
+
+// Fetch contact information
+$primary_email = getPrimaryContact($conn, 'email');
+$primary_phone = getPrimaryContact($conn, 'phone');
+$all_emails = getContactsByType($conn, 'email');
+$all_phones = getContactsByType($conn, 'phone');
+$address = getPrimaryContact($conn, 'address');
+$whatsapp = getPrimaryContact($conn, 'whatsapp');
+$social_links = getContactsByType($conn, 'social');
+?>
+
+<!-- Footer Section -->
+<footer class="bg-gray-900 text-white py-12">
+  <div class="container mx-auto px-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <!-- About Us -->
       <div>
-        <h5 class="text-xl font-bold text-white mb-4">UmrahFlights</h5>
-        <p class="text-gray-300 mb-4">Making your journey to the Holy Land easier and more comfortable.</p>
+        <h4 class="text-xl font-semibold mb-4">About Us</h4>
+        <p class="text-gray-400 mb-4">
+          We specialize in providing comprehensive Umrah packages with premium services,
+          ensuring a comfortable and spiritual journey for all our clients.
+        </p>
         <div class="flex space-x-4">
-          <a href="#" class="text-gray-300 hover:text-white transition duration-300">
-            <i class="fab fa-facebook-f"></i>
-          </a>
-          <a href="#" class="text-gray-300 hover:text-white transition duration-300">
-            <i class="fab fa-twitter"></i>
-          </a>
-          <a href="#" class="text-gray-300 hover:text-white transition duration-300">
-            <i class="fab fa-instagram"></i>
-          </a>
-          <a href="#" class="text-gray-300 hover:text-white transition duration-300">
-            <i class="fab fa-youtube"></i>
-          </a>
+          <?php foreach ($social_links as $social): ?>
+            <a href="<?php echo htmlspecialchars($social['value']); ?>"
+              class="text-gray-400 hover:text-white transition-colors"
+              title="<?php echo htmlspecialchars($social['label']); ?>">
+              <?php if (strpos(strtolower($social['label']), 'facebook') !== false): ?>
+                <i class="fab fa-facebook-f"></i>
+              <?php elseif (strpos(strtolower($social['label']), 'twitter') !== false): ?>
+                <i class="fab fa-twitter"></i>
+              <?php elseif (strpos(strtolower($social['label']), 'instagram') !== false): ?>
+                <i class="fab fa-instagram"></i>
+              <?php elseif (strpos(strtolower($social['label']), 'linkedin') !== false): ?>
+                <i class="fab fa-linkedin-in"></i>
+              <?php else: ?>
+                <i class="fas fa-share-alt"></i>
+              <?php endif; ?>
+            </a>
+          <?php endforeach; ?>
         </div>
       </div>
 
       <!-- Quick Links -->
       <div>
-        <h5 class="text-xl font-bold text-white mb-4">Quick Links</h5>
+        <h4 class="text-xl font-semibold mb-4">Quick Links</h4>
         <ul class="space-y-2">
-          <li><a href="#" class="text-gray-300 hover:text-white transition duration-300">Home</a></li>
-          <li><a href="#" class="text-gray-300 hover:text-white transition duration-300">Flights</a></li>
-          <li><a href="#" class="text-gray-300 hover:text-white transition duration-300">Packages</a></li>
-          <li><a href="#" class="text-gray-300 hover:text-white transition duration-300">About Us</a></li>
-          <li><a href="#" class="text-gray-300 hover:text-white transition duration-300">Contact</a></li>
+          <li><a href="index.php" class="text-gray-400 hover:text-white transition-colors">Home</a></li>
+          <li><a href="about.php" class="text-gray-400 hover:text-white transition-colors">About Us</a></li>
+          <li><a href="packages.php" class="text-gray-400 hover:text-white transition-colors">Our Packages</a></li>
+          <li><a href="faqs.php" class="text-gray-400 hover:text-white transition-colors">FAQs</a></li>
+          <li><a href="contact.php" class="text-gray-400 hover:text-white transition-colors">Contact Us</a></li>
         </ul>
       </div>
 
-      <!-- Support -->
+      <!-- Our Services -->
       <div>
-        <h5 class="text-xl font-bold text-white mb-4">Support</h5>
+        <h4 class="text-xl font-semibold mb-4">Our Services</h4>
         <ul class="space-y-2">
-          <li><a href="#" class="text-gray-300 hover:text-white transition duration-300">FAQ</a></li>
-          <li><a href="#" class="text-gray-300 hover:text-white transition duration-300">Baggage Information</a></li>
-          <li><a href="#" class="text-gray-300 hover:text-white transition duration-300">Visa Requirements</a></li>
-          <li><a href="#" class="text-gray-300 hover:text-white transition duration-300">Terms & Conditions</a></li>
-          <li><a href="#" class="text-gray-300 hover:text-white transition duration-300">Privacy Policy</a></li>
+          <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Umrah Packages</a></li>
+          <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Flight Booking</a></li>
+          <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Hotel Reservation</a></li>
+          <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Visa Processing</a></li>
+          <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Transportation</a></li>
         </ul>
       </div>
 
-      <!-- Contact Us -->
+      <!-- Contact Info -->
       <div>
-        <h5 class="text-xl font-bold text-white mb-4">Contact Us</h5>
-        <div class="mb-3 flex items-start">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <p class="text-gray-300">123 Business Avenue, Karachi, Pakistan</p>
-        </div>
-        <div class="mb-3 flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-          </svg>
-          <a href="tel:+923001234567" class="text-gray-300 hover:text-white transition duration-300">+92 300 1234567</a>
-        </div>
-        <div class="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-          <a href="mailto:info@umrahflights.com" class="text-gray-300 hover:text-white transition duration-300">info@umrahflights.com</a>
-        </div>
+        <h4 class="text-xl font-semibold mb-4">Contact Us</h4>
+        <?php if ($address): ?>
+          <p class="text-gray-400 mb-3 flex items-start">
+            <i class="fas fa-map-marker-alt mr-3 mt-1 text-amber-500"></i>
+            <?php echo nl2br(htmlspecialchars($address['value'])); ?>
+          </p>
+        <?php endif; ?>
+
+        <?php if ($primary_phone): ?>
+          <p class="text-gray-400 mb-3 flex items-center">
+            <i class="fas fa-phone-alt mr-3 text-amber-500"></i>
+            <a href="tel:<?php echo htmlspecialchars($primary_phone['value']); ?>"
+              class="hover:text-white transition-colors">
+              <?php echo htmlspecialchars($primary_phone['value']); ?>
+            </a>
+          </p>
+        <?php endif; ?>
+
+        <?php if ($whatsapp): ?>
+          <p class="text-gray-400 mb-3 flex items-center">
+            <i class="fab fa-whatsapp mr-3 text-amber-500"></i>
+            <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp['value']); ?>"
+              class="hover:text-white transition-colors">
+              <?php echo htmlspecialchars($whatsapp['value']); ?>
+            </a>
+          </p>
+        <?php endif; ?>
+
+        <?php if ($primary_email): ?>
+          <p class="text-gray-400 mb-3 flex items-center">
+            <i class="fas fa-envelope mr-3 text-amber-500"></i>
+            <a href="mailto:<?php echo htmlspecialchars($primary_email['value']); ?>"
+              class="hover:text-white transition-colors">
+              <?php echo htmlspecialchars($primary_email['value']); ?>
+            </a>
+          </p>
+        <?php endif; ?>
+
+        <?php if (count($all_emails) > 1): ?>
+          <?php foreach ($all_emails as $email): ?>
+            <?php if (!$email['is_primary']): ?>
+              <p class="text-gray-400 mb-3 flex items-center">
+                <i class="fas fa-envelope mr-3 text-amber-500"></i>
+                <a href="mailto:<?php echo htmlspecialchars($email['value']); ?>"
+                  class="hover:text-white transition-colors text-sm">
+                  <?php echo htmlspecialchars($email['label'] . ': ' . $email['value']); ?>
+                </a>
+              </p>
+            <?php endif; ?>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </div>
     </div>
 
-    <div class="border-t border-gray-700 mt-8 pt-8 flex justify-between items-center">
-      <p class="text-sm text-gray-400">© 2025 UmrahFlights. All rights reserved.</p>
-      <a href="#" class="bg-green-600 hover:bg-green-700 text-white rounded-full p-3 transition duration-300 shadow-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-        </svg>
-      </a>
+    <!-- Footer Bottom -->
+    <div class="border-t border-gray-800 mt-12 pt-8">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <p class="text-gray-400 text-sm mb-4 md:mb-0">
+          © <?php echo date('Y'); ?> Umrah Partners. All rights reserved.
+        </p>
+        <div class="flex space-x-6">
+          <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Privacy Policy</a>
+          <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Terms of Service</a>
+          <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Cookie Policy</a>
+        </div>
+      </div>
     </div>
   </div>
 </footer>

@@ -45,8 +45,9 @@
   .nav-panel {
     overflow-y: auto;
   }
-  nav{
-      overflow-y:scroll;
+
+  nav {
+    overflow-y: scroll;
   }
 </style>
 
@@ -262,6 +263,36 @@
                 <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
               </svg>
               Contact
+            </a>
+          </li>
+
+          <!-- FAQ's -->
+          <li>
+            <a href="faqs.php" class="nav-link flex items-center px-3 py-2 text-sm font-semibold rounded-md <?= $currentPage == 'faqs.php' ? 'text-white bg-blue-600' : 'text-gray-800 hover:bg-blue-100' ?>">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 <?= $currentPage == 'faqs.php' ? 'text-white' : 'text-gray-600' ?>" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+              </svg>
+              FAQs
+            </a>
+          </li>
+
+          <!-- Contact Information -->
+          <li>
+            <a href="contact-info.php" class="nav-link flex items-center px-3 py-2 text-sm font-semibold rounded-md <?= $currentPage == 'contact-info.php' ? 'text-white bg-blue-600' : 'text-gray-800 hover:bg-blue-100' ?>">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 <?= $currentPage == 'contact-info.php' ? 'text-white' : 'text-gray-600' ?>" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M14.243 5.757a6 6 0 10-.986 9.284 1 1 0 111.087 1.678A8 8 0 1118 10a3 3 0 01-4.8 2.401A4 4 0 1114 10a1 1 0 102 0c0-1.537-.586-3.07-1.757-4.243zM12 10a2 2 0 10-4 0 2 2 0 004 0z" clip-rule="evenodd" />
+              </svg>
+              Contact Info
+            </a>
+          </li>
+          
+          <!-- About Us -->
+          <li>
+            <a href="about-us.php" class="nav-link flex items-center px-3 py-2 text-sm font-semibold rounded-md <?= $currentPage == 'about-us.php' ? 'text-white bg-blue-600' : 'text-gray-800 hover:bg-blue-100' ?>">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 <?= $currentPage == 'about-us.php' ? 'text-white' : 'text-gray-600' ?>" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+              </svg>
+              About Us
             </a>
           </li>
         </ul>

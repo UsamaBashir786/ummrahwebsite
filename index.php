@@ -12,6 +12,25 @@ if ($packages_result && $packages_result->num_rows > 0) {
     $packages[] = $row;
   }
 }
+
+// Fetch active FAQs from database, grouped by category
+$faqs_query = "SELECT * FROM faqs WHERE status = 'active' ORDER BY category, created_at DESC";
+$faqs_result = $conn->query($faqs_query);
+
+// Group FAQs by category
+$faqs_by_category = [];
+$all_faqs = [];
+
+if ($faqs_result && $faqs_result->num_rows > 0) {
+  while ($faq = $faqs_result->fetch_assoc()) {
+    $category = $faq['category'] ?: 'General';
+    if (!isset($faqs_by_category[$category])) {
+      $faqs_by_category[$category] = [];
+    }
+    $faqs_by_category[$category][] = $faq;
+    $all_faqs[] = $faq;
+  }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -509,55 +528,51 @@ if ($packages_result && $packages_result->num_rows > 0) {
         <p class="text-gray-600 max-w-2xl mx-auto">Find answers to common questions about our Umrah packages and services.</p>
       </div>
 
-      <div class="max-w-3xl mx-auto">
-        <div class="faq-item" data-aos="fade-up">
-          <div class="faq-question">
-            <h3 class="text-lg font-semibold text-gray-800">What is the best time to perform Umrah?</h3>
+      <?php if (!empty($all_faqs)): ?>
+        <div class="max-w-3xl mx-auto">
+          <?php
+          // If you want to display by category, uncomment this section
+          /*
+        foreach ($faqs_by_category as $category => $faqs): ?>
+          <div class="mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4"><?php echo htmlspecialchars($category); ?></h3>
+            <?php foreach ($faqs as $faq): ?>
+              <div class="faq-item" data-aos="fade-up">
+                <div class="faq-question">
+                  <h3 class="text-lg font-semibold text-gray-800"><?php echo htmlspecialchars($faq['question']); ?></h3>
+                </div>
+                <div class="faq-answer">
+                  <p class="text-gray-600"><?php echo nl2br(htmlspecialchars($faq['answer'])); ?></p>
+                </div>
+              </div>
+            <?php endforeach; ?>
           </div>
-          <div class="faq-answer">
-            <p class="text-gray-600">Umrah can be performed at any time of the year, but the best times are during Ramadan or the months of Rajab and Sha'ban. These times are considered especially spiritually rewarding. However, if you prefer less crowded periods, consider the months right after Hajj or during winter.</p>
-          </div>
-        </div>
+        <?php endforeach;
+        */
 
-        <div class="faq-item" data-aos="fade-up">
-          <div class="faq-question">
-            <h3 class="text-lg font-semibold text-gray-800">What documents are required for Umrah?</h3>
-          </div>
-          <div class="faq-answer">
-            <p class="text-gray-600">You will need a valid passport with at least 6 months validity, completed Umrah visa application form, recent passport-sized photographs with white background, proof of vaccination as per current requirements, and proof of relationship with travel companions (if applicable). Our team will assist you with the complete documentation process.</p>
-          </div>
+          // Display all FAQs without category grouping
+          foreach ($all_faqs as $faq): ?>
+            <div class="faq-item" data-aos="fade-up">
+              <div class="faq-question">
+                <h3 class="text-lg font-semibold text-gray-800"><?php echo htmlspecialchars($faq['question']); ?></h3>
+              </div>
+              <div class="faq-answer">
+                <p class="text-gray-600"><?php echo nl2br(htmlspecialchars($faq['answer'])); ?></p>
+              </div>
+            </div>
+          <?php endforeach; ?>
         </div>
-
-        <div class="faq-item" data-aos="fade-up">
-          <div class="faq-question">
-            <h3 class="text-lg font-semibold text-gray-800">How many days are recommended for an Umrah trip?</h3>
-          </div>
-          <div class="faq-answer">
-            <p class="text-gray-600">We recommend a minimum of 7-10 days for a comprehensive Umrah experience. This allows sufficient time to perform the rituals, visit important religious sites in Makkah and Madinah, and adjust to the local environment. However, we offer packages of varying durations to accommodate different preferences and schedules.</p>
-          </div>
+      <?php else: ?>
+        <div class="max-w-3xl mx-auto text-center">
+          <p class="text-gray-600">No FAQs available at the moment. Please check back later.</p>
         </div>
-
-        <div class="faq-item" data-aos="fade-up">
-          <div class="faq-question">
-            <h3 class="text-lg font-semibold text-gray-800">Are there any physical requirements for performing Umrah?</h3>
-          </div>
-          <div class="faq-answer">
-            <p class="text-gray-600">While there are no specific physical requirements to perform Umrah, it does involve walking and standing for extended periods. The Tawaf (circumambulation around the Kaaba) is approximately 1.5 km for seven circuits, and the Sa'i between Safa and Marwa is about 3.5 km. Special arrangements can be made for elderly or disabled pilgrims, including wheelchair assistance.</p>
-          </div>
-        </div>
-
-        <div class="faq-item" data-aos="fade-up">
-          <div class="faq-question">
-            <h3 class="text-lg font-semibold text-gray-800">Can I customize my Umrah package?</h3>
-          </div>
-          <div class="faq-answer">
-            <p class="text-gray-600">Yes, we offer customizable Umrah packages to cater to your specific needs and preferences. You can choose your preferred hotel accommodations, flight options, duration of stay, and additional services. Contact our customer service team to discuss your requirements and we'll create a personalized itinerary for you.</p>
-          </div>
-        </div>
-      </div>
+      <?php endif; ?>
     </div>
   </section>
 
+  <style>
+
+  </style>
   <!-- Call to Action -->
   <section class="py-16 bg-green-700 text-white">
     <div class="container mx-auto px-4 text-center" data-aos="fade-up">
