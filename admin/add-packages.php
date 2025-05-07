@@ -16,10 +16,10 @@ $success = '';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  // Validate Package Type
-  $package_type = filter_input(INPUT_POST, 'package_type', FILTER_SANITIZE_STRING);
-  if (!in_array($package_type, ['single', 'group', 'vip'])) {
-    $errors[] = "Invalid package type.";
+  // Validate Star Rating
+  $star_rating = filter_input(INPUT_POST, 'star_rating', FILTER_SANITIZE_STRING);
+  if (!in_array($star_rating, ['low_budget', '3_star', '4_star', '5_star'])) {
+    $errors[] = "Invalid star rating.";
   }
 
   // Validate Title
@@ -39,10 +39,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
   }
 
-  // Validate Flight Class
-  $flight_class = filter_input(INPUT_POST, 'flight_class', FILTER_SANITIZE_STRING);
-  if (!in_array($flight_class, ['economy', 'business', 'first'])) {
-    $errors[] = "Invalid flight class.";
+  // Validate Makkah Nights
+  $makkah_nights = filter_input(INPUT_POST, 'makkah_nights', FILTER_SANITIZE_NUMBER_INT);
+  if (!is_numeric($makkah_nights) || $makkah_nights < 0 || $makkah_nights > 30) {
+    $errors[] = "Makkah nights must be a number between 0 and 30.";
+  }
+
+  // Validate Madinah Nights
+  $madinah_nights = filter_input(INPUT_POST, 'madinah_nights', FILTER_SANITIZE_NUMBER_INT);
+  if (!is_numeric($madinah_nights) || $madinah_nights < 0 || $madinah_nights > 30) {
+    $errors[] = "Madinah nights must be a number between 0 and 30.";
+  }
+
+  // Validate Total Days
+  $total_days = filter_input(INPUT_POST, 'total_days', FILTER_SANITIZE_NUMBER_INT);
+  if (!is_numeric($total_days) || $total_days < 1 || $total_days > 60) {
+    $errors[] = "Total days must be a number between 1 and 60.";
   }
 
   // Validate Inclusions
@@ -105,7 +117,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           error_log("Failed to move uploaded file to: $upload_path");
         } else {
           $package_image = 'Uploads/' . $filename; // Store relative path in database
-          // Set file permissions
           chmod($upload_path, 0644);
         }
       }
@@ -115,19 +126,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   // If no errors, insert into database
   if (empty($errors)) {
     $stmt = $conn->prepare("
-            INSERT INTO umrah_packages (package_type, title, description, flight_class, inclusions, price, package_image)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO umrah_packages (star_rating, title, description, makkah_nights, madinah_nights, total_days, inclusions, price, package_image)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
     if (!$stmt) {
       $errors[] = "Database query preparation failed: " . $conn->error;
       error_log("Database query preparation failed: " . $conn->error);
     } else {
       $stmt->bind_param(
-        "sssssds",
-        $package_type,
+        "sssiiisds",
+        $star_rating,
         $title,
         $description,
-        $flight_class,
+        $makkah_nights,
+        $madinah_nights,
+        $total_days,
         $inclusions_json,
         $price,
         $package_image
@@ -154,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Add Umrah Package | UmrahFlights</title>
   <!-- Tailwind CSS -->
-
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <!-- Custom CSS -->
@@ -171,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
-            
+            <i class="fas fa-bars"></i>
           </button>
           <h1 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">
             <i class="fas fa-box-open text-indigo-600 mr-2"></i>Add New Package
@@ -191,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </button>
             <ul id="userDropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 hidden z-50">
               <li>
-                <a class="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-50" href="logout.php">
+                <a class="flex items-center px-4 py-2 text-red-500 hover:bg-red-50" href="logout.php">
                   <i class="fas fa-sign-out-alt mr-2"></i> Logout
                 </a>
               </li>
@@ -224,18 +237,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
 
     <!-- Form Section -->
-    <div class="bg-white shadow-lg rounded-lg p-6 max-w-2xl mx-auto">
+    <div class="bg-white shadow-lg rounded-lg p-6 mx-auto">
       <h2 class="text-xl font-semibold text-indigo-600 mb-6">
         <i class="fas fa-box-open mr-2"></i>Create New Umrah Package
       </h2>
       <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
-        <!-- Package Type -->
+        <!-- Star Rating -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Package Type *</label>
-          <select name="package_type" class="block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required>
-            <option value="single" <?php echo (isset($_POST['package_type']) && $_POST['package_type'] === 'single') ? 'selected' : ''; ?>>Single Umrah Package</option>
-            <option value="group" <?php echo (isset($_POST['package_type']) && $_POST['package_type'] === 'group') ? 'selected' : ''; ?>>Group Umrah Package</option>
-            <option value="vip" <?php echo (isset($_POST['package_type']) && $_POST['package_type'] === 'vip') ? 'selected' : ''; ?>>VIP Umrah Package</option>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Package Category *</label>
+          <select name="star_rating" class="block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+            <option value="low_budget" <?php echo (isset($_POST['star_rating']) && $_POST['star_rating'] === 'low_budget') ? 'selected' : ''; ?>>Low Budget Economy</option>
+            <option value="3_star" <?php echo (isset($_POST['star_rating']) && $_POST['star_rating'] === '3_star') ? 'selected' : ''; ?>>3 Star</option>
+            <option value="4_star" <?php echo (isset($_POST['star_rating']) && $_POST['star_rating'] === '4_star') ? 'selected' : ''; ?>>4 Star</option>
+            <option value="5_star" <?php echo (isset($_POST['star_rating']) && $_POST['star_rating'] === '5_star') ? 'selected' : ''; ?>>5 Star</option>
           </select>
         </div>
 
@@ -266,19 +280,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <small id="desc-error-message" class="text-red-500 text-xs mt-1"></small>
         </div>
 
-        <!-- Flight Class -->
+        <!-- Makkah Nights -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Flight Class *</label>
-          <select name="flight_class" class="block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" required>
-            <option value="economy" <?php echo (isset($_POST['flight_class']) && $_POST['flight_class'] === 'economy') ? 'selected' : ''; ?>>Economy</option>
-            <option value="business" <?php echo (isset($_POST['flight_class']) && $_POST['flight_class'] === 'business') ? 'selected' : ''; ?>>Business</option>
-            <option value="first" <?php echo (isset($_POST['flight_class']) && $_POST['flight_class'] === 'first') ? 'selected' : ''; ?>>First Class</option>
-          </select>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Makkah Nights *</label>
+          <input
+            type="number"
+            id="makkahNights"
+            name="makkah_nights"
+            class="block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
+            required
+            min="0"
+            max="30"
+            value="<?php echo isset($_POST['makkah_nights']) ? htmlspecialchars($_POST['makkah_nights']) : ''; ?>"
+            oninput="validateNights('makkahNights', 'makkahNightsError')">
+          <small id="makkahNightsError" class="text-red-500 text-xs mt-1"></small>
+        </div>
+
+        <!-- Madinah Nights -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Madinah Nights *</label>
+          <input
+            type="number"
+            id="madinahNights"
+            name="madinah_nights"
+            class="block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
+            required
+            min="0"
+            max="30"
+            value="<?php echo isset($_POST['madinah_nights']) ? htmlspecialchars($_POST['madinah_nights']) : ''; ?>"
+            oninput="validateNights('madinahNights', 'madinahNightsError')">
+          <small id="madinahNightsError" class="text-red-500 text-xs mt-1"></small>
+        </div>
+
+        <!-- Total Days -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Total Days *</label>
+          <input
+            type="number"
+            id="totalDays"
+            name="total_days"
+            class="block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
+            required
+            min="1"
+            max="60"
+            value="<?php echo isset($_POST['total_days']) ? htmlspecialchars($_POST['total_days']) : ''; ?>"
+            oninput="validateTotalDays()">
+          <small id="totalDaysError" class="text-red-500 text-xs mt-1"></small>
         </div>
 
         <!-- Package Inclusions -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Package Inclusions</label>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Package Inclusions *</label>
           <div class="space-y-2">
             <label class="flex items-center">
               <input type="checkbox" name="inclusions[]" value="flight" class="text-indigo-600 focus:ring-indigo-500 mr-2" <?php echo (isset($_POST['inclusions']) && in_array('flight', $_POST['inclusions'])) ? 'checked' : ''; ?>>
@@ -422,6 +474,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           textarea.value = words.slice(0, maxWords).join(' ');
         } else {
           errorMessage.textContent = '';
+        }
+      }
+
+      // Nights validation
+      function validateNights(inputId, errorId) {
+        const input = document.getElementById(inputId);
+        const errorMessage = document.getElementById(errorId);
+        const value = parseInt(input.value);
+        if (isNaN(value) || value < 0 || value > 30) {
+          errorMessage.textContent = 'Must be a number between 0 and 30.';
+          input.classList.add('border-red-500');
+        } else {
+          errorMessage.textContent = '';
+          input.classList.remove('border-red-500');
+        }
+      }
+
+      // Total days validation
+      function validateTotalDays() {
+        const input = document.getElementById('totalDays');
+        const errorMessage = document.getElementById('totalDaysError');
+        const value = parseInt(input.value);
+        if (isNaN(value) || value < 1 || value > 60) {
+          errorMessage.textContent = 'Must be a number between 1 and 60.';
+          input.classList.add('border-red-500');
+        } else {
+          errorMessage.textContent = '';
+          input.classList.remove('border-red-500');
         }
       }
 

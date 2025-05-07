@@ -45,6 +45,14 @@ function formatNumber($number)
   return $formattedNumber . $suffixes[$index];
 }
 
+// Map star_rating to display names
+$star_rating_display = [
+  'low_budget' => 'Low Budget Economy',
+  '3_star' => '3 Star',
+  '4_star' => '4 Star',
+  '5_star' => '5 Star'
+];
+
 // Handle bulk delete
 if (isset($_POST['bulk_delete']) && !empty($_POST['package_ids'])) {
   $ids = array_map('intval', $_POST['package_ids']);
@@ -75,8 +83,8 @@ if (isset($_GET['delete'])) {
       $stmt = $conn->prepare("DELETE FROM umrah_packages WHERE id = ?");
       $stmt->bind_param("i", $id);
       if ($stmt->execute()) {
-        // Delete image file
-        if (file_exists('../' . $row['package_image'])) {
+        // Delete image file if not default
+        if ($row['package_image'] !== 'default-package.jpg' && file_exists('../' . $row['package_image'])) {
           unlink('../' . $row['package_image']);
         }
         $_SESSION['success'] = "Package deleted successfully!";
@@ -99,8 +107,8 @@ if (isset($_GET['export_csv'])) {
   header('Content-Type: text/csv; charset=utf-8');
   header('Content-Disposition: attachment; filename="umrah_packages.csv"');
   $output = fopen('php://output', 'w');
-  fputcsv($output, ['ID', 'Title', 'Type', 'Flight Class', 'Inclusions', 'Price (PKR)', 'Created At']);
-  $stmt = $conn->prepare("SELECT id, title, package_type, flight_class, inclusions, price, created_at FROM umrah_packages");
+  fputcsv($output, ['ID', 'Title', 'Category', 'Makkah Nights', 'Madinah Nights', 'Total Days', 'Inclusions', 'Price (PKR)', 'Created At']);
+  $stmt = $conn->prepare("SELECT id, title, star_rating, makkah_nights, madinah_nights, total_days, inclusions, price, created_at FROM umrah_packages");
   $stmt->execute();
   $result = $stmt->get_result();
   while ($package = $result->fetch_assoc()) {
@@ -108,8 +116,10 @@ if (isset($_GET['export_csv'])) {
     fputcsv($output, [
       $package['id'],
       $package['title'],
-      ucfirst($package['package_type']),
-      ucfirst($package['flight_class']),
+      $star_rating_display[$package['star_rating']] ?? $package['star_rating'],
+      $package['makkah_nights'],
+      $package['madinah_nights'],
+      $package['total_days'],
       implode(', ', array_map('ucfirst', is_array($inclusions) ? $inclusions : [])),
       formatNumber($package['price']),
       date('d M Y', strtotime($package['created_at']))
@@ -122,8 +132,7 @@ if (isset($_GET['export_csv'])) {
 
 // Handle filters
 $filters = [
-  'package_type' => filter_input(INPUT_GET, 'package_type', FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => '/^(single|group|vip)?$/']]) ?: '',
-  'flight_class' => filter_input(INPUT_GET, 'flight_class', FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => '/^(economy|business|first)?$/']]) ?: '',
+  'star_rating' => filter_input(INPUT_GET, 'star_rating', FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => '/^(low_budget|3_star|4_star|5_star)?$/']]) ?: '',
   'price_min' => filter_input(INPUT_GET, 'price_min', FILTER_VALIDATE_FLOAT) ?: null,
   'price_max' => filter_input(INPUT_GET, 'price_max', FILTER_VALIDATE_FLOAT) ?: null,
   'inclusion' => filter_input(INPUT_GET, 'inclusion', FILTER_VALIDATE_REGEXP, ['options' => ['regexp' => '/^(flight|hotel|transport|guide|vip_services)?$/']]) ?: '',
@@ -135,15 +144,9 @@ $where_clauses = [];
 $params = [];
 $types = '';
 
-if ($filters['package_type']) {
-  $where_clauses[] = "package_type = ?";
-  $params[] = $filters['package_type'];
-  $types .= 's';
-}
-
-if ($filters['flight_class']) {
-  $where_clauses[] = "flight_class = ?";
-  $params[] = $filters['flight_class'];
+if ($filters['star_rating']) {
+  $where_clauses[] = "star_rating = ?";
+  $params[] = $filters['star_rating'];
   $types .= 's';
 }
 
@@ -177,7 +180,7 @@ if ($filters['date_to']) {
   $types .= 's';
 }
 
-$query = "SELECT id, package_type, title, flight_class, inclusions, price, package_image, created_at FROM umrah_packages";
+$query = "SELECT id, star_rating, title, makkah_nights, madinah_nights, total_days, inclusions, price, package_image, created_at FROM umrah_packages";
 if (!empty($where_clauses)) {
   $query .= " WHERE " . implode(' AND ', $where_clauses);
 }
@@ -195,8 +198,7 @@ $stmt->close();
 // Fetch statistics
 $stats = [
   'total_packages' => 0,
-  'by_type' => ['single' => 0, 'group' => 0, 'vip' => 0],
-  'by_flight_class' => ['economy' => 0, 'business' => 0, 'first' => 0],
+  'by_star_rating' => ['low_budget' => 0, '3_star' => 0, '4_star' => 0, '5_star' => 0],
   'avg_price' => '0.00',
   'recent_packages' => 0
 ];
@@ -210,22 +212,13 @@ if ($result) {
   error_log("Statistics query failed: " . $conn->error);
 }
 
-$result = $conn->query("SELECT package_type, COUNT(*) as count FROM umrah_packages GROUP BY package_type");
+$result = $conn->query("SELECT star_rating, COUNT(*) as count FROM umrah_packages GROUP BY star_rating");
 if ($result) {
   while ($row = $result->fetch_assoc()) {
-    $stats['by_type'][$row['package_type']] = $row['count'];
+    $stats['by_star_rating'][$row['star_rating']] = $row['count'];
   }
 } else {
-  error_log("Package type query failed: " . $conn->error);
-}
-
-$result = $conn->query("SELECT flight_class, COUNT(*) as count FROM umrah_packages GROUP BY flight_class");
-if ($result) {
-  while ($row = $result->fetch_assoc()) {
-    $stats['by_flight_class'][$row['flight_class']] = $row['count'];
-  }
-} else {
-  error_log("Flight class query failed: " . $conn->error);
+  error_log("Star rating query failed: " . $conn->error);
 }
 
 $result = $conn->query("SELECT COUNT(*) as recent FROM umrah_packages WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
@@ -235,6 +228,7 @@ if ($result) {
   error_log("Recent packages query failed: " . $conn->error);
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -302,7 +296,7 @@ if ($result) {
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
-            
+            <i class="fas fa-bars"></i>
           </button>
           <h4 class="text-lg font-semibold text-gray-800">
             <i class="fas fa-box text-indigo-600 mr-2"></i> Umrah Packages
@@ -366,7 +360,7 @@ if ($result) {
     <?php endif; ?>
 
     <!-- Statistics Section -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6" aria-label="Package statistics">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 mb-6" aria-label="Package statistics">
       <div class="stats-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-indigo-500">
         <div class="flex justify-between items-center">
           <div>
@@ -400,21 +394,22 @@ if ($result) {
           </div>
         </div>
       </div>
-      <div class="stats-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-yellow-500">
+      <!-- <div class="stats-card bg-white shadow-lg rounded-lg p-6 border-l-4 border-yellow-500">
         <div class="flex justify-between items-center">
           <div>
-            <h3 class="text-lg font-semibold text-gray-800">By Package Type</h3>
+            <h3 class="text-lg font-semibold text-gray-800">By Category</h3>
             <p class="text-sm text-gray-600">
-              Single: <?php echo $stats['by_type']['single'] ?: '0'; ?><br>
-              Group: <?php echo $stats['by_type']['group'] ?: '0'; ?><br>
-              VIP: <?php echo $stats['by_type']['vip'] ?: '0'; ?>
+              Low Budget: <?php echo $stats['by_star_rating']['low_budget'] ?: '0'; ?><br>
+              3 Star: <?php echo $stats['by_star_rating']['3_star'] ?: '0'; ?><br>
+              4 Star: <?php echo $stats['by_star_rating']['4_star'] ?: '0'; ?><br>
+              5 Star: <?php echo $stats['by_star_rating']['5_star'] ?: '0'; ?>
             </p>
           </div>
           <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 text-yellow-500">
             <i class="fas fa-th-list text-xl"></i>
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
 
     <!-- Filters Section -->
@@ -422,21 +417,13 @@ if ($result) {
       <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter Packages</h3>
       <form class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" method="GET">
         <div>
-          <label for="package_type" class="block text-sm font-medium text-gray-700 mb-1">Package Type</label>
-          <select id="package_type" name="package_type" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-            <option value="">All Types</option>
-            <option value="single" <?php echo $filters['package_type'] === 'single' ? 'selected' : ''; ?>>Single</option>
-            <option value="group" <?php echo $filters['package_type'] === 'group' ? 'selected' : ''; ?>>Group</option>
-            <option value="vip" <?php echo $filters['package_type'] === 'vip' ? 'selected' : ''; ?>>VIP</option>
-          </select>
-        </div>
-        <div>
-          <label for="flight_class" class="block text-sm font-medium text-gray-700 mb-1">Flight Class</label>
-          <select id="flight_class" name="flight_class" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-            <option value="">All Classes</option>
-            <option value="economy" <?php echo $filters['flight_class'] === 'economy' ? 'selected' : ''; ?>>Economy</option>
-            <option value="business" <?php echo $filters['flight_class'] === 'business' ? 'selected' : ''; ?>>Business</option>
-            <option value="first" <?php echo $filters['flight_class'] === 'first' ? 'selected' : ''; ?>>First</option>
+          <label for="star_rating" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <select id="star_rating" name="star_rating" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+            <option value="">All Categories</option>
+            <option value="low_budget" <?php echo $filters['star_rating'] === 'low_budget' ? 'selected' : ''; ?>>Low Budget Economy</option>
+            <option value="3_star" <?php echo $filters['star_rating'] === '3_star' ? 'selected' : ''; ?>>3 Star</option>
+            <option value="4_star" <?php echo $filters['star_rating'] === '4_star' ? 'selected' : ''; ?>>4 Star</option>
+            <option value="5_star" <?php echo $filters['star_rating'] === '5_star' ? 'selected' : ''; ?>>5 Star</option>
           </select>
         </div>
         <div>
@@ -479,22 +466,14 @@ if ($result) {
     <div class="bg-white shadow-lg rounded-lg p-6" aria-label="Umrah packages table">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold text-gray-800">Umrah Packages</h3>
-        <!--<div class="flex space-x-2">-->
-        <!--  <a href="add-packages.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">-->
-        <!--    <i class="fas fa-plus mr-2"></i>Add New Package-->
-        <!--  </a>-->
-        <!--  <a href="?export_csv=1" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">-->
-        <!--    <i class="fas fa-download mr-2"></i>Export CSV-->
-        <!--  </a>-->
-        <!--</div>-->
         <div class="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
-  <a href="add-packages.php" class="inline-flex items-center justify-center px-4 py-2 sm:px-3 sm:py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 w-full sm:w-auto">
-    <i class="fas fa-plus mr-2"></i>Add New Package
-  </a>
-  <a href="?export_csv=1" class="inline-flex items-center justify-center px-4 py-2 sm:px-3 sm:py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 w-full sm:w-auto">
-    <i class="fas fa-download mr-2"></i>Export CSV
-  </a>
-</div>
+          <a href="add-package.php" class="inline-flex items-center justify-center px-4 py-2 sm:px-3 sm:py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 w-full sm:w-auto">
+            <i class="fas fa-plus mr-2"></i>Add New Package
+          </a>
+          <a href="?export_csv=1" class="inline-flex items-center justify-center px-4 py-2 sm:px-3 sm:py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 w-full sm:w-auto">
+            <i class="fas fa-download mr-2"></i>Export CSV
+          </a>
+        </div>
       </div>
       <form id="bulkDeleteForm" method="POST">
         <div class="flex justify-end mb-4">
@@ -510,8 +489,10 @@ if ($result) {
                 <th class="p-3">#</th>
                 <th class="p-3">Image</th>
                 <th class="p-3">Title</th>
-                <th class="p-3">Type</th>
-                <th class="p-3">Flight Class</th>
+                <th class="p-3">Category</th>
+                <th class="p-3">Makkah Nights</th>
+                <th class="p-3">Madinah Nights</th>
+                <th class="p-3">Total Days</th>
                 <th class="p-3">Inclusions</th>
                 <th class="p-3">Price (PKR)</th>
                 <th class="p-3">Created At</th>
@@ -521,7 +502,7 @@ if ($result) {
             <tbody>
               <?php if (empty($packages)): ?>
                 <tr>
-                  <td colspan="10" class="p-3 text-center text-gray-600">No packages found.</td>
+                  <td colspan="12" class="p-3 text-center text-gray-600">No packages found.</td>
                 </tr>
               <?php else: ?>
                 <?php foreach ($packages as $index => $package): ?>
@@ -534,8 +515,10 @@ if ($result) {
                       <img src="../<?php echo htmlspecialchars($package['package_image'] ?: 'assets/img/default-package.jpg'); ?>" alt="Package Image for <?php echo htmlspecialchars($package['title']); ?>" class="table-img w-12 h-12 object-cover rounded" aria-label="Package image">
                     </td>
                     <td class="p-3"><?php echo htmlspecialchars($package['title']); ?></td>
-                    <td class="p-3"><?php echo ucfirst(htmlspecialchars($package['package_type'])); ?></td>
-                    <td class="p-3"><?php echo ucfirst(htmlspecialchars($package['flight_class'])); ?></td>
+                    <td class="p-3"><?php echo htmlspecialchars($star_rating_display[$package['star_rating']] ?? $package['star_rating']); ?></td>
+                    <td class="p-3"><?php echo htmlspecialchars($package['makkah_nights']); ?></td>
+                    <td class="p-3"><?php echo htmlspecialchars($package['madinah_nights']); ?></td>
+                    <td class="p-3"><?php echo htmlspecialchars($package['total_days']); ?></td>
                     <td class="p-3">
                       <?php
                       $inclusions = json_decode($package['inclusions'], true);
@@ -551,6 +534,9 @@ if ($result) {
                       <a href="?delete=<?php echo $package['id']; ?>" class="text-red-600 hover:text-red-800" data-tooltip="Delete Package" onclick="return confirm('Are you sure you want to delete this package?');" aria-label="Delete <?php echo htmlspecialchars($package['title']); ?>">
                         <i class="fas fa-trash"></i>
                       </a>
+                      <button class="view-details text-indigo-600 hover:text-indigo-800" data-id="<?php echo $package['id']; ?>" data-tooltip="View Details" aria-label="View details for <?php echo htmlspecialchars($package['title']); ?>">
+                        <i class="fas fa-eye"></i>
+                      </button>
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -601,15 +587,15 @@ if ($result) {
       });
     }
 
-    // Sidebar Toggle (assuming sidebar toggle functionality from sidebar.php)
+    // Sidebar Toggle
     const sidebarToggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
 
     if (sidebarToggle && sidebar && sidebarOverlay) {
       sidebarToggle.addEventListener('click', function() {
-        sidebar.classList.remove('-translate-x-full');
-        sidebarOverlay.classList.remove('hidden');
+        sidebar.classList.toggle('-translate-x-full');
+        sidebarOverlay.classList.toggle('hidden');
       });
     }
 
@@ -622,12 +608,12 @@ if ($result) {
 
     // DataTables Initialization
     $(document).ready(function() {
-      const hasDataRows = $('#packagesTable tbody tr').not(':has(td[colspan="10"])').length > 0;
+      const hasDataRows = $('#packagesTable tbody tr').not(':has(td[colspan="12"])').length > 0;
 
       $('#packagesTable').DataTable({
         pageLength: 10,
         order: [
-          [8, 'desc']
+          [10, 'desc']
         ],
         destroy: true,
         columns: hasDataRows ? [{
@@ -648,10 +634,16 @@ if ($result) {
             data: 'title'
           },
           {
-            data: 'type'
+            data: 'category'
           },
           {
-            data: 'flight_class'
+            data: 'makkah_nights'
+          },
+          {
+            data: 'madinah_nights'
+          },
+          {
+            data: 'total_days'
           },
           {
             data: 'inclusions'
@@ -670,7 +662,7 @@ if ($result) {
         ] : null,
         language: {
           search: 'Search packages:',
-          searchPlaceholder: 'Enter title or type...',
+          searchPlaceholder: 'Enter title or category...',
           emptyTable: 'No packages available.'
         },
         deferRender: true
@@ -704,15 +696,16 @@ if ($result) {
           modalContent.innerHTML = `
             <img src="../${package.package_image || 'assets/img/default-package.jpg'}" alt="${package.title || 'Package'}" class="w-full h-48 object-cover rounded-md mb-4">
             <p><strong>Title:</strong> ${package.title || 'N/A'}</p>
-            <p><strong>Type:</strong> ${(package.package_type || '').charAt(0).toUpperCase() + (package.package_type || '').slice(1) || 'N/A'}</p>
-            <p><strong>Flight Class:</strong> ${(package.flight_class || '').charAt(0).toUpperCase() + (package.flight_class || '').slice(1) || 'N/A'}</p>
+            <p><strong>Category:</strong> ${<?php echo json_encode($star_rating_display); ?>[package.star_rating] || package.star_rating || 'N/A'}</p>
+            <p><strong>Makkah Nights:</strong> ${package.makkah_nights ?? 'N/A'}</p>
+            <p><strong>Madinah Nights:</strong> ${package.madinah_nights ?? 'N/A'}</p>
+            <p><strong>Total Days:</strong> ${package.total_days ?? 'N/A'}</p>
             <p><strong>Inclusions:</strong> ${inclusions.length ? inclusions.join(', ') : 'None'}</p>
             <p><strong>Price (PKR):</strong> ${formatNumber(package.price || 0)}</p>
             <p><strong>Created At:</strong> ${package.created_at ? new Date(package.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</p>
           `;
           modal.classList.remove('modal-hidden');
           modal.classList.add('modal-visible');
-          console.log('Modal opened:', modal.classList);
           modal.focus();
         } else {
           console.error('Package not found for ID:', id);
@@ -755,17 +748,18 @@ if ($result) {
     }
 
     // Chart.js Initialization
-    const typeChart = new Chart(document.getElementById('typeChart'), {
+    const typeChart = new Chart(document.createElement('canvas'), {
       type: 'pie',
       data: {
-        labels: ['Single', 'Group', 'VIP'],
+        labels: ['Low Budget', '3 Star', '4 Star', '5 Star'],
         datasets: [{
           data: [
-            <?php echo $stats['by_type']['single'] ?: 0; ?>,
-            <?php echo $stats['by_type']['group'] ?: 0; ?>,
-            <?php echo $stats['by_type']['vip'] ?: 0; ?>
+            <?php echo $stats['by_star_rating']['low_budget'] ?: 0; ?>,
+            <?php echo $stats['by_star_rating']['3_star'] ?: 0; ?>,
+            <?php echo $stats['by_star_rating']['4_star'] ?: 0; ?>,
+            <?php echo $stats['by_star_rating']['5_star'] ?: 0; ?>
           ],
-          backgroundColor: ['#6366F1', '#10B981', '#F59E0B']
+          backgroundColor: ['#6366F1', '#10B981', '#F59E0B', '#EF4444']
         }]
       },
       options: {
@@ -777,52 +771,7 @@ if ($result) {
         }
       }
     });
-
-    const flightChart = new Chart(document.getElementById('flightChart'), {
-      type: 'bar',
-      data: {
-        labels: ['Economy', 'Business', 'First'],
-        datasets: [{
-          label: 'Packages',
-          data: [
-            <?php echo $stats['by_flight_class']['economy'] ?: 0; ?>,
-            <?php echo $stats['by_flight_class']['business'] ?: 0; ?>,
-            <?php echo $stats['by_flight_class']['first'] ?: 0; ?>
-          ],
-          backgroundColor: '#6366F1'
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        }
-      }
-    });
-
-    // JavaScript version of formatNumber for modal
-    function formatNumber(number) {
-      if (number === null || number == 0 || isNaN(number)) {
-        return 'N/A';
-      }
-
-      const suffixes = ['', 'K', 'M', 'B', 'T'];
-      let index = 0;
-
-      while (number >= 1000 && index < suffixes.length - 1) {
-        number /= 1000;
-        index++;
-      }
-
-      let formattedNumber = Math.round(number * 10) / 10;
-      if (formattedNumber % 1 === 0) {
-        formattedNumber = Math.round(formattedNumber);
-      }
-
-      return formattedNumber + suffixes[index];
-    }
+    document.querySelector('.stats-card:nth-child(4) .flex').appendChild(typeChart.canvas);
   </script>
 </body>
 
