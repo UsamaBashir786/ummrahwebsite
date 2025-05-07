@@ -16,10 +16,6 @@ if ($about_result && $about_result->num_rows > 0) {
 // Fetch company values
 $values_query = "SELECT * FROM company_values WHERE status = 'active' ORDER BY display_order, created_at";
 $values_result = $conn->query($values_query);
-
-// Fetch company statistics
-$stats_query = "SELECT * FROM company_statistics WHERE status = 'active' ORDER BY display_order, created_at";
-$stats_result = $conn->query($stats_query);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,6 +30,9 @@ $stats_result = $conn->query($stats_query);
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
   <style>
+  html,body{
+      overflow-x:hidden;
+  }
     .service-card {
       transition: all 0.3s ease;
     }
@@ -64,43 +63,6 @@ $stats_result = $conn->query($stats_query);
       padding: 20px 0 15px;
       opacity: 0;
       transition: all 0.3s ease;
-    }
-
-    .milestone-counter {
-      position: relative;
-      z-index: 1;
-    }
-
-    .milestone-counter::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(4, 120, 87, 0.05);
-      border-radius: 0.5rem;
-      z-index: -1;
-      transform: rotate(-3deg);
-      transition: all 0.3s ease;
-    }
-
-    .milestone-counter:hover::before {
-      transform: rotate(0deg);
-      background-color: rgba(4, 120, 87, 0.1);
-    }
-
-    .counter-value {
-      color: #047857;
-      font-size: 2.5rem;
-      font-weight: 700;
-      line-height: 1;
-    }
-
-    .counter-label {
-      color: #4b5563;
-      font-size: 1rem;
-      margin-top: 0.5rem;
     }
 
     .timeline-item {
@@ -226,35 +188,6 @@ $stats_result = $conn->query($stats_query);
               <p class="text-gray-600">
                 <?php echo htmlspecialchars($value['description']); ?>
               </p>
-            </div>
-            <?php $delay += 100; ?>
-          <?php endwhile; ?>
-        <?php endif; ?>
-      </div>
-    </div>
-  </section>
-
-  <!-- Statistics Section -->
-  <section class="py-16 bg-gray-50">
-    <div class="container mx-auto px-4">
-      <?php if (isset($about_sections['statistics_intro'])): ?>
-        <div class="text-center mb-12" data-aos="fade-up">
-          <h2 class="text-3xl font-bold text-gray-800 mb-4"><?php echo htmlspecialchars($about_sections['statistics_intro']['title']); ?></h2>
-          <p class="text-gray-600 max-w-3xl mx-auto">
-            <?php echo htmlspecialchars($about_sections['statistics_intro']['subtitle']); ?>
-          </p>
-        </div>
-      <?php endif; ?>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <?php if ($stats_result && $stats_result->num_rows > 0): ?>
-          <?php $delay = 100; ?>
-          <?php while ($stat = $stats_result->fetch_assoc()): ?>
-            <div class="milestone-counter text-center p-6" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
-              <div class="counter-value">
-                <?php echo htmlspecialchars($stat['prefix'] ?? ''); ?><?php echo htmlspecialchars($stat['value']); ?><?php echo htmlspecialchars($stat['suffix'] ?? ''); ?>
-              </div>
-              <div class="counter-label"><?php echo htmlspecialchars($stat['label']); ?></div>
             </div>
             <?php $delay += 100; ?>
           <?php endwhile; ?>

@@ -520,6 +520,7 @@ if ($faqs_result && $faqs_result->num_rows > 0) {
   </section>
 
   <!-- FAQ Section -->
+    <!-- FAQ Section -->
   <section class="py-16 bg-white">
     <div class="container mx-auto px-4">
       <div class="text-center mb-12" data-aos="fade-up">
@@ -570,9 +571,7 @@ if ($faqs_result && $faqs_result->num_rows > 0) {
     </div>
   </section>
 
-  <style>
 
-  </style>
   <!-- Call to Action -->
   <section class="py-16 bg-green-700 text-white">
     <div class="container mx-auto px-4 text-center" data-aos="fade-up">
@@ -641,6 +640,46 @@ if ($faqs_result && $faqs_result->num_rows > 0) {
   </script>
 
   <?php include 'includes/js-links.php' ?>
+  <style>
+      /* For smooth scrolling to sections */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ===== AOS Animation Fixes ===== */
+/* Fix for mobile overflow issues with AOS */
+html,
+body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+[data-aos][data-aos][data-aos-delay="50"].aos-animate,
+body[data-aos-delay="50"] [data-aos].aos-animate {
+  transition-delay: 50ms;
+}
+
+[data-aos][data-aos][data-aos-delay="100"].aos-animate,
+body[data-aos-delay="100"] [data-aos].aos-animate {
+  transition-delay: 100ms;
+}
+
+[data-aos][data-aos][data-aos-delay="200"].aos-animate,
+body[data-aos-delay="200"] [data-aos].aos-animate {
+  transition-delay: 200ms;
+}
+
+[data-aos][data-aos][data-aos-delay="300"].aos-animate,
+body[data-aos-delay="300"] [data-aos].aos-animate {
+  transition-delay: 300ms;
+}
+
+[data-aos][data-aos][data-aos-delay="400"].aos-animate,
+body[data-aos-delay="400"] [data-aos].aos-animate {
+  transition-delay: 400ms;
+}
+
+  </style>
 </body>
 
 </html>

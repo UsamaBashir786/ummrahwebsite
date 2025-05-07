@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   // Bind parameters
   $stmt->bind_param(
-    "ssssisssdiissssdissiiiissi", // Type string matches the 25 parameters + 1 for id
+    "ssssisssdiissssdissiiiissi",
     $airline_name,
     $flight_number,
     $departure_city,
@@ -179,6 +179,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <link rel="stylesheet" href="../src/output.css">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    /* Ensure black text color on focus for all input and select elements */
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input[type="date"]:focus,
+    input[type="radio"]:focus,
+    select:focus,
+    textarea:focus {
+      color: #000000 !important;
+      outline: #000000 !important;
+    }
+  </style>
 </head>
 
 <body class="bg-gray-100">
@@ -228,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <label for="airline_name" class="block text-sm font-medium text-gray-700 mb-1">Airline Name <span class="text-red-500">*</span></label>
-              <select name="airline_name" id="airline_name" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+              <select name="airline_name" id="airline_name" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" required>
                 <option value="">Select Airline</option>
                 <!-- Pakistani Airlines -->
                 <optgroup label="Pakistani Airlines">
@@ -244,7 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   <option value="Qatar" <?php echo $flight['airline_name'] === 'Qatar' ? 'selected' : ''; ?>>Qatar Airways</option>
                   <option value="Etihad" <?php echo $flight['airline_name'] === 'Etihad' ? 'selected' : ''; ?>>Etihad Airways</option>
                   <option value="Saudi" <?php echo $flight['airline_name'] === 'Saudi' ? 'selected' : ''; ?>>Saudia (Saudi Airlines)</option>
-                  <option value="Flynas" <?php echo $flight['airline_name'] === 'Flynas' ? 'selected' : ''; ?>>Flynas</option>
+                  <option value="Fernes" <?php echo $flight['airline_name'] === 'Fernes' ? 'selected' : ''; ?>>Fernes</option>
                   <option value="Flydubai" <?php echo $flight['airline_name'] === 'Flydubai' ? 'selected' : ''; ?>>Flydubai</option>
                   <option value="OmanAir" <?php echo $flight['airline_name'] === 'OmanAir' ? 'selected' : ''; ?>>Oman Air</option>
                   <option value="GulfAir" <?php echo $flight['airline_name'] === 'GulfAir' ? 'selected' : ''; ?>>Gulf Air</option>
@@ -277,7 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div>
               <label for="flight_number" class="block text-sm font-medium text-gray-700 mb-1">Flight Number <span class="text-red-500">*</span></label>
-              <input type="text" name="flight_number" id="flight_number" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['flight_number']); ?>" placeholder="e.g., PK-309" required maxlength="9">
+              <input type="text" name="flight_number" id="flight_number" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['flight_number']); ?>" placeholder="e.g., PK-309" required maxlength="9">
             </div>
           </div>
 
@@ -285,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <label for="departure_city" class="block text-sm font-medium text-gray-700 mb-1">Departure City <span class="text-red-500">*</span></label>
-              <select name="departure_city" id="departure_city" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+              <select name="departure_city" id="departure_city" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" required>
                 <option value="">Select City</option>
                 <!-- Major Cities -->
                 <option value="Karachi" <?php echo $flight['departure_city'] === 'Karachi' ? 'selected' : ''; ?>>Karachi</option>
@@ -346,7 +358,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div>
               <label for="arrival_city" class="block text-sm font-medium text-gray-700 mb-1">Arrival City <span class="text-red-500">*</span></label>
-              <select name="arrival_city" id="arrival_city" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+              <select name="arrival_city" id="arrival_city" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" required>
                 <option value="">Select City</option>
                 <option value="Jeddah" <?php echo $flight['arrival_city'] === 'Jeddah' ? 'selected' : ''; ?>>Jeddah</option>
                 <option value="Medina" <?php echo $flight['arrival_city'] === 'Medina' ? 'selected' : ''; ?>>Medina</option>
@@ -371,31 +383,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <div id="stops-container" class="<?php echo $flight['has_stops'] ? '' : 'hidden'; ?>">
-              <?php if (!empty($stops)) : ?>
-                <?php foreach ($stops as $stop) : ?>
-                  <div class="stop-row grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+              <div id="stop-rows">
+                <?php if (!empty($stops)) : ?>
+                  <?php foreach ($stops as $stop) : ?>
+                    <div class="stop-row grid grid-cols-1 md:grid-cols-3 gap-6 mb-4 items-end">
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Stop City</label>
+                        <input type="text" name="stop_city[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" maxlength="12" value="<?php echo htmlspecialchars($stop['city']); ?>" placeholder="e.g., Dubai">
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Stop Duration (hours)</label>
+                        <input type="text" name="stop_duration[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($stop['duration']); ?>" placeholder="e.g., 4">
+                      </div>
+                      <div>
+                        <button type="button" class="remove-stop inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                          <i class="fas fa-trash mr-2"></i>Remove
+                        </button>
+                      </div>
+                    </div>
+                  <?php endforeach; ?>
+                <?php else : ?>
+                  <div class="stop-row grid grid-cols-1 md:grid-cols-3 gap-6 mb-4 items-end">
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">Stop City</label>
-                      <input type="text" name="stop_city[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" maxlength="12" value="<?php echo htmlspecialchars($stop['city']); ?>" placeholder="e.g., Dubai">
+                      <input type="text" name="stop_city[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" maxlength="12" placeholder="e.g., Dubai">
                     </div>
                     <div>
                       <label class="block text-sm font-medium text-gray-700 mb-1">Stop Duration (hours)</label>
-                      <input type="text" name="stop_duration[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($stop['duration']); ?>" placeholder="e.g., 4">
+                      <input type="text" name="stop_duration[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" placeholder="e.g., 4">
+                    </div>
+                    <div>
+                      <button type="button" class="remove-stop inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        <i class="fas fa-trash mr-2"></i>Remove
+                      </button>
                     </div>
                   </div>
-                <?php endforeach; ?>
-              <?php else : ?>
-                <div class="stop-row grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Stop City</label>
-                    <input type="text" name="stop_city[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" maxlength="12" placeholder="e.g., Dubai">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Stop Duration (hours)</label>
-                    <input type="text" name="stop_duration[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="e.g., 4">
-                  </div>
-                </div>
-              <?php endif; ?>
+                <?php endif; ?>
+              </div>
               <div class="text-right">
                 <button type="button" id="add-stop" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                   <i class="fas fa-plus mr-2"></i>Add Another Stop
@@ -408,22 +432,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div>
               <label for="departure_date" class="block text-sm font-medium text-gray-700 mb-1">Departure Date <span class="text-red-500">*</span></label>
-              <input type="date" name="departure_date" id="departure_date" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['departure_date']); ?>" required>
+              <input type="date" name="departure_date" id="departure_date" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['departure_date']); ?>" required>
             </div>
             <div>
               <label for="departure_time" class="block text-sm font-medium text-gray-700 mb-1">Departure Time <span class="text-red-500">*</span></label>
-              <input type="text" name="departure_time" id="departure_time" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['departure_time']); ?>" placeholder="HH:MM (24-hour format)" required>
+              <input type="text" name="departure_time" id="departure_time" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['departure_time']); ?>" placeholder="HH:MM (24-hour format)" required>
             </div>
             <div>
               <label for="flight_duration" class="block text-sm font-medium text-gray-700 mb-1">Flight Duration (hours) <span class="text-red-500">*</span></label>
-              <input type="number" name="flight_duration" id="flight_duration" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['flight_duration']); ?>" placeholder="e.g., 5.5" step="0.1" required>
+              <input type="number" name="flight_duration" id="flight_duration" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['flight_duration']); ?>" placeholder="e.g., 5.5" step="0.1" required>
             </div>
           </div>
 
           <!-- Distance Field -->
           <div class="mb-6">
             <label for="distance" class="block text-sm font-medium text-gray-700 mb-1">Distance (km) <span class="text-red-500">*</span></label>
-            <input type="number" name="distance" id="distance" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['distance']); ?>" placeholder="e.g., 3500" step="1" required>
+            <input type="number" name="distance" id="distance" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['distance']); ?>" placeholder="e.g., 3500" step="1" required>
           </div>
 
           <!-- Return Flight Section -->
@@ -443,276 +467,338 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </label>
                 <label class="inline-flex items-center">
                   <input type="radio" name="has_return" id="roundTrip" value="1" class="form-radio h-5 w-5 text-indigo-600" <?php echo $flight['has_return'] ? 'checked' : ''; ?>>
-                  <span class="ml-2 text-gray-700">Round Trip</span>
-                </label>
-              </div>
-            </div>
+                  <span18px; margin-left: 20px; margin-right: 20px; font-size: 16px; line-height: 1.5;" class="mt-6 prose prose-lg">
+<p>Round Trip</p>
+</label>
+</div>
+</div>
+<div id="return-container" class="bg-gray-50 rounded-lg p-6 mb-6 shadow-sm <?php echo $flight['has_return'] ? '' : 'hidden'; ?>">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+<div>
+<label for="return_airline" class="block text-sm font-medium text-gray-700 mb-1">Return Airline</label>
+<select name="return_airline" id="return_airline" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700">
+<option value="">Select Airline</option>
+<option value="same" <?php echo $flight['return_airline'] === $flight['airline_name'] ? 'selected' : ''; ?>>Same as Outbound</option>
+<!-- Pakistani Airlines -->
+<optgroup label="Pakistani Airlines">
+<option value="PIA" <?php echo $flight['return_airline'] === 'PIA' ? 'selected' : ''; ?>>Pakistan International Airlines (PIA)</option>
+<option value="AirBlue" <?php echo $flight['return_airline'] === 'AirBlue' ? 'selected' : ''; ?>>AirBlue</option>
+<option value="SereneAir" <?php echo $flight['return_airline'] === 'SereneAir' ? 'selected' : ''; ?>>Serene Air</option>
+<option value="AirSial" <?php echo $flight['return_airline'] === 'AirSial' ? 'selected' : ''; ?>>AirSial</option>
+<option value="FlyJinnah" <?php echo $flight['return_airline'] === 'FlyJinnah' ? 'selected' : ''; ?>>Fly Jinnah</option>
+</optgroup>
+<!-- Middle Eastern Airlines -->
+<optgroup label="Middle Eastern Airlines">
+<option value="Emirates" <?php echo $flight['return_airline'] === 'Emirates' ? 'selected' : ''; ?>>Emirates</option>
+<option value="Qatar" <?php echo $flight['return_airline'] === 'Qatar' ? 'selected' : ''; ?>>Qatar Airways</option>
+<option value="Etihad" <?php echo $flight['return_airline'] === 'Etihad' ? 'selected' : ''; ?>>Etihad Airways</option>
+<option value="Saudi" <?php echo $flight['return_airline'] === 'Saudi' ? 'selected' : ''; ?>>Saudia (Saudi Airlines)</option>
+<option value="Flynas" <?php echo $flight['return_airline'] === 'Flynas' ? 'selected' : ''; ?>>Flynas</option>
+<option value="Flydubai" <?php echo $flight['return_airline'] === 'Flydubai' ? 'selected' : ''; ?>>Flydubai</option>
+<option value="OmanAir" <?php echo $flight['return_airline'] === 'OmanAir' ? 'selected' : ''; ?>>Oman Air</option>
+</optgroup>
+<!-- Asian Airlines -->
+<optgroup label="Asian Airlines">
+<option value="Thai" <?php echo $flight['return_airline'] === 'Thai' ? 'selected' : ''; ?>>Thai Airways</option>
+<option value="Singapore" <?php echo $flight['return_airline'] === 'Singapore' ? 'selected' : ''; ?>>Singapore Airlines</option>
+<option value="Turkish" <?php echo $flight['return_airline'] === 'Turkish' ? 'selected' : ''; ?>>Turkish Airlines</option>
+<option value="Malaysia" <?php echo $flight['return_airline'] === 'Malaysia' ? 'selected' : ''; ?>>Malaysia Airlines</option>
+</optgroup>
+<!-- European & American Airlines -->
+<optgroup label="European & American Airlines">
+<option value="British" <?php echo $flight['return_airline'] === 'British' ? 'selected' : ''; ?>>British Airways</option>
+<option value="Lufthansa" <?php echo $flight['return_airline'] === 'Lufthansa' ? 'selected' : ''; ?>>Lufthansa</option>
+<option value="AirFrance" <?php echo $flight['return_airline'] === 'AirFrance' ? 'selected' : ''; ?>>Air France</option>
+</optgroup>
+<!-- Budget Airlines -->
+<optgroup label="Budget Airlines">
+<option value="AirArabia" <?php echo $flight['return_airline'] === 'AirArabia' ? 'selected' : ''; ?>>Air Arabia</option>
+<option value="Indigo" <?php echo $flight['return_airline'] === 'Indigo' ? 'selected' : ''; ?>>IndiGo</option>
+</optgroup>
+</select>
+</div>
+<div>
+<label for="return_flight_number" class="block text-sm font-medium text-gray-700 mb-1">Return Flight Number</label>
+<input type="text" name="return_flight_number" id="return_flight_number" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['return_flight_number'] ?? ''); ?>" placeholder="e.g., PK-310" maxlength="7">
+</div>
+</div>
 
-            <div id="return-container" class="bg-gray-50 rounded-lg p-6 mb-6 shadow-sm <?php echo $flight['has_return'] ? '' : 'hidden'; ?>">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label for="return_airline" class="block text-sm font-medium text-gray-700 mb-1">Return Airline</label>
-                  <select name="return_airline" id="return_airline" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                    <option value="">Select Airline</option>
-                    <option value="same" <?php echo $flight['return_airline'] === $flight['airline_name'] ? 'selected' : ''; ?>>Same as Outbound</option>
-                    <!-- Pakistani Airlines -->
-                    <optgroup label="Pakistani Airlines">
-                      <option value="PIA" <?php echo $flight['return_airline'] === 'PIA' ? 'selected' : ''; ?>>Pakistan International Airlines (PIA)</option>
-                      <option value="AirBlue" <?php echo $flight['return_airline'] === 'AirBlue' ? 'selected' : ''; ?>>AirBlue</option>
-                      <option value="SereneAir" <?php echo $flight['return_airline'] === 'SereneAir' ? 'selected' : ''; ?>>Serene Air</option>
-                      <option value="AirSial" <?php echo $flight['return_airline'] === 'AirSial' ? 'selected' : ''; ?>>AirSial</option>
-                      <option value="FlyJinnah" <?php echo $flight['return_airline'] === 'FlyJinnah' ? 'selected' : ''; ?>>Fly Jinnah</option>
-                    </optgroup>
-                    <!-- Middle Eastern Airlines -->
-                    <optgroup label="Middle Eastern Airlines">
-                      <option value="Emirates" <?php echo $flight['return_airline'] === 'Emirates' ? 'selected' : ''; ?>>Emirates</option>
-                      <option value="Qatar" <?php echo $flight['return_airline'] === 'Qatar' ? 'selected' : ''; ?>>Qatar Airways</option>
-                      <option value="Etihad" <?php echo $flight['return_airline'] === 'Etihad' ? 'selected' : ''; ?>>Etihad Airways</option>
-                      <option value="Saudi" <?php echo $flight['return_airline'] === 'Saudi' ? 'selected' : ''; ?>>Saudia (Saudi Airlines)</option>
-                      <option value="Flynas" <?php echo $flight['return_airline'] === 'Flynas' ? 'selected' : ''; ?>>Flynas</option>
-                      <option value="Flydubai" <?php echo $flight['return_airline'] === 'Flydubai' ? 'selected' : ''; ?>>Flydubai</option>
-                      <option value="OmanAir" <?php echo $flight['return_airline'] === 'OmanAir' ? 'selected' : ''; ?>>Oman Air</option>
-                    </optgroup>
-                    <!-- Asian Airlines -->
-                    <optgroup label="Asian Airlines">
-                      <option value="Thai" <?php echo $flight['return_airline'] === 'Thai' ? 'selected' : ''; ?>>Thai Airways</option>
-                      <option value="Singapore" <?php echo $flight['return_airline'] === 'Singapore' ? 'selected' : ''; ?>>Singapore Airlines</option>
-                      <option value="Turkish" <?php echo $flight['return_airline'] === 'Turkish' ? 'selected' : ''; ?>>Turkish Airlines</option>
-                      <option value="Malaysia" <?php echo $flight['return_airline'] === 'Malaysia' ? 'selected' : ''; ?>>Malaysia Airlines</option>
-                    </optgroup>
-                    <!-- European & American Airlines -->
-                    <optgroup label="European & American Airlines">
-                      <option value="British" <?php echo $flight['return_airline'] === 'British' ? 'selected' : ''; ?>>British Airways</option>
-                      <option value="Lufthansa" <?php echo $flight['return_airline'] === 'Lufthansa' ? 'selected' : ''; ?>>Lufthansa</option>
-                      <option value="AirFrance" <?php echo $flight['return_airline'] === 'AirFrance' ? 'selected' : ''; ?>>Air France</option>
-                    </optgroup>
-                    <!-- Budget Airlines -->
-                    <optgroup label="Budget Airlines">
-                      <option value="AirArabia" <?php echo $flight['return_airline'] === 'AirArabia' ? 'selected' : ''; ?>>Air Arabia</option>
-                      <option value="Indigo" <?php echo $flight['return_airline'] === 'Indigo' ? 'selected' : ''; ?>>IndiGo</option>
-                    </optgroup>
-                  </select>
-                </div>
-                <div>
-                  <label for="return_flight_number" class="block text-sm font-medium text-gray-700 mb-1">Return Flight Number</label>
-                  <input type="text" name="return_flight_number" id="return_flight_number" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['return_flight_number'] ?? ''); ?>" placeholder="e.g., PK-310" maxlength="7">
-                </div>
-              </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+<div>
+<label for="return_date" class="block text-sm font-medium text-gray-700 mb-1">Return Date</label>
+<input type="date" name="return_date" id="return_date" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['return_date'] ?? ''); ?>">
+</div>
+<div>
+<label for="return_time" class="block text-sm font-medium text-gray-700 mb-1">Return Time</label>
+<input type="text" name="return_time" id="return_time" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['return_time'] ?? ''); ?>" placeholder="HH:MM (24-hour format)">
+</div>
+<div>
+<label for="return_flight_duration" class="block text-sm font-medium text-gray-700 mb-1">Return Flight Duration (hours)</label>
+<input type="text" name="return_flight_duration" id="return_flight_duration" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['return_flight_duration'] ?? ''); ?>" placeholder="e.g., 5.5">
+</div>
+</div>
 
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div>
-                  <label for="return_date" class="block text-sm font-medium text-gray-700 mb-1">Return Date</label>
-                  <input type="date" name="return_date" id="return_date" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['return_date'] ?? ''); ?>">
-                </div>
-                <div>
-                  <label for="return_time" class="block text-sm font-medium text-gray-700 mb-1">Return Time</label>
-                  <input type="text" name="return_time" id="return_time" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['return_time'] ?? ''); ?>" placeholder="HH:MM (24-hour format)">
-                </div>
-                <div>
-                  <label for="return_flight_duration" class="block text-sm font-medium text-gray-700 mb-1">Return Flight Duration (hours)</label>
-                  <input type="text" name="return_flight_duration" id="return_flight_duration" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['return_flight_duration'] ?? ''); ?>" placeholder="e.g., 5.5">
-                </div>
-              </div>
+<div class="mt-6">
+<div class="flex flex-wrap items-center mb-4">
+<h5 class="text-gray-800 font-medium mr-6">Return Flight Stops</h5>
+<div class="flex space-x-4 mt-2 sm:mt-0">
+<label class="inline-flex items-center">
+<input type="radio" name="has_return_stops" id="directReturnFlight" value="0" class="form-radio h-5 w-5 text-indigo-600" <?php echo !$flight['has_return_stops'] ? 'checked' : ''; ?>>
+<span class="ml-2 text-gray-700">Direct Return Flight</span>
+</label>
+<label class="inline-flex items-center">
+<input type="radio" name="has_return_stops" id="hasReturnStops" value="1" class="form-radio h-5 w-5 text-indigo-600" <?php echo $flight['has_return_stops'] ? 'checked' : ''; ?>>
+<span class="ml-2 text-gray-700">Has Stops</span>
+</label>
+</div>
+</div>
 
-              <div class="mt-6">
-                <div class="flex flex-wrap items-center mb-4">
-                  <h5 class="text-gray-800 font-medium mr-6">Return Flight Stops</h5>
-                  <div class="flex space-x-4 mt-2 sm:mt-0">
-                    <label class="inline-flex items-center">
-                      <input type="radio" name="has_return_stops" id="directReturnFlight" value="0" class="form-radio h-5 w-5 text-indigo-600" <?php echo !$flight['has_return_stops'] ? 'checked' : ''; ?>>
-                      <span class="ml-2 text-gray-700">Direct Return Flight</span>
-                    </label>
-                    <label class="inline-flex items-center">
-                      <input type="radio" name="has_return_stops" id="hasReturnStops" value="1" class="form-radio h-5 w-5 text-indigo-600" <?php echo $flight['has_return_stops'] ? 'checked' : ''; ?>>
-                      <span class="ml-2 text-gray-700">Has Stops</span>
-                    </label>
-                  </div>
-                </div>
+<div id="return-stops-container" class="<?php echo $flight['has_return_stops'] ? '' : 'hidden'; ?>">
+<div id="return-stop-rows">
+<?php if (!empty($return_stops)) : ?>
+<?php foreach ($return_stops as $stop) : ?>
+<div class="return-stop-row grid grid-cols-1 md:grid-cols-3 gap-6 mb-4 items-end">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">Return Stop City</label>
+<input type="text" name="return_stop_city[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($stop['city']); ?>" placeholder="e.g., Dubai" maxlength="12">
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">Return Stop Duration (hours)</label>
+<input type="text" name="return_stop_duration[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($stop['duration']); ?>" placeholder="e.g., 2">
+</div>
+<div>
+<button type="button" class="remove-return-stop inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+<i class="fas fa-trash mr-2"></i>Remove
+</button>
+</div>
+</div>
+<?php endforeach; ?>
+<?php else : ?>
+<div class="return-stop-row grid grid-cols-1 md:grid-cols-3 gap-6 mb-4 items-end">
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">Return Stop City</label>
+<input type="text" name="return_stop_city[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" placeholder="e.g., Dubai" maxlength="12">
+</div>
+<div>
+<label class="block text-sm font-medium text-gray-700 mb-1">Return Stop Duration (hours)</label>
+<input type="text" name="return_stop_duration[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" placeholder="e.g., 2">
+</div>
+<div>
+<button type="button" class="remove-return-stop inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+<i class="fas fa-trash mr-2"></i>Remove
+</button>
+</div>
+</div>
+<?php endif; ?>
+</div>
+<div class="text-right">
+<button type="button" id="add-return-stop" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+<i class="fas fa-plus mr-2"></i>Add Another Return Stop
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
 
-                <div id="return-stops-container" class="<?php echo $flight['has_return_stops'] ? '' : 'hidden'; ?>">
-                  <?php if (!empty($return_stops)) : ?>
-                    <?php foreach ($return_stops as $stop) : ?>
-                      <div class="return-stop-row grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Return Stop City</label>
-                          <input type="text" name="return_stop_city[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($stop['city']); ?>" placeholder="e.g., Dubai" maxlength="12">
-                        </div>
-                        <div>
-                          <label class="block text-sm font-medium text-gray-700 mb-1">Return Stop Duration (hours)</label>
-                          <input type="text" name="return_stop_duration[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($stop['duration']); ?>" placeholder="e.g., 2">
-                        </div>
-                      </div>
-                    <?php endforeach; ?>
-                  <?php else : ?>
-                    <div class="return-stop-row grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Return Stop City</label>
-                        <input type="text" name="return_stop_city[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="e.g., Dubai" maxlength="12">
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Return Stop Duration (hours)</label>
-                        <input type="text" name="return_stop_duration[]" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="e.g., 2">
-                      </div>
-                    </div>
-                  <?php endif; ?>
-                  <div class="text-right">
-                    <button type="button" id="add-return-stop" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                      <i class="fas fa-plus mr-2"></i>Add Another Return Stop
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+<!-- Pricing Section -->
+<div class="border-t border-gray-200 pt-6 mt-6">
+<div class="mb-6">
+<h3 class="text-lg font-semibold text-indigo-600">
+<i class="fas fa-tags mr-2"></i>Pricing Information
+</h3>
+</div>
 
-          <!-- Pricing Section -->
-          <div class="border-t border-gray-200 pt-6 mt-6">
-            <div class="mb-6">
-              <h3 class="text-lg font-semibold text-indigo-600">
-                <i class="fas fa-tags mr-2"></i>Pricing Information
-              </h3>
-            </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+<div>
+<label for="economy_price" class="block text-sm font-medium text-gray-700 mb-1">Economy Price (PKR) <span class="text-red-500">*</span></label>
+<input type="number" name="economy_price" id="economy_price" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['economy_price']); ?>" placeholder="242,250" required>
+</div>
+<div>
+<label for="business_price" class="block text-sm font-medium text-gray-700 mb-1">Business Price (PKR) <span class="text-red-500">*</span></label>
+<input type="number" name="business_price" id="business_price" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['business_price']); ?>" placeholder="427,500" required>
+</div>
+<div>
+<label for="first_class_price" class="block text-sm font-medium text-gray-700 mb-1">First Class Price (PKR) <span class="text-red-500">*</span></label>
+<input type="number" name="first_class_price" id="first_class_price" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['first_class_price']); ?>" placeholder="712,500" required>
+</div>
+</div>
+</div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div>
-                <label for="economy_price" class="block text-sm font-medium text-gray-700 mb-1">Economy Price (PKR) <span class="text-red-500">*</span></label>
-                <input type="number" name="economy_price" id="economy_price" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['economy_price']); ?>" placeholder="242,250" required>
-              </div>
-              <div>
-                <label for="business_price" class="block text-sm font-medium text-gray-700 mb-1">Business Price (PKR) <span class="text-red-500">*</span></label>
-                <input type="number" name="business_price" id="business_price" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['business_price']); ?>" placeholder="427,500" required>
-              </div>
-              <div>
-                <label for="first_class_price" class="block text-sm font-medium text-gray-700 mb-1">First Class Price (PKR) <span class="text-red-500">*</span></label>
-                <input type="number" name="first_class_price" id="first_class_price" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['first_class_price']); ?>" placeholder="712,500" required>
-              </div>
-            </div>
-          </div>
+<!-- Seat Information -->
+<div class="border-t border-gray-200 pt-6 mt-6">
+<div class="mb-6">
+<h3 class="text-lg font-semibold text-indigo-600">
+<i class="fas fa-chair mr-2"></i>Seat Information
+</h3>
+</div>
 
-          <!-- Seat Information -->
-          <div class="border-t border-gray-200 pt-6 mt-6">
-            <div class="mb-6">
-              <h3 class="text-lg font-semibold text-indigo-600">
-                <i class="fas fa-chair mr-2"></i>Seat Information
-              </h3>
-            </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+<div>
+<label for="economy_seats" class="block text-sm font-medium text-gray-700 mb-1">Economy Seats <span class="text-red-500">*</span></label>
+<input type="number" name="economy_seats" id="economy_seats" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['economy_seats']); ?>" placeholder="200" required>
+</div>
+<div>
+<label for="business_seats" class="block text-sm font-medium text-gray-700 mb-1">Business Seats <span class="text-red-500">*</span></label>
+<input type="number" name="business_seats" id="business_seats" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['business_seats']); ?>" placeholder="30" required>
+</div>
+<div>
+<label for="first_class_seats" class="block text-sm font-medium text-gray-700 mb-1">First Class Seats <span class="text-red-500">*</span></label>
+<input type="number" name="first_class_seats" id="first_class_seats" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" value="<?php echo htmlspecialchars($flight['first_class_seats']); ?>" placeholder="10" required>
+</div>
+</div>
+</div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div>
-                <label for="economy_seats" class="block text-sm font-medium text-gray-700 mb-1">Economy Seats <span class="text-red-500">*</span></label>
-                <input type="number" name="economy_seats" id="economy_seats" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['economy_seats']); ?>" placeholder="200" required>
-              </div>
-              <div>
-                <label for="business_seats" class="block text-sm font-medium text-gray-700 mb-1">Business Seats <span class="text-red-500">*</span></label>
-                <input type="number" name="business_seats" id="business_seats" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['business_seats']); ?>" placeholder="30" required>
-              </div>
-              <div>
-                <label for="first_class_seats" class="block text-sm font-medium text-gray-700 mb-1">First Class Seats <span class="text-red-500">*</span></label>
-                <input type="number" name="first_class_seats" id="first_class_seats" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" value="<?php echo htmlspecialchars($flight['first_class_seats']); ?>" placeholder="10" required>
-              </div>
-            </div>
-          </div>
+<!-- Flight Notes -->
+<div class="mb-6">
+<label for="flight_notes" class="block text-sm font-medium text-gray-700 mb-1">Flight Notes (Optional)</label>
+<textarea name="flight_notes" id="flight_notes" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700" rows="3" placeholder="Any additional information about this flight"><?php echo htmlspecialchars($flight['flight_notes'] ?? ''); ?></textarea>
+</div>
 
-          <!-- Flight Notes -->
-          <div class="mb-6">
-            <label for="flight_notes" class="block text-sm font-medium text-gray-700 mb-1">Flight Notes (Optional)</label>
-            <textarea name="flight_notes" id="flight_notes" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" rows="3" placeholder="Any additional information about this flight"><?php echo htmlspecialchars($flight['flight_notes'] ?? ''); ?></textarea>
-          </div>
+<!-- Submit Buttons -->
+<div class="flex flex-wrap gap-4">
+<button type="submit" id="submit-btn" class="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+<i class="fas fa-save mr-2"></i> Update Flight
+</button>
+<button type="reset" class="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+<i class="fas fa-times mr-2"></i>Reset
+</button>
+</div>
+</form>
+</div>
+</div>
+</div>
 
-          <!-- Submit Buttons -->
-          <div class="flex flex-wrap gap-4">
-            <button type="submit" id="submit-btn" class="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              <i class="fas fa-save mr-2"></i> Update Flight
-            </button>
-            <button type="reset" class="inline-flex items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              <i class="fas fa-times mr-2"></i>Reset
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-<!-- <script src="assets/js/validate.js"></script> -->
-<script src="assets/js/edit-flight.js"></script>
-  <!-- JavaScript for form functionality -->
-  <script>
-    // Toggle stops section
-    function toggleStopsSection(show) {
-      document.getElementById('stops-container').classList.toggle('hidden', !show);
-    }
+<!-- JavaScript for form functionality -->
+<script>
+// Toggle stops section
+function toggleStopsSection(show) {
+document.getElementById('stops-container').classList.toggle('hidden', !show);
+}
 
-    // Toggle return section
-    function toggleReturnSection(show) {
-      document.getElementById('return-container').classList.toggle('hidden', !show);
-    }
+// Toggle return section
+function toggleReturnSection(show) {
+document.getElementById('return-container').classList.toggle('hidden', !show);
+}
 
-    // Toggle return stops section
-    function toggleReturnStopsSection(show) {
-      document.getElementById('return-stops-container').classList.toggle('hidden', !show);
-    }
+// Toggle return stops section
+function toggleReturnStopsSection(show) {
+document.getElementById('return-stops-container').classList.toggle('hidden', !show);
+}
 
-    // Add stop row
-    document.getElementById('add-stop').addEventListener('click', function() {
-      const stopRow = document.querySelector('.stop-row').cloneNode(true);
-      stopRow.querySelectorAll('input').forEach(input => input.value = '');
-      this.closest('.text-right').before(stopRow);
-    });
+// Add stop row
+const addStopButton = document.getElementById('add-stop');
+if (addStopButton) {
+addStopButton.removeEventListener('click', addStopRow); // Prevent multiple listeners
+function addStopRow() {
+const stopRowsContainer = document.getElementById('stop-rows');
+const stopRowTemplate = document.querySelector('.stop-row').cloneNode(true);
+stopRowTemplate.querySelectorAll('input').forEach(input => input.value = '');
+stopRowsContainer.appendChild(stopRowTemplate);
+}
+addStopButton.addEventListener('click', addStopRow);
+}
 
-    // Add return stop row
-    document.getElementById('add-return-stop').addEventListener('click', function() {
-      const returnStopRow = document.querySelector('.return-stop-row').cloneNode(true);
-      returnStopRow.querySelectorAll('input').forEach(input => input.value = '');
-      this.closest('.text-right').before(returnStopRow);
-    });
+// Add return stop row
+const addReturnStopButton = document.getElementById('add-return-stop');
+if (addReturnStopButton) {
+addReturnStopButton.removeEventListener('click', addReturnStopRow); // Prevent multiple listeners
+function addReturnStopRow() {
+const returnStopRowsContainer = document.getElementById('return-stop-rows');
+const returnStopRowTemplate = document.querySelector('.return-stop-row').cloneNode(true);
+returnStopRowTemplate.querySelectorAll('input').forEach(input => input.value = '');
+returnStopRowsContainer.appendChild(returnStopRowTemplate);
+}
+addReturnStopButton.addEventListener('click', addReturnStopRow);
+}
 
-    // Bind radio buttons
-    document.querySelectorAll('input[name="has_stops"]').forEach(input => {
-      input.addEventListener('change', function() {
-        toggleStopsSection(this.value == '1');
-      });
-    });
+// Remove stop row
+function bindRemoveButtons() {
+document.querySelectorAll('.remove-stop').forEach(button => {
+button.removeEventListener('click', removeStopRow); // Prevent multiple listeners
+button.addEventListener('click', removeStopRow);
+});
+document.querySelectorAll('.remove-return-stop').forEach(button => {
+button.removeEventListener('click', removeReturnStopRow); // Prevent multiple listeners
+button.addEventListener('click', removeReturnStopRow);
+});
+}
 
-    document.querySelectorAll('input[name="has_return"]').forEach(input => {
-      input.addEventListener('change', function() {
-        toggleReturnSection(this.value == '1');
-      });
-    });
+function removeStopRow(event) {
+const stopRows = document.querySelectorAll('.stop-row');
+if (stopRows.length > 1) {
+event.target.closest('.stop-row').remove();
+}
+}
 
-    document.querySelectorAll('input[name="has_return_stops"]').forEach(input => {
-      input.addEventListener('change', function() {
-        toggleReturnStopsSection(this.value == '1');
-      });
-    });
+function removeReturnStopRow(event) {
+const returnStopRows = document.querySelectorAll('.return-stop-row');
+if (returnStopRows.length > 1) {
+event.target.closest('.return-stop-row').remove();
+}
+}
 
-    // User Dropdown Toggle
-    const userDropdownButton = document.getElementById('userDropdownButton');
-    const userDropdownMenu = document.getElementById('userDropdownMenu');
+// Initial binding of remove buttons
+bindRemoveButtons();
 
-    if (userDropdownButton && userDropdownMenu) {
-      userDropdownButton.addEventListener('click', function() {
-        userDropdownMenu.classList.toggle('hidden');
-      });
+// Bind radio buttons
+document.querySelectorAll('input[name="has_stops"]').forEach(input => {
+input.addEventListener('change', function() {
+toggleStopsSection(this.value == '1');
+});
+});
 
-      // Close dropdown when clicking outside
-      document.addEventListener('click', function(event) {
-        if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
-          userDropdownMenu.classList.add('hidden');
-        }
-      });
-    }
+document.querySelectorAll('input[name="has_return"]').forEach(input => {
+input.addEventListener('change', function() {
+toggleReturnSection(this.value == '1');
+});
+});
 
-    // Sidebar Toggle (assuming sidebar toggle functionality from sidebar.php)
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
+document.querySelectorAll('input[name="has_return_stops"]').forEach(input => {
+input.addEventListener('change', function() {
+toggleReturnStopsSection(this.value == '1');
+});
+});
 
-    if (sidebarToggle && sidebar && sidebarOverlay) {
-      sidebarToggle.addEventListener('click', function() {
-        sidebar.classList.remove('-translate-x-full');
-        sidebarOverlay.classList.remove('hidden');
-      });
-    }
-  </script>
+// User Dropdown Toggle
+const userDropdownButton = document.getElementById('userDropdownButton');
+const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+if (userDropdownButton && userDropdownMenu) {
+userDropdownButton.addEventListener('click', function() {
+userDropdownMenu.classList.toggle('hidden');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+userDropdownMenu.classList.add('hidden');
+}
+});
+}
+
+// Sidebar Toggle
+const sidebarToggle = document.getElementById('sidebarToggle');
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+if (sidebarToggle && sidebar && sidebarOverlay) {
+sidebarToggle.addEventListener('click', function() {
+sidebar.classList.remove('-translate-x-full');
+sidebarOverlay.classList.remove('hidden');
+});
+}
+
+// Rebind remove buttons after adding new rows
+const stopRowsContainer = document.getElementById('stop-rows');
+const returnStopRowsContainer = document.getElementById('return-stop-rows');
+
+if (stopRowsContainer) {
+stopRowsContainer.addEventListener('DOMNodeInserted', bindRemoveButtons);
+}
+if (returnStopRowsContainer) {
+returnStopRowsContainer.addEventListener('DOMNodeInserted', bindRemoveButtons);
+}
+</script>
 </body>
-
 </html>

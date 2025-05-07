@@ -316,7 +316,7 @@ if ($stats_result && $stats_result->num_rows > 0) {
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
-            <i class="fas fa-bars text-xl"></i>
+            
           </button>
           <h4 class="text-lg font-semibold text-gray-800">
             <i class="fas fa-hotel text-indigo-600 mr-2"></i> Hotel Management

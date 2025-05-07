@@ -34,8 +34,22 @@ $form_check_out_date = isset($_POST['check_out_date']) ? $_POST['check_out_date'
 $form_room_id = isset($_POST['room_id']) ? $_POST['room_id'] : '';
 $form_special_requests = isset($_POST['special_requests']) ? $_POST['special_requests'] : '';
 
-// Fetch booking details
-$stmt = $conn->prepare("SELECT b.id, b.user_id, b.package_id, b.created_at, u.full_name 
+// Function to send email notifications
+function sendEmailNotification($to, $subject, $message, $action, $booking_id)
+{
+  $headers = "From: Umrah Partner Team <no-reply@umrahpartner.com>\r\n";
+  $headers .= "Reply-To: info@umrahflights.com\r\n";
+  $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+  $result = @mail($to, $subject, $message, $headers); // @ suppresses warnings
+  if (!$result) {
+    error_log("Failed to send email for action '$action' on booking #$booking_id to $to: " . error_get_last()['message']);
+  }
+  return $result;
+}
+
+// Fetch booking details including user email
+$stmt = $conn->prepare("SELECT b.id, b.user_id, b.package_id, b.created_at, u.full_name, u.email as user_email 
                        FROM package_bookings b 
                        JOIN users u ON b.user_id = u.id 
                        WHERE b.id = ?");
@@ -87,7 +101,7 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Process form submission
+// Process form submission for assigning/updating hotel
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
   $hotel_id = $form_hotel_id;
   $check_in_date = $form_check_in_date;
@@ -110,12 +124,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
     $check_out = new DateTime($check_out_date);
     $nights = $check_in->diff($check_out)->days;
 
-    // Get hotel price
-    $stmt = $conn->prepare("SELECT price FROM hotels WHERE id = ?");
+    // Get hotel price and name
+    $stmt = $conn->prepare("SELECT hotel_name, price FROM hotels WHERE id = ?");
     $stmt->bind_param("i", $hotel_id);
     $stmt->execute();
     $result = $stmt->get_result();
     $hotel = $result->fetch_assoc();
+    $hotel_name = $hotel['hotel_name'];
     $price_per_night = $hotel['price'];
     $total_price = $price_per_night * $nights;
     $stmt->close();
@@ -123,7 +138,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
     // Start transaction
     $conn->begin_transaction();
     try {
-      // Check if room is available
+      // Check if room exists
       $stmt = $conn->prepare("SELECT status FROM hotel_rooms WHERE hotel_id = ? AND room_id = ?");
       $stmt->bind_param("is", $hotel_id, $room_id);
       $stmt->execute();
@@ -132,11 +147,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
         throw new Exception("Selected room does not exist.");
       }
       $room_status = $result->fetch_assoc()['status'];
+      $stmt->close();
 
       // Check if room is marked as booked but might actually be available
       if ($room_status != 'available' && empty($booking_details)) {
-        // Verify if the room is actually booked for the selected dates
-        $stmt->close();
         $stmt = $conn->prepare("SELECT COUNT(*) as booking_count FROM hotel_bookings 
                              WHERE hotel_id = ? AND room_id = ? 
                              AND ((check_in_date <= ? AND check_out_date >= ?) 
@@ -170,22 +184,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
         }
       }
 
-      // If we have an existing booking using this room, make sure we can update it
+      // If we have an existing booking, handle room reassignment
+      $old_room_id = !empty($booking_details) ? $booking_details['room_id'] : null;
       if (!empty($booking_details) && $booking_details['room_id'] != $room_id) {
         // We're changing to a new room, so check if the new room is booked by someone else
         $stmt = $conn->prepare("SELECT COUNT(*) as booking_count FROM hotel_bookings 
                              WHERE hotel_id = ? AND room_id = ? 
                              AND user_id != ? 
+                             AND id != ?  -- Exclude the current booking
                              AND ((check_in_date <= ? AND check_out_date >= ?) 
                                 OR (check_in_date <= ? AND check_out_date >= ?) 
                                 OR (check_in_date >= ? AND check_out_date <= ?))
                              AND booking_status != 'cancelled'");
         $user_id = $booking['user_id'];
+        $current_booking_id = $booking_details['id'];
         $stmt->bind_param(
-          "isisssss",
+          "isiiisssss",
           $hotel_id,
           $room_id,
           $user_id,
+          $current_booking_id,
           $check_out_date,
           $check_in_date,
           $check_in_date,
@@ -201,6 +219,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
         if ($booking_count > 0) {
           throw new Exception("The new room you selected is already booked for these dates by another user.");
         }
+
+        // Free up the old room (set status to available if no other bookings exist)
+        if ($old_room_id) {
+          $stmt = $conn->prepare("SELECT COUNT(*) as booking_count FROM hotel_bookings 
+                               WHERE hotel_id = ? AND room_id = ? 
+                               AND id != ? 
+                               AND booking_status != 'cancelled'");
+          $stmt->bind_param("isi", $hotel_id, $old_room_id, $current_booking_id);
+          $stmt->execute();
+          $result = $stmt->get_result();
+          $booking_count = $result->fetch_assoc()['booking_count'];
+          $stmt->close();
+
+          if ($booking_count == 0) {
+            $stmt = $conn->prepare("UPDATE hotel_rooms SET status = 'available' WHERE hotel_id = ? AND room_id = ?");
+            $stmt->bind_param("is", $hotel_id, $old_room_id);
+            $stmt->execute();
+            $stmt->close();
+          }
+        }
       }
 
       // Check if booking already has a hotel assigned
@@ -210,22 +248,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
                               SET hotel_id = ?, room_id = ?, check_in_date = ?, 
                                   check_out_date = ?, total_price = ?, 
                                   special_requests = ?, updated_at = NOW() 
-                              WHERE user_id = ?");
+                              WHERE user_id = ? AND id = ?");
         $user_id = $booking['user_id'];
+        $current_booking_id = $booking_details['id'];
         $stmt->bind_param(
-          "isssdsi",
+          "isssdssi",
           $hotel_id,
           $room_id,
           $check_in_date,
           $check_out_date,
           $total_price,
           $special_requests,
-          $user_id
+          $user_id,
+          $current_booking_id
         );
         if (!$stmt->execute()) {
           throw new Exception("Error updating hotel booking: " . $stmt->error);
         }
         $stmt->close();
+
+        $action_type = "update";
       } else {
         // Create new booking
         $booking_reference = 'HB' . strtoupper(uniqid());
@@ -250,9 +292,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
           throw new Exception("Error creating hotel booking: " . $stmt->error);
         }
         $stmt->close();
+
+        $action_type = "assign";
       }
 
-      // Update room status to booked
+      // Update the new room status to booked
       $stmt = $conn->prepare("UPDATE hotel_rooms SET status = 'booked' WHERE hotel_id = ? AND room_id = ?");
       $stmt->bind_param("is", $hotel_id, $room_id);
       if (!$stmt->execute()) {
@@ -262,7 +306,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_hotel'])) {
 
       // Commit the transaction
       $conn->commit();
-      $success_message = "Hotel assigned successfully to booking #$booking_id.";
+      $success_message = "Hotel " . ($action_type == "update" ? "updated" : "assigned") . " successfully to booking #$booking_id.";
+
+      // Send email to user
+      $user_email = $booking['user_email'];
+      $user_subject = 'Your Hotel Booking Has Been ' . ($action_type == "update" ? 'Updated' : 'Assigned') . ' - UmrahFlights';
+      $user_message = "Dear " . htmlspecialchars($booking['full_name']) . ",\n\n";
+      $user_message .= "Your hotel booking for Booking ID #$booking_id has been " . ($action_type == "update" ? "updated" : "assigned") . ".\n\n";
+      $user_message .= "Hotel Details:\n";
+      $user_message .= "Hotel Name: " . htmlspecialchars($hotel_name) . "\n";
+      $user_message .= "Room ID: " . htmlspecialchars($room_id) . "\n";
+      $user_message .= "Check-in Date: " . date('D, M j, Y', strtotime($check_in_date)) . "\n";
+      $user_message .= "Check-out Date: " . date('D, M j, Y', strtotime($check_out_date)) . "\n";
+      $user_message .= "Total Price: PKR " . number_format($total_price, 0) . "\n";
+      $user_message .= "Special Requests: " . (empty($special_requests) ? "None" : htmlspecialchars($special_requests)) . "\n\n";
+      $user_message .= "For any queries, contact us at info@umrahflights.com.\n\n";
+      $user_message .= "Best regards,\nUmrahFlights Team";
+      sendEmailNotification($user_email, $user_subject, $user_message, $action_type, $booking_id);
+
+      // Send email to admin
+      $admin_to = 'info@umrahpartner.com';
+      $admin_subject = 'Hotel Booking ' . ($action_type == "update" ? 'Updated' : 'Assigned') . ' - Admin Notification';
+      $admin_message = "Hotel Booking for Booking ID #$booking_id has been " . ($action_type == "update" ? "updated" : "assigned") . ".\n\n";
+      $admin_message .= "Details:\n";
+      $admin_message .= "Guest: " . htmlspecialchars($booking['full_name']) . "\n";
+      $admin_message .= "Email: " . htmlspecialchars($booking['user_email']) . "\n";
+      $admin_message .= "Hotel Name: " . htmlspecialchars($hotel_name) . "\n";
+      $admin_message .= "Room ID: " . htmlspecialchars($room_id) . "\n";
+      $admin_message .= "Check-in Date: " . date('D, M j, Y', strtotime($check_in_date)) . "\n";
+      $admin_message .= "Check-out Date: " . date('D, M j, Y', strtotime($check_out_date)) . "\n";
+      $admin_message .= "Total Price: PKR " . number_format($total_price, 0) . "\n";
+      $admin_message .= "Special Requests: " . (empty($special_requests) ? "None" : htmlspecialchars($special_requests)) . "\n";
+      sendEmailNotification($admin_to, $admin_subject, $admin_message, $action_type, $booking_id);
 
       // Refresh booking details
       $stmt = $conn->prepare("SELECT * FROM hotel_bookings WHERE user_id = ?");
@@ -335,12 +410,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
     $stmt->close();
 
     // Find rooms that are marked as booked but don't have active bookings
-    // These might be rooms where bookings were deleted or canceled
     foreach ($all_rooms as $room) {
       $room_id = $room['room_id'];
-      // If room is marked as booked but not in our booked list for these dates
       if ($room['status'] == 'booked' && !in_array($room_id, $booked_rooms)) {
-        // Check if this room has any active bookings at all
         $stmt = $conn->prepare("SELECT COUNT(*) as booking_count FROM hotel_bookings 
                              WHERE hotel_id = ? AND room_id = ? AND booking_status != 'cancelled'");
         $stmt->bind_param("is", $hotel_id, $room_id);
@@ -349,12 +421,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
         $count_row = $count_result->fetch_assoc();
         $stmt->close();
 
-        // If no active bookings exist, this room should be available
         if ($count_row['booking_count'] == 0) {
-          // Add to available rooms list
           $available_rooms[] = $room_id;
 
-          // Fix the room status in the database
           $stmt = $conn->prepare("UPDATE hotel_rooms SET status = 'available' WHERE hotel_id = ? AND room_id = ?");
           $stmt->bind_param("is", $hotel_id, $room_id);
           $stmt->execute();
@@ -365,8 +434,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
 
     // Remove rooms that are actually booked from our available list
     $available_rooms = array_diff($available_rooms, $booked_rooms);
-
-    // Convert back to array format (using array_values to reindex)
     $available_rooms = array_values($available_rooms);
 
     // If current room is already assigned, add it to available rooms
@@ -392,18 +459,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Assign Hotel | UmrahFlights</title>
-  <!-- Tailwind CSS (same as index.php, add-transportation.php, and assign-flight.php) -->
+  <!-- Tailwind CSS -->
   <link rel="stylesheet" href="../src/output.css">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <!-- SweetAlert2 (for consistency with add-transportation.php and assign-flight.php) -->
+  <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="bg-gray-100 font-sans min-h-screen">
   <?php include 'includes/sidebar.php'; ?>
   <main class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300" role="main" aria-label="Main content">
-    <!-- Top Navbar (aligned with index.php, add-transportation.php, and assign-flight.php) -->
+    <!-- Top Navbar -->
     <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
@@ -447,7 +514,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
         </a>
       </div>
 
-      <!-- Alerts (aligned with index.php, add-transportation.php, and assign-flight.php) -->
+      <!-- Alerts -->
       <?php if ($error_message): ?>
         <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
           <span><?php echo htmlspecialchars($error_message); ?></span>
@@ -502,24 +569,44 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
               </select>
             </div>
 
-            <div>
-              <label for="room_id" class="block text-sm font-medium text-gray-700 mb-1">Room ID</label>
-              <select name="room_id" id="room_id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" required <?php echo empty($available_rooms) && empty($booking_details) ? 'disabled' : ''; ?>>
-                <?php if (!empty($available_rooms)): ?>
-                  <option value="">-- Select Room --</option>
-                  <?php foreach ($available_rooms as $room): ?>
-                    <option value="<?php echo $room; ?>" <?php echo ($form_room_id == $room) ? 'selected' : ''; ?>>
-                      <?php echo $room; ?> <?php echo (!empty($booking_details) && $booking_details['room_id'] == $room) ? '(Currently Assigned)' : ''; ?>
+            <div class="room-select-container">
+              <label for="room_id" class="block text-sm font-medium text-gray-700 mb-2">
+                Room ID <span class="text-gray-500 text-xs">(Select hotel, dates, and check availability first)</span>
+              </label>
+              <div class="relative">
+                <select 
+                  name="room_id" 
+                  id="room_id" 
+                  class="room-select w-full px-4 py-3 bg-white border border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed" 
+                  required 
+                  <?php echo empty($available_rooms) && empty($booking_details) ? 'disabled' : ''; ?>
+                >
+                  <?php if (!empty($available_rooms)): ?>
+                    <option value="">-- Select Room --</option>
+                    <?php foreach ($available_rooms as $room): ?>
+                      <option 
+                        value="<?php echo htmlspecialchars($room); ?>" 
+                        <?php echo ($form_room_id == $room) ? 'selected' : ''; ?>
+                      >
+                        <?php echo htmlspecialchars($room); ?> 
+                        <?php echo (!empty($booking_details) && $booking_details['room_id'] == $room) ? '(Currently Assigned)' : ''; ?>
+                      </option>
+                    <?php endforeach; ?>
+                  <?php elseif (!empty($booking_details)): ?>
+                    <option value="<?php echo htmlspecialchars($booking_details['room_id']); ?>" selected>
+                      <?php echo htmlspecialchars($booking_details['room_id']); ?> (Currently Assigned)
                     </option>
-                  <?php endforeach; ?>
-                <?php elseif (!empty($booking_details)): ?>
-                  <option value="<?php echo $booking_details['room_id']; ?>" selected>
-                    <?php echo $booking_details['room_id']; ?> (Currently Assigned)
-                  </option>
-                <?php else: ?>
-                  <option value="">-- Check availability first --</option>
-                <?php endif; ?>
-              </select>
+                  <?php else: ?>
+                    <option value="">-- Check availability first --</option>
+                  <?php endif; ?>
+                </select>
+                <!-- Custom arrow icon -->
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             <div>
@@ -571,6 +658,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
     </section>
   </main>
 
+  <style>
+    .room-select-container {
+      max-width: 100%;
+      margin-bottom: 1.5rem;
+    }
+
+    .room-select {
+      font-size: 0.875rem;
+      color: #374151;
+      line-height: 1.5;
+    }
+
+    .room-select:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .room-select:disabled {
+      opacity: 0.7;
+    }
+
+    @media (max-width: 640px) {
+      .room-select {
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+      }
+    }
+
+    .room-select:not(:disabled):hover {
+      border-color: #6366f1;
+    }
+  </style>
+
   <script>
     // Validate dates
     document.getElementById('check_in_date').addEventListener('change', function() {
@@ -578,7 +698,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
       checkOutInput.min = this.value;
 
       if (checkOutInput.value && new Date(checkOutInput.value) <= new Date(this.value)) {
-        // Set checkout to day after checkin
         const nextDay = new Date(this.value);
         nextDay.setDate(nextDay.getDate() + 1);
         checkOutInput.value = nextDay.toISOString().split('T')[0];
@@ -588,7 +707,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['check_availability']))
     // Form submission confirmation
     document.getElementById('assignHotelForm').addEventListener('submit', function(e) {
       if (e.submitter && e.submitter.name === 'assign_hotel') {
-        if (!confirm('Are you sure you want to assign this hotel to the booking?')) {
+        if (!confirm('Are you sure you want to ' . (<?php echo !empty($booking_details) ? "'update'" : "'assign'"; ?> + ' this hotel to the booking?'))) {
           e.preventDefault();
         }
       }

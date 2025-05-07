@@ -215,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
-            <i class="fas fa-bars text-xl"></i>
+            <!--<i class="fas fa-bars text-xl"></i>-->
           </button>
           <h1 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">
             <i class="fas fa-hotel text-indigo-600 mr-2"></i>Add New Hotel

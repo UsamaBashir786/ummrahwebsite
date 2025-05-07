@@ -1,6 +1,11 @@
 <?php
+// Start session and ensure no output before headers
+ob_start();
 session_start();
 include 'config/db.php';
+
+// Log the start of the script
+error_log("Starting flight-booking.php, session ID: " . session_id());
 
 // Initialize variables
 $flight = null;
@@ -11,10 +16,23 @@ $available_seats = 0;
 $cabin_class = $_GET['cabin_class'] ?? '';
 $flight_id = isset($_GET['flight_id']) ? intval($_GET['flight_id']) : 0;
 
+// Log current URL and request method
+error_log("Current URL: " . $_SERVER['REQUEST_URI']);
+error_log("Request Method: " . $_SERVER['REQUEST_METHOD']);
+error_log("Session user_id: " . ($_SESSION['user_id'] ?? 'not set'));
+
+// Check for success query parameter
+if (isset($_GET['success']) && $_GET['success'] == '1') {
+  $success_message = 'Booking created successfully with pending payment status. Please proceed to payment or contact support.';
+  error_log("Success parameter detected, success_message set");
+}
+
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
   $error_message = "Please log in to book a flight.";
-  header("Location: login.php");
+  error_log("User not logged in, redirecting to login.php");
+  header("Location: login.php?redirect=flight-booking.php");
+  ob_end_flush();
   exit();
 }
 
@@ -28,12 +46,15 @@ if ($stmt) {
   $result = $stmt->get_result();
   if ($result->num_rows > 0) {
     $user = $result->fetch_assoc();
+    error_log("User fetched: " . $user['full_name']);
   } else {
     $error_message = "User not found.";
+    error_log("User ID $user_id not found");
   }
   $stmt->close();
 } else {
   $error_message = "Error fetching user details: " . $conn->error;
+  error_log("Error fetching user details: " . $conn->error);
 }
 
 // Fetch flight details
@@ -46,21 +67,26 @@ if ($flight_id > 0 && !$error_message) {
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
       $flight = $result->fetch_assoc();
+      error_log("Flight fetched: ID $flight_id");
     } else {
       $error_message = "Flight not found.";
+      error_log("Flight ID $flight_id not found");
     }
     $stmt->close();
   } else {
     $error_message = "Error preparing query: " . $conn->error;
+    error_log("Error preparing flight query: " . $conn->error);
   }
 } else if (!$error_message) {
   $error_message = "Invalid flight ID.";
+  error_log("Invalid flight ID: $flight_id");
 }
 
 // Validate cabin class
 $valid_classes = ['economy', 'business', 'first_class'];
 if (!in_array($cabin_class, $valid_classes)) {
-  $error_message = "Invalid cabin class selected.";
+  $error_message = "Invalid cabin class selected: $cabin_class";
+  error_log("Invalid cabin class: $cabin_class");
 }
 
 // Calculate available seats
@@ -78,11 +104,14 @@ if ($flight && !$error_message) {
     $result = $stmt->get_result();
     $booked_seats = $result->fetch_assoc()['booked_seats'] ?? 0;
     $available_seats = max(0, $total_seats - $booked_seats);
+    error_log("Available seats calculated: $available_seats");
     $stmt->close();
   } else {
     $error_message = "Error calculating available seats: " . $conn->error;
+    error_log("Error calculating available seats: " . $conn->error);
   }
 }
+
 // Process form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
   $passenger_name = $_POST['passenger_name'] ?? '';
@@ -133,23 +162,124 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
       // Insert into flight_bookings
       $sql = "INSERT INTO flight_bookings (flight_id, user_id, cabin_class, adult_count, children_count, total_price, passenger_name, passenger_email, passenger_phone, booking_status, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')";
       $stmt = $conn->prepare($sql);
-      if ($stmt) {
-        $stmt->bind_param("iisiissss", $flight_id, $user_id, $cabin_class, $adult_count, $children_count, $total_price, $passenger_name, $passenger_email, $passenger_phone);
-        $stmt->execute();
-        $stmt->close();
-        $conn->commit();
-        $success_message = "Booking created successfully with pending payment status. Please proceed to payment or contact support.";
-      } else {
+      if (!$stmt) {
         throw new Exception("Error preparing booking query: " . $conn->error);
       }
+      $stmt->bind_param("iisiissss", $flight_id, $user_id, $cabin_class, $adult_count, $children_count, $total_price, $passenger_name, $passenger_email, $passenger_phone);
+      if (!$stmt->execute()) {
+        throw new Exception("Error executing booking query: " . $stmt->error);
+      }
+      $booking_id = $conn->insert_id;
+      $stmt->close();
+
+      // Generate booking reference
+      $booking_reference = 'FB' . strtoupper(substr(md5($booking_id), 0, 8));
+
+      // Send email to User
+      $to = $passenger_email;
+      $email_subject = 'Thank You for Your Flight Booking with Umrah Partner';
+      $email_message = "Dear $passenger_name,\n\n";
+      $email_message .= "Booking created successfully with pending payment status. Please proceed to payment or contact support.\n\n";
+      $email_message .= "Booking Details:\n";
+      $email_message .= "Booking Reference: $booking_reference\n";
+      $email_message .= "Airline: " . htmlspecialchars($flight['airline_name']) . "\n";
+      $email_message .= "Flight Number: " . htmlspecialchars($flight['flight_number']) . "\n";
+      $email_message .= "Route: " . htmlspecialchars($flight['departure_city']) . " to " . htmlspecialchars($flight['arrival_city']) . "\n";
+      $email_message .= "Departure Date: " . date('D, M j, Y', strtotime($flight['departure_date'])) . "\n";
+      $email_message .= "Departure Time: " . date('H:i', strtotime($flight['departure_time'])) . "\n";
+      $email_message .= "Cabin Class: " . ucfirst($cabin_class) . "\n";
+      $email_message .= "Adults: $adult_count\n";
+      $email_message .= "Children: $children_count\n";
+      $email_message .= "Total Price: PKR " . number_format($total_price, 0) . "\n";
+      $email_message .= "Payment Status: Pending\n\n";
+      if ($flight['has_return']) {
+        $email_message .= "Return Flight Details:\n";
+        $email_message .= "Airline: " . htmlspecialchars($flight['return_airline']) . "\n";
+        $email_message .= "Flight Number: " . htmlspecialchars($flight['return_flight_number']) . "\n";
+        $email_message .= "Route: " . htmlspecialchars($flight['arrival_city']) . " to " . htmlspecialchars($flight['departure_city']) . "\n";
+        $email_message .= "Return Date: " . date('D, M j, Y', strtotime($flight['return_date'])) . "\n";
+        $email_message .= "Return Time: " . date('H:i', strtotime($flight['return_time'])) . "\n\n";
+      }
+      $email_message .= "You can view your booking details in your account under 'My Bookings'.\n";
+      $email_message .= "For any queries, contact us at info@umrahpartner.com.\n\n";
+      $email_message .= "Best regards,\nUmrah Partner Team";
+
+      $headers = "From: no-reply@umrahpartner.com\r\n";
+      $headers .= "Reply-To: info@umrahpartner.com\r\n";
+      $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+      if (!mail($to, $email_subject, $email_message, $headers)) {
+        throw new Exception('Failed to send user email.');
+      }
+
+      // Send email to Admin
+      $admin_to = 'info@umrahpartner.com';
+      $admin_subject = 'New Flight Booking Submission';
+      $admin_message = "New Flight Booking Submission\n\n";
+      $admin_message .= "A new flight booking has been created.\n\n";
+      $admin_message .= "Details:\n";
+      $admin_message .= "Booking Reference: $booking_reference\n";
+      $admin_message .= "User: $passenger_name ($passenger_email)\n";
+      $admin_message .= "Airline: " . htmlspecialchars($flight['airline_name']) . "\n";
+      $admin_message .= "Flight Number: " . htmlspecialchars($flight['flight_number']) . "\n";
+      $admin_message .= "Route: " . htmlspecialchars($flight['departure_city']) . " to " . htmlspecialchars($flight['arrival_city']) . "\n";
+      $admin_message .= "Departure Date: " . date('D, M j, Y', strtotime($flight['departure_date'])) . "\n";
+      $admin_message .= "Departure Time: " . date('H:i', strtotime($flight['departure_time'])) . "\n";
+      $admin_message .= "Cabin Class: " . ucfirst($cabin_class) . "\n";
+      $admin_message .= "Adults: $adult_count\n";
+      $admin_message .= "Children: $children_count\n";
+      $admin_message .= "Total Price: PKR " . number_format($total_price, 0) . "\n";
+      $admin_message .= "Payment Status: Pending\n";
+      if ($flight['has_return']) {
+        $admin_message .= "Return Flight Details:\n";
+        $admin_message .= "Airline: " . htmlspecialchars($flight['return_airline']) . "\n";
+        $admin_message .= "Flight Number: " . htmlspecialchars($flight['return_flight_number']) . "\n";
+        $admin_message .= "Route: " . htmlspecialchars($flight['arrival_city']) . " to " . htmlspecialchars($flight['departure_city']) . "\n";
+        $admin_message .= "Return Date: " . date('D, M j, Y', strtotime($flight['return_date'])) . "\n";
+        $admin_message .= "Return Time: " . date('H:i', strtotime($flight['return_time'])) . "\n";
+      }
+      $admin_message .= "Submitted At: " . date('Y-m-d H:i:s') . "\n";
+
+      if (!mail($admin_to, $admin_subject, $admin_message, $headers)) {
+        throw new Exception('Failed to send admin email.');
+      }
+
+      // Commit transaction
+      $conn->commit();
+      error_log("Flight booking successful for user_id=$user_id, flight_id=$flight_id, booking_reference=$booking_reference");
+
+      // FIXED REDIRECTION CODE
+      // Get the current script's directory path relative to the domain root
+      $script_path = dirname($_SERVER['PHP_SELF']);
+      $script_name = basename($_SERVER['PHP_SELF']);
+
+      // Make sure path ends with a slash if not root
+      $path_prefix = ($script_path == '/' ? '' : $script_path) . '/';
+
+      // Construct absolute redirect URL with proper path
+      $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+      $host = $_SERVER['HTTP_HOST'];
+      $redirect_url = "$protocol://$host$path_prefix$script_name?flight_id=$flight_id&cabin_class=" . urlencode($cabin_class) . "&success=1";
+
+      // Log the redirect URL for debugging
+      error_log("Redirecting to: $redirect_url");
+
+      // Use 303 See Other redirect to ensure the browser uses GET for the new page
+      header("Location: $redirect_url", true, 303);
+      ob_end_flush();
+      exit();
     } catch (Exception $e) {
       $conn->rollback();
-      $error_message = "Error creating booking: " . $e->getMessage();
+      $error_message = "Booking failed. Please contact us directly. Error: " . $e->getMessage();
+      error_log("Flight Booking Error: " . $e->getMessage());
     }
   } else {
     $error_message = implode(" ", $validation_errors);
+    error_log("Validation errors: " . $error_message);
   }
 }
+
+// HTML and UI code would follow here...
 ?>
 
 <!DOCTYPE html>
@@ -162,7 +292,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
   <link rel="stylesheet" href="src/output.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#047857',
+            secondary: '#10B981',
+            accent: '#F59E0B',
+          },
+        },
+      },
+    }
+  </script>
   <style>
     .booking-form {
       background-color: #f9fafb;
@@ -193,6 +335,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
     .readonly-field {
       background-color: #e5e7eb;
       cursor: not-allowed;
+    }
+    .bg-primary {
+      background: #0d6efd !important;
     }
   </style>
 </head>
@@ -231,13 +376,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
           <div>
             <p class="font-medium"><?php echo htmlspecialchars($success_message); ?></p>
             <p class="mt-2">You will receive a confirmation email soon.</p>
+            <p class="mt-2">
+              <a href="user/index.php" class="text-blue-600 hover:underline">View My Bookings</a>
+            </p>
+            <p class="mt-2">
+              <a href="flight-booking.php?flight_id=<?php echo $flight_id; ?>&cabin_class=<?php echo urlencode($cabin_class); ?>" class="text-blue-600 hover:underline">Book Another Flight</a>
+            </p>
+            <p class="mt-2">
+              <a href="index.php" class="text-blue-600 hover:underline">Back to Home</a>
+            </p>
           </div>
         </div>
       </div>
     <?php endif; ?>
 
     <!-- Booking Form and Summary -->
-    <?php if ($flight && $user && !$success_message && $available_seats > 0): ?>
+    <?php if (!$success_message && $flight && $user && $available_seats > 0): ?>
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Booking Form -->
         <div class="lg:col-span-2">
@@ -343,7 +497,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
           </div>
         </div>
       </div>
-    <?php elseif ($flight && $available_seats == 0): ?>
+    <?php elseif (!$success_message && $flight && $available_seats == 0): ?>
       <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg shadow-sm animate__animated animate__fadeIn" role="alert">
         <div class="flex">
           <div class="flex-shrink-0">
@@ -433,4 +587,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
 
 <?php
 $conn->close();
+ob_end_flush();
 ?>

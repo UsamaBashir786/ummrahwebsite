@@ -243,59 +243,66 @@ while ($row = $categories_result->fetch_assoc()) {
 
     <!-- FAQs List -->
     <div class="bg-white shadow-lg rounded-lg p-6">
-      <h5 class="text-lg font-semibold text-gray-800 mb-4">FAQs List</h5>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left">
-          <thead>
-            <tr class="border-b">
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Question</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Category</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Created</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if ($faqs_result && $faqs_result->num_rows > 0): ?>
-              <?php while ($faq = $faqs_result->fetch_assoc()): ?>
-                <tr class="border-b hover:bg-gray-50">
-                  <td class="py-3 px-4 text-sm text-gray-700">
-                    <div class="font-medium"><?php echo htmlspecialchars($faq['question']); ?></div>
-                    <div class="text-gray-500 text-xs mt-1"><?php echo htmlspecialchars(substr($faq['answer'], 0, 100)) . '...'; ?></div>
-                  </td>
-                  <td class="py-3 px-4 text-sm text-gray-700"><?php echo htmlspecialchars($faq['category'] ?? 'Uncategorized'); ?></td>
-                  <td class="py-3 px-4 text-sm">
-                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    <?php echo $faq['status'] === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
-                      <?php echo ucfirst($faq['status']); ?>
-                    </span>
-                  </td>
-                  <td class="py-3 px-4 text-sm text-gray-700"><?php echo date('M d, Y', strtotime($faq['created_at'])); ?></td>
-                  <td class="py-3 px-4 text-sm">
-                    <button onclick="editFAQ(<?php echo htmlspecialchars(json_encode($faq)); ?>)"
-                      class="text-indigo-600 hover:text-indigo-900 mr-3">
-                      <i class="fas fa-edit"></i>
+  <h5 class="text-lg font-semibold text-gray-800 mb-4">FAQs List</h5>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead>
+        <tr>
+          <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 whitespace-nowrap">Question</th>
+          <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 whitespace-nowrap">Category</th>
+          <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 whitespace-nowrap">Status</th>
+          <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 whitespace-nowrap">Created</th>
+          <th class="py-3 px-4 text-left text-sm font-semibold text-gray-600 whitespace-nowrap">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <?php if ($faqs_result && $faqs_result->num_rows > 0): ?>
+          <?php while ($faq = $faqs_result->fetch_assoc()): ?>
+            <tr class="hover:bg-gray-50 transition-colors duration-150">
+              <td class="py-3 px-4 text-sm text-gray-700">
+                <div class="font-medium line-clamp-1"><?php echo htmlspecialchars($faq['question']); ?></div>
+                <div class="text-gray-500 text-xs mt-1 line-clamp-2"><?php echo htmlspecialchars(substr($faq['answer'], 0, 100)) . '...'; ?></div>
+              </td>
+              <td class="py-3 px-4 text-sm text-gray-700 whitespace-nowrap"><?php echo htmlspecialchars($faq['category'] ?? 'Uncategorized'); ?></td>
+              <td class="py-3 px-4 text-sm whitespace-nowrap">
+                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                <?php echo $faq['status'] === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
+                  <?php echo ucfirst($faq['status']); ?>
+                </span>
+              </td>
+              <td class="py-3 px-4 text-sm text-gray-700 whitespace-nowrap"><?php echo date('M d, Y', strtotime($faq['created_at'])); ?></td>
+              <td class="py-3 px-4 text-sm whitespace-nowrap">
+                <div class="flex space-x-3">
+                  <button 
+                    onclick="editFAQ(<?php echo htmlspecialchars(json_encode($faq)); ?>)"
+                    class="text-indigo-600 hover:text-indigo-900 transition-colors duration-150"
+                    title="Edit FAQ">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <form method="POST" action="" class="inline" onsubmit="return confirm('Are you sure you want to delete this FAQ?');">
+                    <input type="hidden" name="form_token" value="<?php echo $_SESSION['form_token']; ?>">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="id" value="<?php echo $faq['id']; ?>">
+                    <button 
+                      type="submit" 
+                      class="text-red-600 hover:text-red-900 transition-colors duration-150"
+                      title="Delete FAQ">
+                      <i class="fas fa-trash"></i>
                     </button>
-                    <form method="POST" action="" class="inline" onsubmit="return confirm('Are you sure you want to delete this FAQ?');">
-                      <input type="hidden" name="form_token" value="<?php echo $_SESSION['form_token']; ?>">
-                      <input type="hidden" name="action" value="delete">
-                      <input type="hidden" name="id" value="<?php echo $faq['id']; ?>">
-                      <button type="submit" class="text-red-600 hover:text-red-900">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </form>
-                  </td>
-                </tr>
-              <?php endwhile; ?>
-            <?php else: ?>
-              <tr>
-                <td colspan="5" class="py-3 px-4 text-sm text-gray-500 text-center">No FAQs found.</td>
-              </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
-      </div>
-    </div>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <?php endwhile; ?>
+        <?php else: ?>
+          <tr>
+            <td colspan="5" class="py-6 px-4 text-sm text-gray-500 text-center">No FAQs found.</td>
+          </tr>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
   </div>
 
   <!-- Scripts -->

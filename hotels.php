@@ -1,6 +1,11 @@
 <?php
+// Start session and output buffering
+ob_start();
 session_start();
 require_once 'config/db.php';
+
+// Log the start of the script
+error_log("Starting hotel-booking.php, session ID: " . session_id());
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -8,6 +13,7 @@ if (!isset($_SESSION['user_id'])) {
   $is_logged_in = false;
 } else {
   $is_logged_in = true;
+  error_log("User logged in, user_id: " . $_SESSION['user_id']);
 }
 
 // Initialize variables
@@ -27,6 +33,50 @@ $filters = [
 $check_in_date = $_POST['check_in_date'] ?? '';
 $check_out_date = $_POST['check_out_date'] ?? '';
 $hotel_id = $_POST['hotel_id'] ?? null;
+
+// Automatically update room status for deleted or past bookings
+$current_date = date('Y-m-d');
+// Find rooms with 'booked' status where no active bookings exist and check-out date has passed
+$sql = "SELECT hr.hotel_id, hr.room_id 
+        FROM hotel_rooms hr 
+        LEFT JOIN hotel_bookings hb ON hr.hotel_id = hb.hotel_id AND hr.room_id = hb.room_id 
+            AND hb.check_out_date >= ? AND hb.booking_status NOT IN ('cancelled', 'deleted') 
+        WHERE hr.status = 'booked' 
+        AND hb.hotel_id IS NULL 
+        AND EXISTS (
+            SELECT 1 FROM hotel_bookings hb2 
+            WHERE hb2.hotel_id = hr.hotel_id 
+            AND hb2.room_id = hr.room_id 
+            AND hb2.check_out_date < ?
+        )";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("ss", $current_date, $current_date);
+$stmt->execute();
+$result = $stmt->get_result();
+$rooms_to_update = [];
+while ($row = $result->fetch_assoc()) {
+  $rooms_to_update[] = $row;
+}
+$stmt->close();
+
+if (!empty($rooms_to_update)) {
+  $sql = "UPDATE hotel_rooms SET status = 'available' WHERE (hotel_id, room_id) IN (";
+  $placeholders = [];
+  $params = [];
+  foreach ($rooms_to_update as $index => $room) {
+    $placeholders[] = "(?, ?)";
+    $params[] = $room['hotel_id'];
+    $params[] = $room['room_id'];
+  }
+  $sql .= implode(', ', $placeholders) . ")";
+  $stmt = $conn->prepare($sql);
+  if ($stmt) {
+    $stmt->bind_param(str_repeat('ii', count($rooms_to_update)), ...$params);
+    $stmt->execute();
+    $stmt->close();
+    error_log("Updated " . count($rooms_to_update) . " rooms to 'available' status due to past bookings.");
+  }
+}
 
 // Fetch hotels with filters
 $sql = "SELECT h.*, hi.image_path AS primary_image 
@@ -101,7 +151,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             OR (hb.check_in_date <= ? AND hb.check_out_date >= ?)
                             OR (hb.check_in_date >= ? AND hb.check_out_date <= ?)
                         )
-                        AND hb.booking_status != 'cancelled'
+                        AND hb.booking_status NOT IN ('cancelled', 'deleted')
                     )";
       $stmt = $conn->prepare($sql);
       if (!$stmt) {
@@ -158,7 +208,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             OR (hb.check_in_date <= ? AND hb.check_out_date >= ?)
                             OR (hb.check_in_date >= ? AND hb.check_out_date <= ?)
                         )
-                        AND hb.booking_status != 'cancelled'
+                        AND hb.booking_status NOT IN ('cancelled', 'deleted')
                     )";
       $stmt = $conn->prepare($sql);
       $stmt->bind_param("isssssss", $hotel_id, $room_id, $check_out_date, $check_in_date, $check_out_date, $check_in_date, $check_in_date, $check_out_date);
@@ -184,12 +234,59 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       $stmt->execute();
       $stmt->close();
 
+      // Send email to User
+      $user_email = $_SESSION['email'] ?? ''; // Assuming email is stored in session or fetch from users table
+      $email_subject = 'Thank You for Your Hotel Booking with Umrah Partner';
+      $email_message = "Dear Valued Customer,\n\n";
+      $email_message .= "Booking created successfully! Reference: $booking_reference\n\n";
+      $email_message .= "Booking Details:\n";
+      $email_message .= "Hotel: " . htmlspecialchars($hotel['hotel_name']) . "\n";
+      $email_message .= "Check-in Date: " . date('D, M j, Y', strtotime($check_in_date)) . "\n";
+      $email_message .= "Check-out Date: " . date('D, M j, Y', strtotime($check_out_date)) . "\n";
+      $email_message .= "Nights: $nights\n";
+      $email_message .= "Total Price: PKR " . number_format($total_price, 0) . "\n";
+      $email_message .= "Payment Status: Unpaid\n\n";
+      $email_message .= "You can view your booking details in your account under 'My Bookings'.\n";
+      $email_message .= "For any queries, contact us at info@umrahpartner.com.\n\n";
+      $email_message .= "Best regards,\nUmrah Partner Team";
+
+      $headers = "From: no-reply@umrahpartner.com\r\n";
+      $headers .= "Reply-To: info@umrahpartner.com\r\n";
+      $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+      if (!mail($user_email, $email_subject, $email_message, $headers)) {
+        throw new Exception('Failed to send user email.');
+      }
+
+      // Send email to Admin
+      $admin_to = 'info@umrahpartner.com';
+      $admin_subject = 'New Hotel Booking Submission';
+      $admin_message = "New Hotel Booking Submission\n\n";
+      $admin_message .= "A new hotel booking has been created.\n\n";
+      $admin_message .= "Details:\n";
+      $admin_message .= "Booking Reference: $booking_reference\n";
+      $admin_message .= "User ID: $user_id\n";
+      $admin_message .= "Hotel: " . htmlspecialchars($hotel['hotel_name']) . "\n";
+      $admin_message .= "Check-in Date: " . date('D, M j, Y', strtotime($check_in_date)) . "\n";
+      $admin_message .= "Check-out Date: " . date('D, M j, Y', strtotime($check_out_date)) . "\n";
+      $admin_message .= "Nights: $nights\n";
+      $admin_message .= "Total Price: PKR " . number_format($total_price, 0) . "\n";
+      $admin_message .= "Payment Status: Unpaid\n";
+      $admin_message .= "Special Requests: " . htmlspecialchars($special_requests) . "\n";
+      $admin_message .= "Submitted At: " . date('Y-m-d H:i:s') . "\n";
+
+      if (!mail($admin_to, $admin_subject, $admin_message, $headers)) {
+        throw new Exception('Failed to send admin email.');
+      }
+
       // Commit transaction
       $conn->commit();
+      error_log("Hotel booking successful for user_id=$user_id, hotel_id=$hotel_id, booking_reference=$booking_reference");
       $success_message = "Booking created successfully! Reference: $booking_reference";
     } catch (Exception $e) {
       $conn->rollback();
       $error_message = "Error: " . $e->getMessage();
+      error_log("Hotel Booking Error: " . $e->getMessage());
     }
   }
 }
@@ -359,7 +456,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <?php if (!empty($success_message)): ?>
       <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-lg">
         <p><?php echo htmlspecialchars($success_message); ?></p>
-        <a href="user/index.php" class="text-blue-600 hover:underline">View Your Bookings</a>
+        <p class="mt-2">You will receive a confirmation email soon.</p>
+        <p class="mt-2">
+          <a href="user/index.php" class="text-blue-600 hover:underline">View Your Bookings</a>
+        </p>
+        <p class="mt-2">
+          <a href="hotel-booking.php" class="text-blue-600 hover:underline">Check Another Hotel</a>
+        </p>
+        <p class="mt-2">
+          <a href="index.php" class="text-blue-600 hover:underline">Back to Home</a>
+        </p>
       </div>
     <?php endif; ?>
 
@@ -492,4 +598,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <?php
 $conn->close();
+ob_end_flush();
 ?>

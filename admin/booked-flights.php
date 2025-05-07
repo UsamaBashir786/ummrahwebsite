@@ -36,6 +36,20 @@ function formatNumber($number)
   return $formattedNumber . $suffixes[$index];
 }
 
+// Function to send email notifications
+function sendEmailNotification($to, $subject, $message, $action, $booking_id)
+{
+  $headers = "From: Umrah Partner Team <no-reply@umrahpartner.com>\r\n";
+  $headers .= "Reply-To: info@umrahflights.com\r\n";
+  $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+  $result = mail($to, $subject, $message, $headers);
+  if (!$result) {
+    error_log("Failed to send email for action '$action' on booking #$booking_id to $to: " . error_get_last()['message']);
+  }
+  return $result;
+}
+
 // Initialize variables
 $bookings = [];
 $filters = [
@@ -53,39 +67,155 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
   $action = $_GET['action'];
   $booking_id = (int)$_GET['id'];
 
-  if ($action === 'confirm') {
-    $stmt = $conn->prepare("UPDATE flight_bookings SET booking_status = 'confirmed' WHERE id = ?");
-    $stmt->bind_param("i", $booking_id);
-    if ($stmt->execute()) {
-      $message = "Booking #$booking_id has been confirmed successfully.";
-      $message_type = "success";
-    } else {
-      $message = "Error confirming booking: " . $conn->error;
-      $message_type = "error";
+  // Fetch booking details for email
+  $stmt = $conn->prepare("SELECT fb.*, f.flight_number, f.airline_name, f.departure_city, f.arrival_city, f.departure_date, f.departure_time, u.full_name as user_name, u.email as user_email 
+                         FROM flight_bookings fb 
+                         JOIN flights f ON fb.flight_id = f.id 
+                         JOIN users u ON fb.user_id = u.id 
+                         WHERE fb.id = ?");
+  $stmt->bind_param("i", $booking_id);
+  $stmt->execute();
+  $result = $stmt->get_result();
+  $booking = $result->fetch_assoc();
+  $stmt->close();
+
+  if (!$booking) {
+    $message = "Booking #$booking_id not found.";
+    $message_type = "error";
+  } else {
+    if ($action === 'confirm') {
+      $stmt = $conn->prepare("UPDATE flight_bookings SET booking_status = 'confirmed' WHERE id = ?");
+      $stmt->bind_param("i", $booking_id);
+      if ($stmt->execute()) {
+        $message = "Booking #$booking_id has been confirmed successfully.";
+        $message_type = "success";
+
+        // Send email to user
+        $user_email = $booking['user_email'];
+        $user_subject = 'Your Flight Booking Has Been Confirmed - UmrahFlights';
+        $user_message = "Dear " . htmlspecialchars($booking['user_name']) . ",\n\n";
+        $user_message .= "Your flight booking (ID: #$booking_id) has been confirmed.\n\n";
+        $user_message .= "Booking Details:\n";
+        $user_message .= "Flight Number: " . htmlspecialchars($booking['flight_number']) . "\n";
+        $user_message .= "Airline: " . htmlspecialchars($booking['airline_name']) . "\n";
+        $user_message .= "Route: " . htmlspecialchars($booking['departure_city']) . " → " . htmlspecialchars($booking['arrival_city']) . "\n";
+        $user_message .= "Departure Date: " . date('D, M j, Y', strtotime($booking['departure_date'])) . "\n";
+        $user_message .= "Departure Time: " . date('h:i A', strtotime($booking['departure_time'])) . "\n";
+        $user_message .= "Cabin Class: " . ucfirst(str_replace('_', ' ', htmlspecialchars($booking['cabin_class']))) . "\n";
+        $user_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+        $user_message .= "Booking Status: Confirmed\n";
+        $user_message .= "Payment Status: " . ucfirst($booking['payment_status']) . "\n\n";
+        $user_message .= "For any queries, contact us at info@umrahflights.com.\n\n";
+        $user_message .= "Best regards,\nUmrahFlights Team";
+        sendEmailNotification($user_email, $user_subject, $user_message, 'confirm', $booking_id);
+
+        // Send email to admin
+        $admin_to = 'admin@umrahflights.com'; // Replace with actual admin email
+        $admin_subject = 'Flight Booking Confirmed - Admin Notification';
+        $admin_message = "Flight Booking #$booking_id has been confirmed.\n\n";
+        $admin_message .= "Details:\n";
+        $admin_message .= "Passenger: " . htmlspecialchars($booking['passenger_name']) . "\n";
+        $admin_message .= "Email: " . htmlspecialchars($booking['user_email']) . "\n";
+        $admin_message .= "Flight Number: " . htmlspecialchars($booking['flight_number']) . "\n";
+        $admin_message .= "Route: " . htmlspecialchars($booking['departure_city']) . " → " . htmlspecialchars($booking['arrival_city']) . "\n";
+        $admin_message .= "Departure Date: " . date('D, M j, Y', strtotime($booking['departure_date'])) . "\n";
+        $admin_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+        $admin_message .= "Payment Status: " . ucfirst($booking['payment_status']) . "\n";
+        sendEmailNotification($admin_to, $admin_subject, $admin_message, 'confirm', $booking_id);
+      } else {
+        $message = "Error confirming booking: " . $conn->error;
+        $message_type = "error";
+      }
+      $stmt->close();
+    } elseif ($action === 'cancel') {
+      $stmt = $conn->prepare("UPDATE flight_bookings SET booking_status = 'cancelled' WHERE id = ?");
+      $stmt->bind_param("i", $booking_id);
+      if ($stmt->execute()) {
+        $message = "Booking #$booking_id has been cancelled.";
+        $message_type = "success";
+
+        // Send email to user
+        $user_email = $booking['user_email'];
+        $user_subject = 'Your Flight Booking Has Been Cancelled - UmrahFlights';
+        $user_message = "Dear " . htmlspecialchars($booking['user_name']) . ",\n\n";
+        $user_message .= "Your flight booking (ID: #$booking_id) has been cancelled.\n\n";
+        $user_message .= "Booking Details:\n";
+        $user_message .= "Flight Number: " . htmlspecialchars($booking['flight_number']) . "\n";
+        $user_message .= "Airline: " . htmlspecialchars($booking['airline_name']) . "\n";
+        $user_message .= "Route: " . htmlspecialchars($booking['departure_city']) . " → " . htmlspecialchars($booking['arrival_city']) . "\n";
+        $user_message .= "Departure Date: " . date('D, M j, Y', strtotime($booking['departure_date'])) . "\n";
+        $user_message .= "Departure Time: " . date('h:i A', strtotime($booking['departure_time'])) . "\n";
+        $user_message .= "Cabin Class: " . ucfirst(str_replace('_', ' ', htmlspecialchars($booking['cabin_class']))) . "\n";
+        $user_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+        $user_message .= "Booking Status: Cancelled\n";
+        $user_message .= "Payment Status: " . ucfirst($booking['payment_status']) . "\n\n";
+        $user_message .= "For any queries or refund requests, contact us at info@umrahflights.com.\n\n";
+        $user_message .= "Best regards,\nUmrahFlights Team";
+        sendEmailNotification($user_email, $user_subject, $user_message, 'cancel', $booking_id);
+
+        // Send email to admin
+        $admin_to = 'admin@umrahflights.com'; // Replace with actual admin email
+        $admin_subject = 'Flight Booking Cancelled - Admin Notification';
+        $admin_message = "Flight Booking #$booking_id has been cancelled.\n\n";
+        $admin_message .= "Details:\n";
+        $admin_message .= "Passenger: " . htmlspecialchars($booking['passenger_name']) . "\n";
+        $admin_message .= "Email: " . htmlspecialchars($booking['user_email']) . "\n";
+        $admin_message .= "Flight Number: " . htmlspecialchars($booking['flight_number']) . "\n";
+        $admin_message .= "Route: " . htmlspecialchars($booking['departure_city']) . " → " . htmlspecialchars($booking['arrival_city']) . "\n";
+        $admin_message .= "Departure Date: " . date('D, M j, Y', strtotime($booking['departure_date'])) . "\n";
+        $admin_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+        $admin_message .= "Payment Status: " . ucfirst($booking['payment_status']) . "\n";
+        sendEmailNotification($admin_to, $admin_subject, $admin_message, 'cancel', $booking_id);
+      } else {
+        $message = "Error cancelling booking: " . $conn->error;
+        $message_type = "error";
+      }
+      $stmt->close();
+    } elseif ($action === 'complete_payment') {
+      $stmt = $conn->prepare("UPDATE flight_bookings SET payment_status = 'completed' WHERE id = ?");
+      $stmt->bind_param("i", $booking_id);
+      if ($stmt->execute()) {
+        $message = "Payment for booking #$booking_id has been marked as completed.";
+        $message_type = "success";
+
+        // Send email to user
+        $user_email = $booking['user_email'];
+        $user_subject = 'Payment Completed for Your Flight Booking - UmrahFlights';
+        $user_message = "Dear " . htmlspecialchars($booking['user_name']) . ",\n\n";
+        $user_message .= "The payment for your flight booking (ID: #$booking_id) has been successfully completed.\n\n";
+        $user_message .= "Booking Details:\n";
+        $user_message .= "Flight Number: " . htmlspecialchars($booking['flight_number']) . "\n";
+        $user_message .= "Airline: " . htmlspecialchars($booking['airline_name']) . "\n";
+        $user_message .= "Route: " . htmlspecialchars($booking['departure_city']) . " → " . htmlspecialchars($booking['arrival_city']) . "\n";
+        $user_message .= "Departure Date: " . date('D, M j, Y', strtotime($booking['departure_date'])) . "\n";
+        $user_message .= "Departure Time: " . date('h:i A', strtotime($booking['departure_time'])) . "\n";
+        $user_message .= "Cabin Class: " . ucfirst(str_replace('_', ' ', htmlspecialchars($booking['cabin_class']))) . "\n";
+        $user_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+        $user_message .= "Booking Status: " . ucfirst($booking['booking_status']) . "\n";
+        $user_message .= "Payment Status: Completed\n\n";
+        $user_message .= "For any queries, contact us at info@umrahflights.com.\n\n";
+        $user_message .= "Best regards,\nUmrahFlights Team";
+        sendEmailNotification($user_email, $user_subject, $user_message, 'complete_payment', $booking_id);
+
+        // Send email to admin
+        $admin_to = 'admin@umrahflights.com'; // Replace with actual admin email
+        $admin_subject = 'Payment Completed for Flight Booking - Admin Notification';
+        $admin_message = "Payment for Flight Booking #$booking_id has been marked as completed.\n\n";
+        $admin_message .= "Details:\n";
+        $admin_message .= "Passenger: " . htmlspecialchars($booking['passenger_name']) . "\n";
+        $admin_message .= "Email: " . htmlspecialchars($booking['user_email']) . "\n";
+        $admin_message .= "Flight Number: " . htmlspecialchars($booking['flight_number']) . "\n";
+        $admin_message .= "Route: " . htmlspecialchars($booking['departure_city']) . " → " . htmlspecialchars($booking['arrival_city']) . "\n";
+        $admin_message .= "Departure Date: " . date('D, M j, Y', strtotime($booking['departure_date'])) . "\n";
+        $admin_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+        $admin_message .= "Booking Status: " . ucfirst($booking['booking_status']) . "\n";
+        sendEmailNotification($admin_to, $admin_subject, $admin_message, 'complete_payment', $booking_id);
+      } else {
+        $message = "Error updating payment status: " . $conn->error;
+        $message_type = "error";
+      }
+      $stmt->close();
     }
-    $stmt->close();
-  } elseif ($action === 'cancel') {
-    $stmt = $conn->prepare("UPDATE flight_bookings SET booking_status = 'cancelled' WHERE id = ?");
-    $stmt->bind_param("i", $booking_id);
-    if ($stmt->execute()) {
-      $message = "Booking #$booking_id has been cancelled.";
-      $message_type = "success";
-    } else {
-      $message = "Error cancelling booking: " . $conn->error;
-      $message_type = "error";
-    }
-    $stmt->close();
-  } elseif ($action === 'complete_payment') {
-    $stmt = $conn->prepare("UPDATE flight_bookings SET payment_status = 'completed' WHERE id = ?");
-    $stmt->bind_param("i", $booking_id);
-    if ($stmt->execute()) {
-      $message = "Payment for booking #$booking_id has been marked as completed.";
-      $message_type = "success";
-    } else {
-      $message = "Error updating payment status: " . $conn->error;
-      $message_type = "error";
-    }
-    $stmt->close();
   }
 }
 
@@ -457,47 +587,6 @@ if (!empty($filter)) {
     </div>
 
     <!-- Stats Cards -->
-    <!-- <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white rounded-lg shadow p-4 flex items-start">
-        <div class="bg-blue-100 rounded-lg p-3 mr-4">
-          <i class="fas fa-calendar-check text-blue-600 text-xl"></i>
-        </div>
-        <div>
-          <h3 class="text-gray-500 text-sm font-medium">Total Bookings</h3>
-          <p class="text-2xl font-bold text-gray-800"><?php echo $stats['total']; ?></p>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-4 flex items-start">
-        <div class="bg-green-100 rounded-lg p-3 mr-4">
-          <i class="fas fa-check-circle text-green-600 text-xl"></i>
-        </div>
-        <div>
-          <h3 class="text-gray-500 text-sm font-medium">Confirmed Bookings</h3>
-          <p class="text-2xl font-bold text-gray-800"><?php echo $stats['confirmed']; ?></p>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-4 flex items-start">
-        <div class="bg-yellow-100 rounded-lg p-3 mr-4">
-          <i class="fas fa-clock text-yellow-600 text-xl"></i>
-        </div>
-        <div>
-          <h3 class="text-gray-500 text-sm font-medium">Pending Bookings</h3>
-          <p class="text-2xl font-bold text-gray-800"><?php echo $stats['pending']; ?></p>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-lg shadow p-4 flex items-start">
-        <div class="bg-green-100 rounded-lg p-3 mr-4">
-          <i class="fas fa-money-bill text-green-600 text-xl"></i>
-        </div>
-        <div>
-          <h3 class="text-gray-500 text-sm font-medium">Total Revenue</h3>
-          <p class="text-2xl font-bold text-gray-800">PKR <?php echo number_format($stats['total_revenue'] ?? 0, 0); ?></p>
-        </div>
-      </div>
-    </div> -->
     <?php include 'includes/sums-flight.php'; ?>
     <!-- Messages -->
     <?php if ($message): ?>
@@ -553,7 +642,6 @@ if (!empty($filter)) {
       </form>
     </div>
 
-    <!-- Bookings Table -->
     <!-- Bookings Table -->
     <div class="bg-white rounded-lg shadow">
       <div class="p-4 border-b border-gray-200">
@@ -751,3 +839,6 @@ if (!empty($filter)) {
 </body>
 
 </html>
+<?php
+$conn->close();
+?>

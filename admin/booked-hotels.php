@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', 1); // Temporary for debugging
+error_reporting(E_ALL); // Temporary for debugging
+
 require_once '../config/db.php';
 
 // Start admin session
@@ -9,6 +12,20 @@ session_start();
 if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true) {
   header('Location: login.php');
   exit;
+}
+
+// Function to send email notifications
+function sendEmailNotification($to, $subject, $message, $action, $booking_id)
+{
+  $headers = "From: Umrah Partner Team <no-reply@umrahpartner.com>\r\n";
+  $headers .= "Reply-To: info@umrahflights.com\r\n";
+  $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+  $result = @mail($to, $subject, $message, $headers); // @ suppresses warnings
+  if (!$result) {
+    error_log("Failed to send email for action '$action' on booking #$booking_id to $to: " . error_get_last()['message']);
+  }
+  return $result;
 }
 
 // Initialize variables
@@ -29,69 +46,189 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
   $action = $_GET['action'];
   $booking_id = (int)$_GET['id'];
 
-  if ($action === 'confirm') {
-    $stmt = $conn->prepare("UPDATE hotel_bookings SET booking_status = 'confirmed' WHERE id = ?");
-    $stmt->bind_param("i", $booking_id);
-    if ($stmt->execute()) {
-      $message = "Booking #$booking_id has been confirmed successfully.";
-      $message_type = "success";
-    } else {
-      $message = "Error confirming booking: " . $conn->error;
-      $message_type = "error";
-    }
-    $stmt->close();
-  } elseif ($action === 'cancel') {
-    // Start transaction
-    $conn->begin_transaction();
+  // Fetch booking details for email
+  $stmt = $conn->prepare("SELECT hb.*, h.hotel_name, h.location, h.price as price_per_night, 
+                         DATEDIFF(hb.check_out_date, hb.check_in_date) as nights_count,
+                         u.full_name as user_name, u.email as user_email
+                         FROM hotel_bookings hb
+                         JOIN hotels h ON hb.hotel_id = h.id
+                         JOIN users u ON hb.user_id = u.id
+                         WHERE hb.id = ?");
+  $stmt->bind_param("i", $booking_id);
+  $stmt->execute();
+  $result = $stmt->get_result();
+  $booking = $result->fetch_assoc();
+  $stmt->close();
 
-    try {
-      // Get hotel and room ID
-      $stmt = $conn->prepare("SELECT hotel_id, room_id FROM hotel_bookings WHERE id = ?");
+  if (!$booking) {
+    $message = "Booking #$booking_id not found.";
+    $message_type = "error";
+  } else {
+    if ($action === 'confirm') {
+      $stmt = $conn->prepare("UPDATE hotel_bookings SET booking_status = 'confirmed' WHERE id = ?");
       $stmt->bind_param("i", $booking_id);
-      $stmt->execute();
-      $result = $stmt->get_result();
-      $booking_data = $result->fetch_assoc();
-      $stmt->close();
-
-      if ($booking_data) {
-        // Update booking status
-        $stmt = $conn->prepare("UPDATE hotel_bookings SET booking_status = 'cancelled' WHERE id = ?");
-        $stmt->bind_param("i", $booking_id);
-        if (!$stmt->execute()) {
-          throw new Exception("Error updating booking status: " . $conn->error);
-        }
-        $stmt->close();
-
-        // Update room status to available
-        $stmt = $conn->prepare("UPDATE hotel_rooms SET status = 'available' WHERE hotel_id = ? AND room_id = ?");
-        $stmt->bind_param("is", $booking_data['hotel_id'], $booking_data['room_id']);
-        if (!$stmt->execute()) {
-          throw new Exception("Error updating room status: " . $conn->error);
-        }
-        $stmt->close();
-
-        $conn->commit();
-        $message = "Booking #$booking_id has been cancelled and room has been released.";
+      if ($stmt->execute()) {
+        $message = "Booking #$booking_id has been confirmed successfully.";
         $message_type = "success";
+
+        // Send email to user
+        $user_email = $booking['user_email'];
+        $user_subject = 'Your Hotel Booking Has Been Confirmed - UmrahFlights';
+        $user_message = "Dear " . htmlspecialchars($booking['user_name']) . ",\n\n";
+        $user_message .= "Your hotel booking (ID: #$booking_id) has been confirmed.\n\n";
+        $user_message .= "Booking Details:\n";
+        $user_message .= "Hotel: " . htmlspecialchars($booking['hotel_name']) . "\n";
+        $user_message .= "Location: " . ucfirst(htmlspecialchars($booking['location'])) . "\n";
+        $user_message .= "Room ID: " . htmlspecialchars($booking['room_id']) . "\n";
+        $user_message .= "Check-in Date: " . date('D, M j, Y', strtotime($booking['check_in_date'])) . "\n";
+        $user_message .= "Check-out Date: " . date('D, M j, Y', strtotime($booking['check_out_date'])) . "\n";
+        $user_message .= "Number of Nights: " . $booking['nights_count'] . "\n";
+        $user_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+        $user_message .= "Booking Status: Confirmed\n";
+        $user_message .= "Payment Status: " . ucfirst($booking['payment_status']) . "\n\n";
+        $user_message .= "For any queries, contact us at info@umrahflights.com.\n\n";
+        $user_message .= "Best regards,\nUmrahFlights Team";
+        sendEmailNotification($user_email, $user_subject, $user_message, 'confirm', $booking_id);
+
+        // Send email to admin
+        $admin_to = 'admin@umrahflights.com'; // Replace with actual admin email
+        $admin_subject = 'Hotel Booking Confirmed - Admin Notification';
+        $admin_message = "Hotel Booking #$booking_id has been confirmed.\n\n";
+        $admin_message .= "Details:\n";
+        $admin_message .= "Guest: " . htmlspecialchars($booking['user_name']) . "\n";
+        $admin_message .= "Email: " . htmlspecialchars($booking['user_email']) . "\n";
+        $admin_message .= "Hotel: " . htmlspecialchars($booking['hotel_name']) . "\n";
+        $admin_message .= "Location: " . ucfirst(htmlspecialchars($booking['location'])) . "\n";
+        $admin_message .= "Room ID: " . htmlspecialchars($booking['room_id']) . "\n";
+        $admin_message .= "Check-in Date: " . date('D, M j, Y', strtotime($booking['check_in_date'])) . "\n";
+        $admin_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+        $admin_message .= "Payment Status: " . ucfirst($booking['payment_status']) . "\n";
+        sendEmailNotification($admin_to, $admin_subject, $admin_message, 'confirm', $booking_id);
       } else {
-        throw new Exception("Booking not found");
+        $message = "Error confirming booking: " . $conn->error;
+        $message_type = "error";
       }
-    } catch (Exception $e) {
-      $conn->rollback();
-      $message = "Error: " . $e->getMessage();
-      $message_type = "error";
+      $stmt->close();
+    } elseif ($action === 'cancel') {
+      // Start transaction
+      $conn->begin_transaction();
+      try {
+        // Get hotel and room ID
+        $stmt = $conn->prepare("SELECT hotel_id, room_id FROM hotel_bookings WHERE id = ?");
+        $stmt->bind_param("i", $booking_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $booking_data = $result->fetch_assoc();
+        $stmt->close();
+
+        if ($booking_data) {
+          // Update booking status
+          $stmt = $conn->prepare("UPDATE hotel_bookings SET booking_status = 'cancelled' WHERE id = ?");
+          $stmt->bind_param("i", $booking_id);
+          if (!$stmt->execute()) {
+            throw new Exception("Error updating booking status: " . $conn->error);
+          }
+          $stmt->close();
+
+          // Update room status to available
+          $stmt = $conn->prepare("UPDATE hotel_rooms SET status = 'available' WHERE hotel_id = ? AND room_id = ?");
+          $stmt->bind_param("is", $booking_data['hotel_id'], $booking_data['room_id']);
+          if (!$stmt->execute()) {
+            throw new Exception("Error updating room status: " . $conn->error);
+          }
+          $stmt->close();
+
+          $conn->commit();
+          $message = "Booking #$booking_id has been cancelled and room has been released.";
+          $message_type = "success";
+
+          // Send email to user
+          $user_email = $booking['user_email'];
+          $user_subject = 'Your Hotel Booking Has Been Cancelled - UmrahFlights';
+          $user_message = "Dear " . htmlspecialchars($booking['user_name']) . ",\n\n";
+          $user_message .= "Your hotel booking (ID: #$booking_id) has been cancelled.\n\n";
+          $user_message .= "Booking Details:\n";
+          $user_message .= "Hotel: " . htmlspecialchars($booking['hotel_name']) . "\n";
+          $user_message .= "Location: " . ucfirst(htmlspecialchars($booking['location'])) . "\n";
+          $user_message .= "Room ID: " . htmlspecialchars($booking['room_id']) . "\n";
+          $user_message .= "Check-in Date: " . date('D, M j, Y', strtotime($booking['check_in_date'])) . "\n";
+          $user_message .= "Check-out Date: " . date('D, M j, Y', strtotime($booking['check_out_date'])) . "\n";
+          $user_message .= "Number of Nights: " . $booking['nights_count'] . "\n";
+          $user_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+          $user_message .= "Booking Status: Cancelled\n";
+          $user_message .= "Payment Status: " . ucfirst($booking['payment_status']) . "\n\n";
+          $user_message .= "For any queries or refund requests, contact us at info@umrahflights.com.\n\n";
+          $user_message .= "Best regards,\nUmrahFlights Team";
+          sendEmailNotification($user_email, $user_subject, $user_message, 'cancel', $booking_id);
+
+          // Send email to admin
+          $admin_to = 'admin@umrahflights.com'; // Replace with actual admin email
+          $admin_subject = 'Hotel Booking Cancelled - Admin Notification';
+          $admin_message = "Hotel Booking #$booking_id has been cancelled.\n\n";
+          $admin_message .= "Details:\n";
+          $admin_message .= "Guest: " . htmlspecialchars($booking['user_name']) . "\n";
+          $admin_message .= "Email: " . htmlspecialchars($booking['user_email']) . "\n";
+          $admin_message .= "Hotel: " . htmlspecialchars($booking['hotel_name']) . "\n";
+          $admin_message .= "Location: " . ucfirst(htmlspecialchars($booking['location'])) . "\n";
+          $admin_message .= "Room ID: " . htmlspecialchars($booking['room_id']) . "\n";
+          $admin_message .= "Check-in Date: " . date('D, M j, Y', strtotime($booking['check_in_date'])) . "\n";
+          $admin_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+          $admin_message .= "Payment Status: " . ucfirst($booking['payment_status']) . "\n";
+          sendEmailNotification($admin_to, $admin_subject, $admin_message, 'cancel', $booking_id);
+        } else {
+          throw new Exception("Booking not found");
+        }
+      } catch (Exception $e) {
+        $conn->rollback();
+        $message = "Error: " . $e->getMessage();
+        $message_type = "error";
+      }
+    } elseif ($action === 'complete_payment') {
+      $stmt = $conn->prepare("UPDATE hotel_bookings SET payment_status = 'paid' WHERE id = ?");
+      $stmt->bind_param("i", $booking_id);
+      if ($stmt->execute()) {
+        $message = "Payment for booking #$booking_id has been marked as paid.";
+        $message_type = "success";
+
+        // Send email to user
+        $user_email = $booking['user_email'];
+        $user_subject = 'Payment Completed for Your Hotel Booking - UmrahFlights';
+        $user_message = "Dear " . htmlspecialchars($booking['user_name']) . ",\n\n";
+        $user_message .= "The payment for your hotel booking (ID: #$booking_id) has been successfully completed.\n\n";
+        $user_message .= "Booking Details:\n";
+        $user_message .= "Hotel: " . htmlspecialchars($booking['hotel_name']) . "\n";
+        $user_message .= "Location: " . ucfirst(htmlspecialchars($booking['location'])) . "\n";
+        $user_message .= "Room ID: " . htmlspecialchars($booking['room_id']) . "\n";
+        $user_message .= "Check-in Date: " . date('D, M j, Y', strtotime($booking['check_in_date'])) . "\n";
+        $user_message .= "Check-out Date: " . date('D, M j, Y', strtotime($booking['check_out_date'])) . "\n";
+        $user_message .= "Number of Nights: " . $booking['nights_count'] . "\n";
+        $user_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+        $user_message .= "Booking Status: " . ucfirst($booking['booking_status']) . "\n";
+        $user_message .= "Payment Status: Paid\n\n";
+        $user_message .= "For any queries, contact us at info@umrahflights.com.\n\n";
+        $user_message .= "Best regards,\nUmrahFlights Team";
+        sendEmailNotification($user_email, $user_subject, $user_message, 'complete_payment', $booking_id);
+
+        // Send email to admin
+        $admin_to = 'admin@umrahflights.com'; // Replace with actual admin email
+        $admin_subject = 'Payment Completed for Hotel Booking - Admin Notification';
+        $admin_message = "Payment for Hotel Booking #$booking_id has been marked as paid.\n\n";
+        $admin_message .= "Details:\n";
+        $admin_message .= "Guest: " . htmlspecialchars($booking['user_name']) . "\n";
+        $admin_message .= "Email: " . htmlspecialchars($booking['user_email']) . "\n";
+        $admin_message .= "Hotel: " . htmlspecialchars($booking['hotel_name']) . "\n";
+        $admin_message .= "Location: " . ucfirst(htmlspecialchars($booking['location'])) . "\n";
+        $admin_message .= "Room ID: " . htmlspecialchars($booking['room_id']) . "\n";
+        $admin_message .= "Check-in Date: " . date('D, M j, Y', strtotime($booking['check_in_date'])) . "\n";
+        $admin_message .= "Total Price: PKR " . number_format($booking['total_price'] ?? 0, 0) . "\n";
+        $admin_message .= "Booking Status: " . ucfirst($booking['booking_status']) . "\n";
+        sendEmailNotification($admin_to, $admin_subject, $admin_message, 'complete_payment', $booking_id);
+      } else {
+        $message = "Error updating payment status: " . $conn->error;
+        $message_type = "error";
+      }
+      $stmt->close();
     }
-  } elseif ($action === 'complete_payment') {
-    $stmt = $conn->prepare("UPDATE hotel_bookings SET payment_status = 'paid' WHERE id = ?");
-    $stmt->bind_param("i", $booking_id);
-    if ($stmt->execute()) {
-      $message = "Payment for booking #$booking_id has been marked as paid.";
-      $message_type = "success";
-    } else {
-      $message = "Error updating payment status: " . $conn->error;
-      $message_type = "error";
-    }
-    $stmt->close();
   }
 }
 
@@ -279,13 +416,13 @@ if ($result) {
 
 <body class="bg-gray-100 font-sans min-h-screen">
   <?php include 'includes/sidebar.php'; ?>
-  <main class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300" role="main" aria-label="Main content">
+  <main class="ml-0 md:ml-64 mt-10 transition-all duration-300" role="main" aria-label="Main content">
     <!-- Top Navbar -->
     <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden" aria-label="Toggle sidebar">
-            <i class="fas fa-bars text-xl"></i>
+            
           </button>
           <h4 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">Hotel Bookings</h4>
         </div>
@@ -383,7 +520,7 @@ if ($result) {
       <?php endif; ?>
 
       <!-- Filter Section -->
-      <div class="bg-white rounded-lg shadow p-4 mb-6">
+      <div class="bg-white rounded-lg shadow mb-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter Bookings</h3>
         <form action="" method="GET" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div>
@@ -436,7 +573,7 @@ if ($result) {
 
       <!-- Bookings Table -->
       <div class="bg-white rounded-lg shadow">
-        <div class="p-4 border-b border-gray-200">
+        <div class="p-1 border-b border-gray-200">
           <h3 class="text-lg font-semibold text-gray-800">Hotel Bookings</h3>
         </div>
         <div class="overflow-x-auto p-4">
@@ -520,8 +657,6 @@ if ($result) {
           </table>
         </div>
       </div>
-
-
     </section>
   </main>
 

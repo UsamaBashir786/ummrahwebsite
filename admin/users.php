@@ -27,15 +27,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['approve_user'])) {
   $user_id = (int)$_POST['user_id'];
   $admin_id = $_SESSION['admin_id'];
 
-  $stmt = $conn->prepare("UPDATE users SET is_approved = 1, approved_at = NOW(), approved_by = ? WHERE id = ?");
-  $stmt->bind_param("ii", $admin_id, $user_id);
-
-  if ($stmt->execute()) {
-    $success_message = "User approved successfully!";
-  } else {
-    $error_message = "Error approving user: " . $conn->error;
-  }
+  // Fetch user email before approving
+  $stmt = $conn->prepare("SELECT email, full_name FROM users WHERE id = ?");
+  $stmt->bind_param("i", $user_id);
+  $stmt->execute();
+  $result = $stmt->get_result();
+  $user = $result->fetch_assoc();
   $stmt->close();
+
+  if (!$user) {
+    $error_message = "User not found.";
+  } else {
+    $stmt = $conn->prepare("UPDATE users SET is_approved = 1, approved_at = NOW(), approved_by = ? WHERE id = ?");
+    $stmt->bind_param("ii", $admin_id, $user_id);
+
+    if ($stmt->execute()) {
+      $success_message = "User approved successfully!";
+
+      // Send confirmation email to the user
+      try {
+        $to = $user['email'];
+        $email_subject = 'Your Account Has Been Approved - UmrahFlights';
+        $email_message = "Dear " . htmlspecialchars($user['full_name']) . ",\n\n";
+        $email_message .= "We are pleased to inform you that your account on UmrahFlights has been approved!\n\n";
+        $email_message .= "You can now log in and start booking your Umrah flights and other services.\n";
+        $email_message .= "If you have any questions, feel free to reach out to us.\n\n";
+        $email_message .= "Best regards,\nUmrahFlights Team\n\n";
+        $email_message .= "Email: info@umrahpartner.com\n";
+        $email_message .= "Website: https://umrahpartner.com\n";
+        $email_message .= "Phone: +44 775 983691\n";
+
+        $headers = "From: no-reply@umrahpartner.com\r\n";
+        $headers .= "Reply-To: info@umrahpartner.com\r\n";
+        $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+        if (!mail($to, $email_subject, $email_message, $headers)) {
+          throw new Exception('Failed to send approval confirmation email.');
+        }
+      } catch (Exception $e) {
+        $error_message = "User approved, but failed to send confirmation email. Error: " . $e->getMessage();
+        error_log("Mail Error: " . $e->getMessage());
+      }
+    } else {
+      $error_message = "Error approving user: " . $conn->error;
+    }
+    $stmt->close();
+  }
 }
 
 // Handle Delete Requests
@@ -406,118 +443,126 @@ $stmt->close();
 
       <!-- Users Table -->
       <div class="mb-6 overflow-x-auto">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="font-medium text-gray-700">User List</h3>
-          <a href="add-user.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            <i class="fas fa-user-plus mr-2"></i>Add New User
-          </a>
-        </div>
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-indigo-600 text-white">
-              <th class="p-3 w-16 text-center">ID</th>
-              <th class="p-3 text-left">Full Name</th>
-              <th class="p-3 text-left">Email</th>
-              <th class="p-3 text-center">Date of Birth</th>
-              <th class="p-3 text-center">Profile Image</th>
-              <th class="p-3 text-center">Visa Document</th>
-              <th class="p-3 text-center">Status</th>
-              <th class="p-3 text-center">Registered</th>
-              <th class="p-3 w-40 text-center">Actions</th>
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="font-medium text-gray-700">User List</h3>
+    <a href="add-user.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+      <i class="fas fa-user-plus mr-2"></i>Add New User
+    </a>
+  </div>
+  <!-- Added a responsive table container with horizontal scrolling -->
+  <div class="overflow-x-auto shadow rounded-lg">
+    <table class="min-w-full divide-y divide-gray-200 table-fixed">
+      <thead>
+        <tr class="bg-indigo-600 text-white">
+          <th class="p-3 w-16 text-center whitespace-nowrap">ID</th>
+          <th class="p-3 text-left whitespace-nowrap">Full Name</th>
+          <th class="p-3 text-left whitespace-nowrap">Email</th>
+          <th class="p-3 text-center whitespace-nowrap">Date of Birth</th>
+          <th class="p-3 text-center whitespace-nowrap">Profile Image</th>
+          <th class="p-3 text-center whitespace-nowrap">Visa Document</th>
+          <th class="p-3 text-center whitespace-nowrap">Status</th>
+          <th class="p-3 text-center whitespace-nowrap">Registered</th>
+          <th class="p-3 w-40 text-center whitespace-nowrap">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="users-body" class="bg-white divide-y divide-gray-200">
+        <?php if (empty($users)): ?>
+          <tr>
+            <td colspan="9" class="p-3 text-center text-gray-500">No users found.</td>
+          </tr>
+        <?php else: ?>
+          <?php foreach ($users as $user): ?>
+            <!-- View Row -->
+            <tr class="view-row hover:bg-gray-50" data-user-id="<?php echo $user['id']; ?>">
+              <td class="p-3 text-center"><?php echo htmlspecialchars($user['id']); ?></td>
+              <td class="p-3"><?php echo htmlspecialchars($user['full_name']); ?></td>
+              <td class="p-3"><?php echo htmlspecialchars($user['email']); ?></td>
+              <td class="p-3 text-center"><?php echo htmlspecialchars($user['dob']); ?></td>
+              <td class="p-3 text-center">
+                <?php if ($user['profile_image'] && file_exists('../' . $user['profile_image'])): ?>
+                  <img src="../<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile" class="w-8 h-8 rounded-full mx-auto">
+                <?php else: ?>
+                  <span class="text-gray-500">None</span>
+                <?php endif; ?>
+              </td>
+              <td class="p-3 text-center">
+                <?php if ($user['visa_image'] && file_exists('../' . $user['visa_image'])): ?>
+                  <a href="../<?php echo htmlspecialchars($user['visa_image']); ?>" target="_blank" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-passport mr-1"></i>View
+                  </a>
+                <?php else: ?>
+                  <span class="text-gray-500">None</span>
+                <?php endif; ?>
+              </td>
+              <td class="p-3 text-center">
+                <?php if ($user['is_approved'] == 1): ?>
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Approved
+                  </span>
+                <?php else: ?>
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Pending
+                  </span>
+                <?php endif; ?>
+              </td>
+              <td class="p-3 text-center"><?php echo date('Y-m-d', strtotime($user['created_at'])); ?></td>
+              <td class="p-3 text-center">
+                <div class="flex justify-center space-x-2">
+                  <?php if ($user['is_approved'] == 0): ?>
+                    <button type="button" class="text-green-600 hover:text-green-800 approve-btn" data-id="<?php echo $user['id']; ?>" title="Approve">
+                      <i class="fas fa-check"></i>
+                    </button>
+                  <?php endif; ?>
+                  <button type="button" class="text-indigo-600 hover:text-indigo-800 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
+                  <button type="button" class="text-red-600 hover:text-red-800 delete-btn" title="Delete"><i class="fas fa-trash"></i></button>
+                </div>
+              </td>
             </tr>
-          </thead>
-          <tbody id="users-body">
-            <?php if (empty($users)): ?>
-              <tr>
-                <td colspan="9" class="p-3 text-center text-gray-500">No users found.</td>
-              </tr>
-            <?php else: ?>
-              <?php foreach ($users as $user): ?>
-                <!-- View Row -->
-                <tr class="view-row border-b hover:bg-gray-50" data-user-id="<?php echo $user['id']; ?>">
-                  <td class="p-3 text-center"><?php echo htmlspecialchars($user['id']); ?></td>
-                  <td class="p-3"><?php echo htmlspecialchars($user['full_name']); ?></td>
-                  <td class="p-3"><?php echo htmlspecialchars($user['email']); ?></td>
-                  <td class="p-3 text-center"><?php echo htmlspecialchars($user['dob']); ?></td>
-                  <td class="p-3 text-center">
-                    <?php if ($user['profile_image'] && file_exists('../' . $user['profile_image'])): ?>
-                      <img src="../<?php echo htmlspecialchars($user['profile_image']); ?>" alt="Profile" class="w-8 h-8 rounded-full mx-auto">
-                    <?php else: ?>
-                      <span class="text-gray-500">None</span>
-                    <?php endif; ?>
-                  </td>
-                  <td class="p-3 text-center">
-                    <?php if ($user['visa_image'] && file_exists('../' . $user['visa_image'])): ?>
-                      <a href="../<?php echo htmlspecialchars($user['visa_image']); ?>" target="_blank" class="text-blue-600 hover:text-blue-800">
-                        <i class="fas fa-passport mr-1"></i>View
-                      </a>
-                    <?php else: ?>
-                      <span class="text-gray-500">None</span>
-                    <?php endif; ?>
-                  </td>
-                  <td class="p-3 text-center">
-                    <?php if ($user['is_approved'] == 1): ?>
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Approved
-                      </span>
-                    <?php else: ?>
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Pending
-                      </span>
-                    <?php endif; ?>
-                  </td>
-                  <td class="p-3 text-center"><?php echo date('Y-m-d', strtotime($user['created_at'])); ?></td>
-                  <td class="p-3 text-center">
-                    <?php if ($user['is_approved'] == 0): ?>
-                      <button type="button" class="text-green-600 hover:text-green-800 approve-btn" data-id="<?php echo $user['id']; ?>" title="Approve">
-                        <i class="fas fa-check"></i>
-                      </button>
-                    <?php endif; ?>
-                    <button type="button" class="text-indigo-600 hover:text-indigo-800 edit-btn ml-2" title="Edit"><i class="fas fa-edit"></i></button>
-                    <button type="button" class="text-red-600 hover:text-red-800 delete-btn ml-2" title="Delete"><i class="fas fa-trash"></i></button>
-                  </td>
-                </tr>
-                <!-- Edit Form Row -->
-                <tr class="edit-form border-b bg-gray-50" data-user-id="<?php echo $user['id']; ?>">
-                  <td class="p-3 text-center"><?php echo htmlspecialchars($user['id']); ?></td>
-                  <td class="p-3">
-                    <input type="text" name="full_name" value="<?php echo htmlspecialchars($user['full_name']); ?>"
-                      class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      pattern="[A-Za-z\s]+" title="Only letters and spaces allowed" maxlength="100" required>
-                    <div class="text-red-500 text-xs error-msg-name hidden">Only letters and spaces allowed (max 100 chars)</div>
-                  </td>
-                  <td class="p-3">
-                    <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>"
-                      class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      maxlength="100" required>
-                    <div class="text-red-500 text-xs error-msg-email hidden">Invalid email format</div>
-                  </td>
-                  <td class="p-3">
-                    <input type="date" name="dob" value="<?php echo htmlspecialchars($user['dob']); ?>"
-                      class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center"
-                      required>
-                    <div class="text-red-500 text-xs error-msg-dob hidden">Invalid date</div>
-                  </td>
-                  <td class="p-3" colspan="4">
-                    <input type="file" name="profile_image" accept=".jpg,.jpeg,.png,.gif"
-                      class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                    <div class="text-red-500 text-xs error-msg-image hidden">Invalid file type or size (max 5MB)</div>
-                    <?php if ($user['profile_image'] && file_exists($user['profile_image'])): ?>
-                      <p class="text-xs text-gray-500 mt-1">Current: <a href="<?php echo htmlspecialchars($user['profile_image']); ?>" target="_blank" class="text-indigo-600 hover:text-indigo-800">View Image</a></p>
-                    <?php endif; ?>
-                  </td>
-                  <td class="p-3 text-center"><?php echo date('Y-m-d', strtotime($user['created_at'])); ?></td>
-                  <td class="p-3 text-center">
-                    <button type="button" class="text-green-600 hover:text-green-800 save-btn" title="Save"><i class="fas fa-save"></i></button>
-                    <button type="button" class="text-gray-600 hover:text-gray-800 cancel-btn ml-2" title="Cancel"><i class="fas fa-times"></i></button>
-                  </td>
-                </tr>
-              <?php endforeach; ?>
-            <?php endif; ?>
-          </tbody>
-        </table>
-      </div>
+            <!-- Edit Form Row -->
+            <tr class="edit-form bg-gray-50 hidden" data-user-id="<?php echo $user['id']; ?>">
+              <td class="p-3 text-center"><?php echo htmlspecialchars($user['id']); ?></td>
+              <td class="p-3">
+                <input type="text" name="full_name" value="<?php echo htmlspecialchars($user['full_name']); ?>"
+                  class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  pattern="[A-Za-z\s]+" title="Only letters and spaces allowed" maxlength="100" required>
+                <div class="text-red-500 text-xs error-msg-name hidden">Only letters and spaces allowed (max 100 chars)</div>
+              </td>
+              <td class="p-3">
+                <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>"
+                  class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  maxlength="100" required>
+                <div class="text-red-500 text-xs error-msg-email hidden">Invalid email format</div>
+              </td>
+              <td class="p-3">
+                <input type="date" name="dob" value="<?php echo htmlspecialchars($user['dob']); ?>"
+                  class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center"
+                  required>
+                <div class="text-red-500 text-xs error-msg-dob hidden">Invalid date</div>
+              </td>
+              <td class="p-3" colspan="4">
+                <input type="file" name="profile_image" accept=".jpg,.jpeg,.png,.gif"
+                  class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                <div class="text-red-500 text-xs error-msg-image hidden">Invalid file type or size (max 5MB)</div>
+                <?php if ($user['profile_image'] && file_exists($user['profile_image'])): ?>
+                  <p class="text-xs text-gray-500 mt-1">Current: <a href="<?php echo htmlspecialchars($user['profile_image']); ?>" target="_blank" class="text-indigo-600 hover:text-indigo-800">View Image</a></p>
+                <?php endif; ?>
+              </td>
+              <td class="p-3 text-center">
+                <div class="flex justify-center space-x-2">
+                  <button type="button" class="text-green-600 hover:text-green-800 save-btn" title="Save"><i class="fas fa-save"></i></button>
+                  <button type="button" class="text-gray-600 hover:text-gray-800 cancel-btn" title="Cancel"><i class="fas fa-times"></i></button>
+                </div>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
     </div>
+    
+    
   </div>
 
   <!-- Scripts -->

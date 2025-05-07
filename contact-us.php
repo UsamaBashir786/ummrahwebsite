@@ -1,6 +1,6 @@
 <?php
 require_once 'config/db.php';
-require_once 'includes/contact-functions.php'; // Add this line
+require_once 'includes/contact-functions.php';
 
 session_start();
 
@@ -43,9 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
           $email_message .= "Phone: $phone\n";
           $email_message .= "Subject: $subject\n";
           $email_message .= "Message: $message\n\n";
-          $email_message .= "Best regards,\nUmrah Partner Team";
+          $email_message .= "Best regards,\nUmrah Partner Team\n\n";
+          $email_message .= "Email: info@umrahpartner.com\n";
+          $email_message .= "Website: https://umrahpartner.com\n";
+          $email_message .= "Phone: +44 775 983691\n";
 
-          $headers = "From: no-reply@umrahpartner.com\r\n";
+          $headers = "From: Umrah Partner Team <no-reply@umrahpartner.com>\r\n";
           $headers .= "Reply-To: info@umrahpartner.com\r\n";
           $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
 
@@ -65,7 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
           $email_message .= "Subject: $subject\n";
           $email_message .= "Message: $message\n";
           $email_message .= "IP Address: $ip_address\n";
-          $email_message .= "Submitted At: $created_at";
+          $email_message .= "Submitted At: $created_at\n\n";
+          $email_message .= "Email: info@umrahpartner.com\n";
+          $email_message .= "Website: https://umrahpartner.com\n";
+          $email_message .= "Phone: +44 775 983691\n";
 
           if (!mail($to, $email_subject, $email_message, $headers)) {
             throw new Exception('Failed to send admin email.');
@@ -87,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_contact'])) {
   }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 

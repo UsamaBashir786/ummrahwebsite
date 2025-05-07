@@ -36,6 +36,20 @@ function formatNumber($number)
   return $formattedNumber . $suffixes[$index];
 }
 
+// Function to send email notifications
+function sendEmailNotification($to, $subject, $message, $action, $booking_id)
+{
+  $headers = "From: Umrah Partner Team <no-reply@umrahpartner.com>\r\n";
+  $headers .= "Reply-To: info@umrahflights.com\r\n";
+  $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+  $result = @mail($to, $subject, $message, $headers); // @ suppresses warnings
+  if (!$result) {
+    error_log("Failed to send email for action '$action' on booking #$booking_id to $to: " . error_get_last()['message']);
+  }
+  return $result;
+}
+
 // Initialize variables
 $bookings = [];
 $filters = [
@@ -54,76 +68,191 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
   $action = $_GET['action'];
   $booking_id = (int)$_GET['id'];
 
-  if ($action === 'confirm') {
-    if (!$conn) {
-      error_log("Database connection failed in confirm action.");
-      $message = "Database connection error. Please try again later.";
-      $message_type = "error";
-    } else {
-      $stmt = $conn->prepare("UPDATE transportation_bookings SET booking_status = 'confirmed' WHERE id = ?");
-      if ($stmt === false) {
-        error_log("Prepare failed in confirm: " . $conn->error);
-        $message = "Database error occurred. Please try again later.";
+  // Fetch booking details for email
+  $stmt = $conn->prepare("SELECT tb.*, u.full_name as user_name, u.email as user_email 
+                         FROM transportation_bookings tb
+                         JOIN users u ON tb.user_id = u.id
+                         WHERE tb.id = ?");
+  $stmt->bind_param("i", $booking_id);
+  $stmt->execute();
+  $result = $stmt->get_result();
+  $booking = $result->fetch_assoc();
+  $stmt->close();
+
+  if (!$booking) {
+    $message = "Booking #$booking_id not found.";
+    $message_type = "error";
+  } else {
+    if ($action === 'confirm') {
+      if (!$conn) {
+        error_log("Database connection failed in confirm action.");
+        $message = "Database connection error. Please try again later.";
         $message_type = "error";
       } else {
-        $stmt->bind_param("i", $booking_id);
-        if ($stmt->execute()) {
-          $message = "Booking #$booking_id has been confirmed successfully.";
-          $message_type = "success";
-        } else {
-          error_log("Execute failed in confirm: " . $stmt->error);
-          $message = "Error confirming booking: " . $stmt->error;
+        $stmt = $conn->prepare("UPDATE transportation_bookings SET booking_status = 'confirmed' WHERE id = ?");
+        if ($stmt === false) {
+          error_log("Prepare failed in confirm: " . $conn->error);
+          $message = "Database error occurred. Please try again later.";
           $message_type = "error";
+        } else {
+          $stmt->bind_param("i", $booking_id);
+          if ($stmt->execute()) {
+            $message = "Booking #$booking_id has been confirmed successfully.";
+            $message_type = "success";
+
+            // Send email to user
+            $user_email = $booking['user_email'];
+            $user_subject = 'Your Transportation Booking Has Been Confirmed - UmrahFlights';
+            $user_message = "Dear " . htmlspecialchars($booking['user_name']) . ",\n\n";
+            $user_message .= "Your transportation booking (ID: #$booking_id) has been confirmed.\n\n";
+            $user_message .= "Booking Details:\n";
+            $user_message .= "Transport Type: " . ucfirst(htmlspecialchars($booking['transport_type'])) . "\n";
+            $user_message .= "Route: " . htmlspecialchars($booking['route_name']) . "\n";
+            $user_message .= "Vehicle Type: " . htmlspecialchars($booking['vehicle_type'] ?? 'N/A') . "\n";
+            $user_message .= "Pickup Date: " . date('D, M j, Y', strtotime($booking['pickup_date'])) . "\n";
+            $user_message .= "Pickup Time: " . date('h:i A', strtotime($booking['pickup_time'] ?? '00:00:00')) . "\n";
+            $user_message .= "Price: PKR " . number_format($booking['price'] ?? 0, 0) . "\n";
+            $user_message .= "Booking Status: Confirmed\n";
+            $user_message .= "Payment Status: " . ucfirst($booking['payment_status'] ?? 'pending') . "\n\n";
+            $user_message .= "For any queries, contact us at info@umrahflights.com.\n\n";
+            $user_message .= "Best regards,\nUmrahFlights Team";
+            sendEmailNotification($user_email, $user_subject, $user_message, 'confirm', $booking_id);
+
+            // Send email to admin
+            $admin_to = 'info@umrahpartner.com'; // Replace with actual admin email
+            $admin_subject = 'Transportation Booking Confirmed - Admin Notification';
+            $admin_message = "Transportation Booking #$booking_id has been confirmed.\n\n";
+            $admin_message .= "Details:\n";
+            $admin_message .= "Guest: " . htmlspecialchars($booking['user_name']) . "\n";
+            $admin_message .= "Email: " . htmlspecialchars($booking['user_email']) . "\n";
+            $admin_message .= "Transport Type: " . ucfirst(htmlspecialchars($booking['transport_type'])) . "\n";
+            $admin_message .= "Route: " . htmlspecialchars($booking['route_name']) . "\n";
+            $admin_message .= "Vehicle Type: " . htmlspecialchars($booking['vehicle_type'] ?? 'N/A') . "\n";
+            $admin_message .= "Pickup Date: " . date('D, M j, Y', strtotime($booking['pickup_date'])) . "\n";
+            $admin_message .= "Price: PKR " . number_format($booking['price'] ?? 0, 0) . "\n";
+            $admin_message .= "Payment Status: " . ucfirst($booking['payment_status'] ?? 'pending') . "\n";
+            sendEmailNotification($admin_to, $admin_subject, $admin_message, 'confirm', $booking_id);
+          } else {
+            error_log("Execute failed in confirm: " . $stmt->error);
+            $message = "Error confirming booking: " . $stmt->error;
+            $message_type = "error";
+          }
+          $stmt->close();
         }
-        $stmt->close();
       }
-    }
-  } elseif ($action === 'cancel') {
-    if (!$conn) {
-      error_log("Database connection failed in cancel action.");
-      $message = "Database connection error. Please try again later.";
-      $message_type = "error";
-    } else {
-      $stmt = $conn->prepare("UPDATE transportation_bookings SET booking_status = 'cancelled' WHERE id = ?");
-      if ($stmt === false) {
-        error_log("Prepare failed in cancel: " . $conn->error);
-        $message = "Database error occurred. Please try again later.";
+    } elseif ($action === 'cancel') {
+      if (!$conn) {
+        error_log("Database connection failed in cancel action.");
+        $message = "Database connection error. Please try again later.";
         $message_type = "error";
       } else {
-        $stmt->bind_param("i", $booking_id);
-        if ($stmt->execute()) {
-          $message = "Booking #$booking_id has been cancelled.";
-          $message_type = "success";
-        } else {
-          error_log("Execute failed in cancel: " . $stmt->error);
-          $message = "Error cancelling booking: " . $stmt->error;
+        $stmt = $conn->prepare("UPDATE transportation_bookings SET booking_status = 'cancelled' WHERE id = ?");
+        if ($stmt === false) {
+          error_log("Prepare failed in cancel: " . $conn->error);
+          $message = "Database error occurred. Please try again later.";
           $message_type = "error";
+        } else {
+          $stmt->bind_param("i", $booking_id);
+          if ($stmt->execute()) {
+            $message = "Booking #$booking_id has been cancelled.";
+            $message_type = "success";
+
+            // Send email to user
+            $user_email = $booking['user_email'];
+            $user_subject = 'Your Transportation Booking Has Been Cancelled - UmrahFlights';
+            $user_message = "Dear " . htmlspecialchars($booking['user_name']) . ",\n\n";
+            $user_message .= "Your transportation booking (ID: #$booking_id) has been cancelled.\n\n";
+            $user_message .= "Booking Details:\n";
+            $user_message .= "Transport Type: " . ucfirst(htmlspecialchars($booking['transport_type'])) . "\n";
+            $user_message .= "Route: " . htmlspecialchars($booking['route_name']) . "\n";
+            $user_message .= "Vehicle Type: " . htmlspecialchars($booking['vehicle_type'] ?? 'N/A') . "\n";
+            $user_message .= "Pickup Date: " . date('D, M j, Y', strtotime($booking['pickup_date'])) . "\n";
+            $user_message .= "Pickup Time: " . date('h:i A', strtotime($booking['pickup_time'] ?? '00:00:00')) . "\n";
+            $user_message .= "Price: PKR " . number_format($booking['price'] ?? 0, 0) . "\n";
+            $user_message .= "Booking Status: Cancelled\n";
+            $user_message .= "Payment Status: " . ucfirst($booking['payment_status'] ?? 'pending') . "\n\n";
+            $user_message .= "For any queries or refund requests, contact us at info@umrahflights.com.\n\n";
+            $user_message .= "Best regards,\nUmrahFlights Team";
+            sendEmailNotification($user_email, $user_subject, $user_message, 'cancel', $booking_id);
+
+            // Send email to admin
+            $admin_to = 'admin@umrahflights.com'; // Replace with actual admin email
+            $admin_subject = 'Transportation Booking Cancelled - Admin Notification';
+            $admin_message = "Transportation Booking #$booking_id has been cancelled.\n\n";
+            $admin_message .= "Details:\n";
+            $admin_message .= "Guest: " . htmlspecialchars($booking['user_name']) . "\n";
+            $admin_message .= "Email: " . htmlspecialchars($booking['user_email']) . "\n";
+            $admin_message .= "Transport Type: " . ucfirst(htmlspecialchars($booking['transport_type'])) . "\n";
+            $admin_message .= "Route: " . htmlspecialchars($booking['route_name']) . "\n";
+            $admin_message .= "Vehicle Type: " . htmlspecialchars($booking['vehicle_type'] ?? 'N/A') . "\n";
+            $admin_message .= "Pickup Date: " . date('D, M j, Y', strtotime($booking['pickup_date'])) . "\n";
+            $admin_message .= "Price: PKR " . number_format($booking['price'] ?? 0, 0) . "\n";
+            $admin_message .= "Payment Status: " . ucfirst($booking['payment_status'] ?? 'pending') . "\n";
+            sendEmailNotification($admin_to, $admin_subject, $admin_message, 'cancel', $booking_id);
+          } else {
+            error_log("Execute failed in cancel: " . $stmt->error);
+            $message = "Error cancelling booking: " . $stmt->error;
+            $message_type = "error";
+          }
+          $stmt->close();
         }
-        $stmt->close();
       }
-    }
-  } elseif ($action === 'complete_payment') {
-    if (!$conn) {
-      error_log("Database connection failed in complete_payment action.");
-      $message = "Database connection error. Please try again later.";
-      $message_type = "error";
-    } else {
-      $stmt = $conn->prepare("UPDATE transportation_bookings SET payment_status = 'paid' WHERE id = ?");
-      if ($stmt === false) {
-        error_log("Prepare failed in complete_payment: " . $conn->error);
-        $message = "Database error occurred. Please try again later.";
+    } elseif ($action === 'complete_payment') {
+      if (!$conn) {
+        error_log("Database connection failed in complete_payment action.");
+        $message = "Database connection error. Please try again later.";
         $message_type = "error";
       } else {
-        $stmt->bind_param("i", $booking_id);
-        if ($stmt->execute()) {
-          $message = "Payment for booking #$booking_id has been marked as paid.";
-          $message_type = "success";
-        } else {
-          error_log("Execute failed in complete_payment: " . $stmt->error);
-          $message = "Error updating payment status: " . $stmt->error;
+        $stmt = $conn->prepare("UPDATE transportation_bookings SET payment_status = 'paid' WHERE id = ?");
+        if ($stmt === false) {
+          error_log("Prepare failed in complete_payment: " . $conn->error);
+          $message = "Database error occurred. Please try again later.";
           $message_type = "error";
+        } else {
+          $stmt->bind_param("i", $booking_id);
+          if ($stmt->execute()) {
+            $message = "Payment for booking #$booking_id has been marked as paid.";
+            $message_type = "success";
+
+            // Send email to user
+            $user_email = $booking['user_email'];
+            $user_subject = 'Payment Completed for Your Transportation Booking - UmrahFlights';
+            $user_message = "Dear " . htmlspecialchars($booking['user_name']) . ",\n\n";
+            $user_message .= "The payment for your transportation booking (ID: #$booking_id) has been successfully completed.\n\n";
+            $user_message .= "Booking Details:\n";
+            $user_message .= "Transport Type: " . ucfirst(htmlspecialchars($booking['transport_type'])) . "\n";
+            $user_message .= "Route: " . htmlspecialchars($booking['route_name']) . "\n";
+            $user_message .= "Vehicle Type: " . htmlspecialchars($booking['vehicle_type'] ?? 'N/A') . "\n";
+            $user_message .= "Pickup Date: " . date('D, M j, Y', strtotime($booking['pickup_date'])) . "\n";
+            $user_message .= "Pickup Time: " . date('h:i A', strtotime($booking['pickup_time'] ?? '00:00:00')) . "\n";
+            $user_message .= "Price: PKR " . number_format($booking['price'] ?? 0, 0) . "\n";
+            $user_message .= "Booking Status: " . ucfirst($booking['booking_status']) . "\n";
+            $user_message .= "Payment Status: Paid\n\n";
+            $user_message .= "For any queries, contact us at info@umrahflights.com.\n\n";
+            $user_message .= "Best regards,\nUmrahFlights Team";
+            sendEmailNotification($user_email, $user_subject, $user_message, 'complete_payment', $booking_id);
+
+            // Send email to admin
+            $admin_to = 'admin@umrahflights.com'; // Replace with actual admin email
+            $admin_subject = 'Payment Completed for Transportation Booking - Admin Notification';
+            $admin_message = "Payment for Transportation Booking #$booking_id has been marked as paid.\n\n";
+            $admin_message .= "Details:\n";
+            $admin_message .= "Guest: " . htmlspecialchars($booking['user_name']) . "\n";
+            $admin_message .= "Email: " . htmlspecialchars($booking['user_email']) . "\n";
+            $admin_message .= "Transport Type: " . ucfirst(htmlspecialchars($booking['transport_type'])) . "\n";
+            $admin_message .= "Route: " . htmlspecialchars($booking['route_name']) . "\n";
+            $admin_message .= "Vehicle Type: " . htmlspecialchars($booking['vehicle_type'] ?? 'N/A') . "\n";
+            $admin_message .= "Pickup Date: " . date('D, M j, Y', strtotime($booking['pickup_date'])) . "\n";
+            $admin_message .= "Price: PKR " . number_format($booking['price'] ?? 0, 0) . "\n";
+            $admin_message .= "Booking Status: " . ucfirst($booking['booking_status']) . "\n";
+            sendEmailNotification($admin_to, $admin_subject, $admin_message, 'complete_payment', $booking_id);
+          } else {
+            error_log("Execute failed in complete_payment: " . $stmt->error);
+            $message = "Error updating payment status: " . $stmt->error;
+            $message_type = "error";
+          }
+          $stmt->close();
         }
-        $stmt->close();
       }
     }
   }
@@ -568,7 +697,7 @@ if (!$conn) {
                           </a>
                         <?php endif; ?>
                         <?php if ($booking['booking_status'] !== 'cancelled'): ?>
-                          <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="text-red-600 hover:text-red-800" title="Cancel Booking">
+                          <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" class="text-red-600 hover:text-red-800 cancel-booking" title="Cancel Booking" data-id="<?php echo $booking['id']; ?>">
                             <i class="fas fa-times"></i>
                           </a>
                         <?php endif; ?>
@@ -589,8 +718,6 @@ if (!$conn) {
           </table>
         </div>
       </div>
-
-
     </section>
   </main>
 
@@ -709,7 +836,7 @@ if (!$conn) {
                 </div>
                 <div>
                   <h4 class="font-semibold text-gray-700 mb-3">Customer Information</h4>
-                  <p><span class="font-medium">Name:</span> ${booking.full_name}</p>
+                  <p><span class="font-medium">Name:</span> ${booking.user_name}</p>
                   <p><span class="font-medium">Email:</span> ${booking.email}</p>
                   <p><span class="font-medium">Phone:</span> ${booking.phone || 'N/A'}</p>
                 </div>

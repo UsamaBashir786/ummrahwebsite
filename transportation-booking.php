@@ -177,22 +177,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
       'additional_notes' => $additional_notes
     ], JSON_PRETTY_PRINT));
 
-    // Insert booking into transportation_bookings table
-    $stmt = $conn->prepare("INSERT INTO transportation_bookings (user_id, transport_type, route_id, route_name, vehicle_type, price, full_name, email, phone, pickup_date, pickup_time, pickup_location, additional_notes, booking_status) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
-    if (!$stmt) {
-      $errors[] = "Failed to prepare insert statement: " . $conn->error;
-      error_log("Insert prepare error: " . $conn->error);
-    } else {
+    // Start transaction
+    $conn->begin_transaction();
+    try {
+      // Insert booking into transportation_bookings table
+      $stmt = $conn->prepare("INSERT INTO transportation_bookings (user_id, transport_type, route_id, route_name, vehicle_type, price, full_name, email, phone, pickup_date, pickup_time, pickup_location, additional_notes, booking_status, payment_status) 
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')");
+      if (!$stmt) {
+        throw new Exception("Failed to prepare insert statement: " . $conn->error);
+      }
       $stmt->bind_param("isisssdssssss", $user_id, $transport_type, $route_id, $route_name, $selected_vehicle, $price, $full_name, $email, $phone, $pickup_date, $pickup_time, $pickup_location, $additional_notes);
-      if ($stmt->execute()) {
-        $success_message = "Your booking has been successfully submitted! You will receive a confirmation soon.";
-        error_log("Booking successful for user_id=$user_id, transport_type=$transport_type, route_id=$route_id, pickup_date=$pickup_date");
-      } else {
-        $errors[] = "An error occurred while processing your booking: " . $stmt->error;
-        error_log("Booking insert error: " . $stmt->error);
+      if (!$stmt->execute()) {
+        throw new Exception("Booking insert error: " . $stmt->error);
       }
       $stmt->close();
+
+      // Generate booking reference
+      $booking_id = $conn->insert_id;
+      $booking_reference = 'TB' . strtoupper(substr(md5($booking_id), 0, 8));
+
+      // Send email to User
+      $to = $email;
+      $email_subject = 'Thank You for Your Transportation Booking with Umrah Partner';
+      $email_message = "Dear $full_name,\n\n";
+      $email_message .= "Thank you for booking transportation with Umrah Partner! Your booking has been successfully created, and we will process it shortly.\n\n";
+      $email_message .= "Booking Details:\n";
+      $email_message .= "Booking Reference: $booking_reference\n";
+      $email_message .= "Transport Type: " . ucfirst($transport_type) . "\n";
+      $email_message .= "Route: $route_name (Route #$route[route_number])\n";
+      $email_message .= "Vehicle Type: $selected_vehicle\n";
+      $email_message .= "Price: PKR " . number_format($price, 2) . "\n";
+      $email_message .= "Payment Status: Pending\n";
+      $email_message .= "Pickup Date: $pickup_date\n";
+      $email_message .= "Pickup Time: $pickup_time\n";
+      $email_message .= "Pickup Location: $pickup_location\n";
+      $email_message .= "Additional Notes: " . ($additional_notes ?: 'None') . "\n\n";
+      $email_message .= "You can view your booking details in your account under 'My Bookings'.\n";
+      $email_message .= "For any queries, contact us at info@umrahpartner.com.\n\n";
+      $email_message .= "Best regards,\nUmrah Partner Team";
+
+      $headers = "From: no-reply@umrahpartner.com\r\n";
+      $headers .= "Reply-To: info@umrahpartner.com\r\n";
+      $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+      if (!mail($to, $email_subject, $email_message, $headers)) {
+        throw new Exception('Failed to send user email.');
+      }
+
+      // Send email to Admin
+      $admin_to = 'info@umrahpartner.com';
+      $admin_subject = 'New Transportation Booking Submission';
+      $admin_message = "New Transportation Booking Submission\n\n";
+      $admin_message .= "A new transportation booking has been created.\n\n";
+      $admin_message .= "Details:\n";
+      $admin_message .= "Booking Reference: $booking_reference\n";
+      $admin_message .= "User: $full_name ($email)\n";
+      $admin_message .= "Transport Type: " . ucfirst($transport_type) . "\n";
+      $admin_message .= "Route: $route_name (Route #$route[route_number])\n";
+      $admin_message .= "Vehicle Type: $selected_vehicle\n";
+      $admin_message .= "Price: PKR " . number_format($price, 2) . "\n";
+      $admin_message .= "Payment Status: Pending\n";
+      $admin_message .= "Pickup Date: $pickup_date\n";
+      $admin_message .= "Pickup Time: $pickup_time\n";
+      $admin_message .= "Pickup Location: $pickup_location\n";
+      $admin_message .= "Additional Notes: " . ($additional_notes ?: 'None') . "\n";
+      $admin_message .= "Submitted At: " . date('Y-m-d H:i:s') . "\n";
+
+      if (!mail($admin_to, $admin_subject, $admin_message, $headers)) {
+        throw new Exception('Failed to send admin email.');
+      }
+
+      // Commit transaction
+      $conn->commit();
+      $success_message = "Your booking has been successfully submitted! You will receive a confirmation soon.";
+      error_log("Booking successful for user_id=$user_id, transport_type=$transport_type, route_id=$route_id, pickup_date=$pickup_date, booking_reference=$booking_reference");
+    } catch (Exception $e) {
+      $conn->rollback();
+      $errors[] = "Booking created, but email notification failed. Please contact us directly. Error: " . $e->getMessage();
+      error_log("Transportation Booking Error: " . $e->getMessage());
     }
   }
 }

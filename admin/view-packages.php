@@ -20,6 +20,31 @@ if (!$conn) {
   die("Database connection failed: " . mysqli_connect_error());
 }
 
+// Function to format large numbers into K, M, B suffixes
+function formatNumber($number)
+{
+  if ($number === null || $number == 0 || !is_numeric($number)) {
+    return 'N/A';
+  }
+
+  $number = (float)$number; // Ensure it's a number
+  $suffixes = ['', 'K', 'M', 'B', 'T'];
+  $index = 0;
+
+  while ($number >= 1000 && $index < count($suffixes) - 1) {
+    $number /= 1000;
+    $index++;
+  }
+
+  // Round to 1 decimal place if needed, remove decimal if it's .0
+  $formattedNumber = round($number, 1);
+  if ($formattedNumber == round($formattedNumber)) {
+    $formattedNumber = (int)$formattedNumber; // Remove .0
+  }
+
+  return $formattedNumber . $suffixes[$index];
+}
+
 // Handle bulk delete
 if (isset($_POST['bulk_delete']) && !empty($_POST['package_ids'])) {
   $ids = array_map('intval', $_POST['package_ids']);
@@ -86,7 +111,7 @@ if (isset($_GET['export_csv'])) {
       ucfirst($package['package_type']),
       ucfirst($package['flight_class']),
       implode(', ', array_map('ucfirst', is_array($inclusions) ? $inclusions : [])),
-      number_format($package['price'], 2),
+      formatNumber($package['price']),
       date('d M Y', strtotime($package['created_at']))
     ]);
   }
@@ -180,7 +205,7 @@ $result = $conn->query("SELECT COUNT(*) as total, COALESCE(AVG(price), 0) as avg
 if ($result) {
   $row = $result->fetch_assoc();
   $stats['total_packages'] = $row['total'];
-  $stats['avg_price'] = number_format((float)$row['avg_price'], 2);
+  $stats['avg_price'] = formatNumber((float)$row['avg_price']);
 } else {
   error_log("Statistics query failed: " . $conn->error);
 }
@@ -277,7 +302,7 @@ if ($result) {
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
-            <i class="fas fa-bars text-xl"></i>
+            
           </button>
           <h4 class="text-lg font-semibold text-gray-800">
             <i class="fas fa-box text-indigo-600 mr-2"></i> Umrah Packages
@@ -392,8 +417,6 @@ if ($result) {
       </div>
     </div>
 
-
-
     <!-- Filters Section -->
     <div class="bg-white shadow-lg rounded-lg p-6 mb-6" aria-label="Package filters">
       <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter Packages</h3>
@@ -456,14 +479,22 @@ if ($result) {
     <div class="bg-white shadow-lg rounded-lg p-6" aria-label="Umrah packages table">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold text-gray-800">Umrah Packages</h3>
-        <div class="flex space-x-2">
-          <a href="add-packages.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-            <i class="fas fa-plus mr-2"></i>Add New Package
-          </a>
-          <a href="?export_csv=1" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-            <i class="fas fa-download mr-2"></i>Export CSV
-          </a>
-        </div>
+        <!--<div class="flex space-x-2">-->
+        <!--  <a href="add-packages.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">-->
+        <!--    <i class="fas fa-plus mr-2"></i>Add New Package-->
+        <!--  </a>-->
+        <!--  <a href="?export_csv=1" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">-->
+        <!--    <i class="fas fa-download mr-2"></i>Export CSV-->
+        <!--  </a>-->
+        <!--</div>-->
+        <div class="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
+  <a href="add-packages.php" class="inline-flex items-center justify-center px-4 py-2 sm:px-3 sm:py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 w-full sm:w-auto">
+    <i class="fas fa-plus mr-2"></i>Add New Package
+  </a>
+  <a href="?export_csv=1" class="inline-flex items-center justify-center px-4 py-2 sm:px-3 sm:py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 w-full sm:w-auto">
+    <i class="fas fa-download mr-2"></i>Export CSV
+  </a>
+</div>
       </div>
       <form id="bulkDeleteForm" method="POST">
         <div class="flex justify-end mb-4">
@@ -511,10 +542,9 @@ if ($result) {
                       echo implode(', ', array_map('ucfirst', is_array($inclusions) ? $inclusions : []));
                       ?>
                     </td>
-                    <td class="p-3"><?php echo number_format($package['price'], 2); ?></td>
+                    <td class="p-3"><?php echo formatNumber($package['price']); ?></td>
                     <td class="p-3"><?php echo date('d M Y', strtotime($package['created_at'])); ?></td>
                     <td class="p-3 flex space-x-2">
-
                       <a href="edit-package.php?id=<?php echo $package['id']; ?>" class="text-yellow-600 hover:text-yellow-800" data-tooltip="Edit Package" aria-label="Edit <?php echo htmlspecialchars($package['title']); ?>">
                         <i class="fas fa-edit"></i>
                       </a>
@@ -677,7 +707,7 @@ if ($result) {
             <p><strong>Type:</strong> ${(package.package_type || '').charAt(0).toUpperCase() + (package.package_type || '').slice(1) || 'N/A'}</p>
             <p><strong>Flight Class:</strong> ${(package.flight_class || '').charAt(0).toUpperCase() + (package.flight_class || '').slice(1) || 'N/A'}</p>
             <p><strong>Inclusions:</strong> ${inclusions.length ? inclusions.join(', ') : 'None'}</p>
-            <p><strong>Price (PKR):</strong> ${Number(package.price || 0).toFixed(2)}</p>
+            <p><strong>Price (PKR):</strong> ${formatNumber(package.price || 0)}</p>
             <p><strong>Created At:</strong> ${package.created_at ? new Date(package.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</p>
           `;
           modal.classList.remove('modal-hidden');
@@ -771,6 +801,28 @@ if ($result) {
         }
       }
     });
+
+    // JavaScript version of formatNumber for modal
+    function formatNumber(number) {
+      if (number === null || number == 0 || isNaN(number)) {
+        return 'N/A';
+      }
+
+      const suffixes = ['', 'K', 'M', 'B', 'T'];
+      let index = 0;
+
+      while (number >= 1000 && index < suffixes.length - 1) {
+        number /= 1000;
+        index++;
+      }
+
+      let formattedNumber = Math.round(number * 10) / 10;
+      if (formattedNumber % 1 === 0) {
+        formattedNumber = Math.round(formattedNumber);
+      }
+
+      return formattedNumber + suffixes[index];
+    }
   </script>
 </body>
 

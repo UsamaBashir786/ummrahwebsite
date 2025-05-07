@@ -252,157 +252,158 @@ $stmt->close();
         <button class="tab-btn" onclick="switchTab('rentacar')">Rent A Car Routes</button>
       </div>
 
-      <!-- Taxi Routes Tab -->
-      <div id="taxi-tab" class="tab-content active">
-        <div class="mb-6">
-          <h2 class="text-xl font-semibold text-indigo-600">Taxi Routes</h2>
-          <p class="text-gray-600 mt-1">View and manage taxi service routes and prices</p>
-        </div>
-        <div class="mb-6 overflow-x-auto">
-          <div class="mb-4 flex justify-between items-center">
-            <h3 class="font-medium text-gray-700">Existing Routes</h3>
-            <a href="add-transportation.php?type=taxi" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              <i class="fas fa-plus mr-2"></i>Add New Route
-            </a>
-          </div>
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-indigo-600 text-white">
-                <th class="p-3 w-16 text-center">#</th>
-                <th class="p-3 text-left">Route</th>
-                <th class="p-3 text-center">Camry / Sonata (PKR)</th>
-                <th class="p-3 text-center">Starex / Staria (PKR)</th>
-                <th class="p-3 text-center">Hiace (PKR)</th>
-                <th class="p-3 w-24 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="taxi-routes-body">
-              <?php if (empty($taxi_routes)): ?>
-                <tr>
-                  <td colspan="6" class="p-3 text-center text-gray-500">No taxi routes found.</td>
-                </tr>
-              <?php else: ?>
-                <?php foreach ($taxi_routes as $route): ?>
-                  <!-- View Row -->
-                  <tr class="view-row border-b hover:bg-gray-50" data-route-id="<?php echo $route['id']; ?>">
-                    <td class="p-3 text-center"><?php echo htmlspecialchars($route['route_number']); ?></td>
-                    <td class="p-3"><?php echo htmlspecialchars($route['route_name']); ?></td>
-                    <td class="p-3 text-center"><?php echo number_format($route['camry_sonata_price'], 2); ?></td>
-                    <td class="p-3 text-center"><?php echo number_format($route['starex_staria_price'], 2); ?></td>
-                    <td class="p-3 text-center"><?php echo number_format($route['hiace_price'], 2); ?></td>
-                    <td class="p-3 text-center">
-                      <button type="button" class="text-indigo-600 hover:text-indigo-800 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
-                      <button type="button" class="text-red-600 hover:text-red-800 delete-btn ml-2" title="Delete"><i class="fas fa-trash"></i></button>
-                    </td>
-                  </tr>
-                  <!-- Edit Form Row -->
-                  <tr class="edit-form price-validation-row border-b bg-gray-50" data-route-id="<?php echo $route['id']; ?>">
-                    <td class="p-3 text-center">
-                      <input type="number" name="route_number" value="<?php echo htmlspecialchars($route['route_number']); ?>" class="block w-16 rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center" required>
-                    </td>
-                    <td class="p-3">
-                      <input type="text" name="route_name" value="<?php echo htmlspecialchars($route['route_name']); ?>" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent route-name" pattern="[A-Za-z\s]+" title="Only letters are allowed" maxlength="15" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')" required>
-                      <div class="text-red-500 text-xs error-msg-name hidden">Only letters allowed (max 15 chars)</div>
-                    </td>
-                    <td class="p-3">
-                      <input type="number" name="camry_price" value="<?php echo htmlspecialchars($route['camry_sonata_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center base-price" oninput="validateEditCarPrices(this)" required>
-                      <div class="text-red-500 text-xs error-msg-base hidden">Must be greater than 0</div>
-                    </td>
-                    <td class="p-3">
-                      <input type="number" name="starex_price" value="<?php echo htmlspecialchars($route['starex_staria_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center mid-price" oninput="validateEditCarPrices(this)" required>
-                      <div class="text-red-500 text-xs error-msg-mid hidden">Must be higher than base price</div>
-                    </td>
-                    <td class="p-3">
-                      <input type="number" name="hiace_price" value="<?php echo htmlspecialchars($route['hiace_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center premium-price" oninput="validateEditCarPrices(this)" required>
-                      <div class="text-red-500 text-xs error-msg-premium hidden">Must be higher than mid price</div>
-                    </td>
-                    <td class="p-3 text-center">
-                      <button type="button" class="text-green-600 hover:text-green-800 save-btn" title="Save"><i class="fas fa-save"></i></button>
-                      <button type="button" class="text-gray-600 hover:text-gray-800 cancel-btn ml-2" title="Cancel"><i class="fas fa-times"></i></button>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
+<!-- Taxi Routes Tab -->
+<div id="taxi-tab" class="tab-content active">
+  <div class="mb-6">
+    <h2 class="text-lg sm:text-xl font-semibold text-indigo-600">Taxi Routes</h2>
+    <p class="text-gray-600 mt-1 text-sm sm:text-base">View and manage taxi service routes and prices</p>
+  </div>
+  <div class="mb-6 overflow-x-auto">
+    <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <h3 class="font-medium text-gray-700 text-base sm:text-lg">Existing Routes</h3>
+      <a href="add-transportation.php?type=taxi" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        <i class="fas fa-plus mr-2"></i>Add New Route
+      </a>
+    </div>
+    <table class="min-w-full table-auto border-collapse">
+      <thead>
+        <tr class="bg-indigo-600 text-white">
+          <th class="p-3 w-16 text-center whitespace-nowrap">#</th>
+          <th class="p-3 text-left whitespace-nowrap">Route</th>
+          <th class="p-3 text-center whitespace-nowrap">Camry / Sonata (PKR)</th>
+          <th class="p-3 text-center whitespace-nowrap">Starex / Staria (PKR)</th>
+          <th class="p-3 text-center whitespace-nowrap">Hiace (PKR)</th>
+          <th class="p-3 w-24 text-center whitespace-nowrap">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="taxi-routes-body">
+        <?php if (empty($taxi_routes)): ?>
+          <tr>
+            <td colspan="6" class="p-3 text-center text-gray-500">No taxi routes found.</td>
+          </tr>
+        <?php else: ?>
+          <?php foreach ($taxi_routes as $route): ?>
+            <!-- View Row -->
+            <tr class="view-row border-b even:bg-gray-50 hover:bg-gray-100" data-route-id="<?php echo $route['id']; ?>">
+              <td class="p-3 text-center"><?php echo htmlspecialchars($route['route_number']); ?></td>
+              <td class="p-3"><?php echo htmlspecialchars($route['route_name']); ?></td>
+              <td class="p-3 text-center"><?php echo number_format($route['camry_sonata_price'], 2); ?></td>
+              <td class="p-3 text-center"><?php echo number_format($route['starex_staria_price'], 2); ?></td>
+              <td class="p-3 text-center"><?php echo number_format($route['hiace_price'], 2); ?></td>
+              <td class="p-3 text-center">
+                <button type="button" class="text-indigo-600 hover:text-indigo-800 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
+                <button type="button" class="text-red-600 hover:text-red-800 delete-btn ml-2" title="Delete"><i class="fas fa-trash"></i></button>
+              </td>
+            </tr>
+            <!-- Edit Form Row -->
+            <tr class="edit-form price-validation-row border-b bg-gray-50" data-route-id="<?php echo $route['id']; ?>">
+              <td class="p-3 text-center">
+                <input type="number" name="route_number" value="<?php echo htmlspecialchars($route['route_number']); ?>" class="block w-16 rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center" required>
+              </td>
+              <td class="p-3">
+                <input type="text" name="route_name" value="<?php echo htmlspecialchars($route['route_name']); ?>" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent route-name" pattern="[A-Za-z\s]+" title="Only letters are allowed" maxlength="15" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')" required>
+                <div class="text-red-500 text-xs error-msg-name hidden">Only letters allowed (max 15 chars)</div>
+              </td>
+              <td class="p-3">
+                <input type="number" name="camry_price" value="<?php echo htmlspecialchars($route['camry_sonata_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center base-price" oninput="validateEditCarPrices(this)" required>
+                <div class="text-red-500 text-xs error-msg-base hidden">Must be greater than 0</div>
+              </td>
+              <td class="p-3">
+                <input type="number" name="starex_price" value="<?php echo htmlspecialchars($route['starex_staria_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center mid-price" oninput="validateEditCarPrices(this)" required>
+                <div class="text-red-500 text-xs error-msg-mid hidden">Must be higher than base price</div>
+              </td>
+              <td class="p-3">
+                <input type="number" name="hiace_price" value="<?php echo htmlspecialchars($route['hiace_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center premium-price" oninput="validateEditCarPrices(this)" required>
+                <div class="text-red-500 text-xs error-msg-premium hidden">Must be higher than mid price</div>
+              </td>
+              <td class="p-3 text-center">
+                <button type="button" class="text-green-600 hover:text-green-800 save-btn" title="Save"><i class="fas fa-save"></i></button>
+                <button type="button" class="text-gray-600 hover:text-gray-800 cancel-btn ml-2" title="Cancel"><i class="fas fa-times"></i></button>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
 
-      <!-- Rent A Car Routes Tab -->
-      <div id="rentacar-tab" class="tab-content">
-        <div class="mb-6">
-          <h2 class="text-xl font-semibold text-indigo-600">Rent A Car Routes</h2>
-          <p class="text-gray-600 mt-1">View and manage rent a car service routes and prices</p>
-        </div>
-        <div class="mb-6 overflow-x-auto">
-          <div class="mb-4 flex justify-between items-center">
-            <h3 class="font-medium text-gray-700">Existing Routes</h3>
-            <a href="add-transportation.php?type=rentacar" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-              <i class="fas fa-plus mr-2"></i>Add New Route
-            </a>
-          </div>
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-indigo-600 text-white">
-                <th class="p-3 w-16 text-center">#</th>
-                <th class="p-3 text-left">Route</th>
-                <th class="p-3 text-center">GMC 16-19 (PKR)</th>
-                <th class="p-3 text-center">GMC 22-23 (PKR)</th>
-                <th class="p-3 text-center">COASTER (PKR)</th>
-                <th class="p-3 w-24 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="rentacar-routes-body">
-              <?php if (empty($rentacar_routes)): ?>
-                <tr>
-                  <td colspan="6" class="p-3 text-center text-gray-500">No rent-a-car routes found.</td>
-                </tr>
-              <?php else: ?>
-                <?php foreach ($rentacar_routes as $route): ?>
-                  <!-- View Row -->
-                  <tr class="view-row border-b hover:bg-gray-50" data-route-id="<?php echo $route['id']; ?>">
-                    <td class="p-3 text-center"><?php echo htmlspecialchars($route['route_number']); ?></td>
-                    <td class="p-3"><?php echo htmlspecialchars($route['route_name']); ?></td>
-                    <td class="p-3 text-center"><?php echo number_format($route['gmc_16_19_price'], 2); ?></td>
-                    <td class="p-3 text-center"><?php echo number_format($route['gmc_22_23_price'], 2); ?></td>
-                    <td class="p-3 text-center"><?php echo number_format($route['coaster_price'], 2); ?></td>
-                    <td class="p-3 text-center">
-                      <button type="button" class="text-indigo-600 hover:text-indigo-800 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
-                      <button type="button" class="text-red-600 hover:text-red-800 delete-btn ml-2" title="Delete"><i class="fas fa-trash"></i></button>
-                    </td>
-                  </tr>
-                  <!-- Edit Form Row -->
-                  <tr class="edit-form price-validation-row border-b bg-gray-50" data-route-id="<?php echo $route['id']; ?>">
-                    <td class="p-3 text-center">
-                      <input type="number" name="route_number" value="<?php echo htmlspecialchars($route['route_number']); ?>" class="block w-16 rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center" required>
-                    </td>
-                    <td class="p-3">
-                      <input type="text" name="route_name" value="<?php echo htmlspecialchars($route['route_name']); ?>" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent route-name" pattern="[A-Za-z\s]+" title="Only letters are allowed" maxlength="15" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')" required>
-                      <div class="text-red-500 text-xs error-msg-name hidden">Only letters allowed (max 15 chars)</div>
-                    </td>
-                    <td class="p-3">
-                      <input type="number" name="gmc_16_19_price" value="<?php echo htmlspecialchars($route['gmc_16_19_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center base-price" oninput="validateEditCarPrices(this)" required>
-                      <div class="text-red-500 text-xs error-msg-base hidden">Must be greater than 0</div>
-                    </td>
-                    <td class="p-3">
-                      <input type="number" name="gmc_22_23_price" value="<?php echo htmlspecialchars($route['gmc_22_23_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center mid-price" oninput="validateEditCarPrices(this)" required>
-                      <div class="text-red-500 text-xs error-msg-mid hidden">Must be higher than base price</div>
-                    </td>
-                    <td class="p-3">
-                      <input type="number" name="coaster_price" value="<?php echo htmlspecialchars($route['coaster_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center premium-price" oninput="validateEditCarPrices(this)" required>
-                      <div class="text-red-500 text-xs error-msg-premium hidden">Must be higher than mid price</div>
-                    </td>
-                    <td class="p-3 text-center">
-                      <button type="button" class="text-green-600 hover:text-green-800 save-btn" title="Save"><i class="fas fa-save"></i></button>
-                      <button type="button" class="text-gray-600 hover:text-gray-800 cancel-btn ml-2" title="Cancel"><i class="fas fa-times"></i></button>
-                    </td>
-                  </tr>
-                <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
+<!-- Rent A Car Routes Tab -->
+<div id="rentacar-tab" class="tab-content">
+  <div class="mb-6">
+    <h2 class="text-lg sm:text-xl font-semibold text-indigo-600">Rent A Car Routes</h2>
+    <p class="text-gray-600 mt-1 text-sm sm:text-base">View and manage rent a car service routes and prices</p>
+  </div>
+  <div class="mb-6 overflow-x-auto">
+    <div class="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <h3 class="font-medium text-gray-700 text-base sm:text-lg">Existing Routes</h3>
+      <a href="add-transportation.php?type=rentacar" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+        <i class="fas fa-plus mr-2"></i>Add New Route
+      </a>
+    </div>
+    <table class="min-w-full table-auto border-collapse">
+      <thead>
+        <tr class="bg-indigo-600 text-white">
+          <th class="p-3 w-16 text-center whitespace-nowrap">#</th>
+          <th class="p-3 text-left whitespace-nowrap">Route</th>
+          <th class="p-3 text-center whitespace-nowrap">GMC 16-19 (PKR)</th>
+          <th class="p-3 text-center whitespace-nowrap">GMC 22-23 (PKR)</th>
+          <th class="p-3 text-center whitespace-nowrap">COASTER (PKR)</th>
+          <th class="p-3 w-24 text-center whitespace-nowrap">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="rentacar-routes-body">
+        <?php if (empty($rentacar_routes)): ?>
+          <tr>
+            <td colspan="6" class="p-3 text-center text-gray-500">No rent-a-car routes found.</td>
+          </tr>
+        <?php else: ?>
+          <?php foreach ($rentacar_routes as $route): ?>
+            <!-- View Row -->
+            <tr class="view-row border-b even:bg-gray-50 hover:bg-gray-100" data-route-id="<?php echo $route['id']; ?>">
+              <td class="p-3 text-center"><?php echo htmlspecialchars($route['route_number']); ?></td>
+              <td class="p-3"><?php echo htmlspecialchars($route['route_name']); ?></td>
+              <td class="p-3 text-center"><?php echo number_format($route['gmc_16_19_price'], 2); ?></td>
+              <td class="p-3 text-center"><?php echo number_format($route['gmc_22_23_price'], 2); ?></td>
+              <td class="p-3 text-center"><?php echo number_format($route['coaster_price'], 2); ?></td>
+              <td class="p-3 text-center">
+                <button type="button" class="text-indigo-600 hover:text-indigo-800 edit-btn" title="Edit"><i class="fas fa-edit"></i></button>
+                <button type="button" class="text-red-600 hover:text-red-800 delete-btn ml-2" title="Delete"><i class="fas fa-trash"></i></button>
+              </td>
+            </tr>
+            <!-- Edit Form Row -->
+            <tr class="edit-form price-validation-row border-b bg-gray-50" data-route-id="<?php echo $route['id']; ?>">
+              <td class="p-3 text-center">
+                <input type="number" name="route_number" value="<?php echo htmlspecialchars($route['route_number']); ?>" class="block w-16 rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center" required>
+              </td>
+              <td class="p-3">
+                <input type="text" name="route_name" value="<?php echo htmlspecialchars($route['route_name']); ?>" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent route-name" pattern="[A-Za-z\s]+" title="Only letters are allowed" maxlength="15" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')" required>
+                <div class="text-red-500 text-xs error-msg-name hidden">Only letters allowed (max 15 chars)</div>
+              </td>
+              <td class="p-3">
+                <input type="number" name="gmc_16_19_price" value="<?php echo htmlspecialchars($route['gmc_16_19_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center base-price" oninput="validateEditCarPrices(this)" required>
+                <div class="text-red-500 text-xs error-msg-base hidden">Must be greater than 0</div>
+              </td>
+              <td class="p-3">
+                <input type="number" name="gmc_22_23_price" value="<?php echo htmlspecialchars($route['gmc_22_23_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center mid-price" oninput="validateEditCarPrices(this)" required>
+                <div class="text-red-500 text-xs error-msg-mid hidden">Must be higher than base price</div>
+              </td>
+              <td class="p-3">
+                <input type="number" name="coaster_price" value="<?php echo htmlspecialchars($route['coaster_price']); ?>" min="0" step="0.01" class="block w-full rounded-lg border border-gray-300 py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center premium-price" oninput="validateEditCarPrices(this)" required>
+                <div class="text-red-500 text-xs error-msg-premium hidden">Must be higher than mid price</div>
+              </td>
+              <td class="p-3 text-center">
+                <button type="button" class="text-green-600 hover:text-green-800 save-btn" title="Save"><i class="fas fa-save"></i></button>
+                <button type="button" class="text-gray-600 hover:text-gray-800 cancel-btn ml-2" title="Cancel"><i class="fas fa-times"></i></button>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+      
     </div>
   </div>
 

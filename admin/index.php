@@ -307,6 +307,26 @@ $stmt->close();
         </div>
       </div>
     </nav>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const dropdownBtn = document.getElementById("userDropdownButton");
+    const dropdownMenu = document.getElementById("userDropdownMenu");
+
+    // Toggle menu on button click
+    dropdownBtn.addEventListener("click", function (e) {
+      e.stopPropagation(); // Stop event from bubbling to document
+      dropdownMenu.classList.toggle("hidden");
+    });
+
+    // Hide the dropdown when clicking outside
+    document.addEventListener("click", function (e) {
+      // If click target is not the button or inside the menu, hide it
+      if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+        dropdownMenu.classList.add("hidden");
+      }
+    });
+  });
+</script>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">

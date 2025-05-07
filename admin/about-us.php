@@ -21,7 +21,7 @@ if (!$conn) {
 }
 
 // Function to handle image upload
-function uploadImage($file, $target_dir = "../uploads/about/")
+function uploadImage($file, $target_dir = "../Uploads/about/")
 {
   // Create directory if it doesn't exist
   if (!file_exists($target_dir)) {
@@ -62,9 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'update_about':
           $id = intval($_POST['id']);
           $section_type = $_POST['section_type'];
-          $title = trim($_POST['title']);
-          $subtitle = trim($_POST['subtitle']);
-          $content = trim($_POST['content']);
+          $title = isset($_POST['title']) ? trim($_POST['title']) : null;
+          $subtitle = isset($_POST['subtitle']) ? trim($_POST['subtitle']) : null;
+          $content = isset($_POST['content']) ? trim($_POST['content']) : null;
           $display_order = intval($_POST['display_order']);
           $status = $_POST['status'] ?? 'active';
 
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             $upload_result = uploadImage($_FILES['image']);
             if ($upload_result['success']) {
-              $image_url = 'uploads/about/' . $upload_result['filename'];
+              $image_url = 'Uploads/about/' . $upload_result['filename'];
 
               // Delete old image if exists
               if (!empty($_POST['old_image'])) {
@@ -158,65 +158,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
           }
           break;
-
-        case 'add_stat':
-          $label = trim($_POST['label']);
-          $value = trim($_POST['value']);
-          $prefix = trim($_POST['prefix']);
-          $suffix = trim($_POST['suffix']);
-          $display_order = intval($_POST['display_order']);
-          $status = $_POST['status'] ?? 'active';
-
-          if (!empty($label) && !empty($value)) {
-            $stmt = $conn->prepare("INSERT INTO company_statistics (label, value, prefix, suffix, display_order, status, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
-            $stmt->bind_param("ssssls", $label, $value, $prefix, $suffix, $display_order, $status);
-            if ($stmt->execute()) {
-              $success_message = "Statistic added successfully!";
-            } else {
-              $error_message = "Error adding statistic: " . $conn->error;
-            }
-            $stmt->close();
-          } else {
-            $error_message = "Label and value are required!";
-          }
-          break;
-
-        case 'edit_stat':
-          $id = intval($_POST['id']);
-          $label = trim($_POST['label']);
-          $value = trim($_POST['value']);
-          $prefix = trim($_POST['prefix']);
-          $suffix = trim($_POST['suffix']);
-          $display_order = intval($_POST['display_order']);
-          $status = $_POST['status'] ?? 'active';
-
-          if (!empty($label) && !empty($value) && $id > 0) {
-            $stmt = $conn->prepare("UPDATE company_statistics SET label = ?, value = ?, prefix = ?, suffix = ?, display_order = ?, status = ?, updated_at = NOW() WHERE id = ?");
-            $stmt->bind_param("ssssisi", $label, $value, $prefix, $suffix, $display_order, $status, $id);
-            if ($stmt->execute()) {
-              $success_message = "Statistic updated successfully!";
-            } else {
-              $error_message = "Error updating statistic: " . $conn->error;
-            }
-            $stmt->close();
-          } else {
-            $error_message = "Invalid data for update!";
-          }
-          break;
-
-        case 'delete_stat':
-          $id = intval($_POST['id']);
-          if ($id > 0) {
-            $stmt = $conn->prepare("DELETE FROM company_statistics WHERE id = ?");
-            $stmt->bind_param("i", $id);
-            if ($stmt->execute()) {
-              $success_message = "Statistic deleted successfully!";
-            } else {
-              $error_message = "Error deleting statistic: " . $conn->error;
-            }
-            $stmt->close();
-          }
-          break;
       }
     }
 
@@ -247,9 +188,6 @@ $about_result = $conn->query($about_query);
 $values_query = "SELECT * FROM company_values ORDER BY display_order, created_at";
 $values_result = $conn->query($values_query);
 
-// Fetch all company statistics
-$stats_query = "SELECT * FROM company_statistics ORDER BY display_order, created_at";
-$stats_result = $conn->query($stats_query);
 ?>
 
 <!DOCTYPE html>
@@ -349,6 +287,8 @@ $stats_result = $conn->query($stats_query);
                   <input type="text" name="title" value="<?php echo htmlspecialchars($about['title']); ?>"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
+              <?php else: ?>
+                <input type="hidden" name="title" value="">
               <?php endif; ?>
 
               <?php if ($about['subtitle'] !== null): ?>
@@ -357,6 +297,8 @@ $stats_result = $conn->query($stats_query);
                   <textarea name="subtitle" rows="2"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"><?php echo htmlspecialchars($about['subtitle']); ?></textarea>
                 </div>
+              <?php else: ?>
+                <input type="hidden" name="subtitle" value="">
               <?php endif; ?>
 
               <?php if ($about['content'] !== null): ?>
@@ -365,6 +307,8 @@ $stats_result = $conn->query($stats_query);
                   <textarea name="content" rows="4"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"><?php echo htmlspecialchars($about['content']); ?></textarea>
                 </div>
+              <?php else: ?>
+                <input type="hidden" name="content" value="">
               <?php endif; ?>
 
               <?php if ($about['section_type'] === 'mission'): ?>
@@ -401,311 +345,133 @@ $stats_result = $conn->query($stats_query);
     <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
       <h5 class="text-lg font-semibold text-gray-800 mb-4">Company Values</h5>
 
-      <!-- Add Value Form -->
-      <form method="POST" action="" id="valueForm" class="mb-6">
-        <input type="hidden" name="form_token" value="<?php echo $_SESSION['form_token']; ?>">
-        <input type="hidden" name="action" id="valueAction" value="add_value">
-        <input type="hidden" name="id" id="valueId">
+      <!-- Add New Value Form -->
+      <div class="mb-6">
+        <h6 class="text-md font-medium text-gray-700 mb-3">Add New Value</h6>
+        <form method="POST" action="" class="border-b pb-4">
+          <input type="hidden" name="form_token" value="<?php echo $_SESSION['form_token']; ?>">
+          <input type="hidden" name="action" value="add_value">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Title *</label>
-            <input type="text" name="title" id="valueTitle" required
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+              <input type="text" name="title" required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Icon Class (Font Awesome)</label>
+              <input type="text" name="icon_class" placeholder="e.g., fas fa-heart"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Icon Class (FontAwesome)</label>
-            <input type="text" name="icon_class" id="valueIcon"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="e.g., fas fa-shield-alt">
-          </div>
-        </div>
-
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Description *</label>
-          <textarea name="description" id="valueDescription" required rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
-            <input type="number" name="display_order" id="valueOrder" value="0"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <textarea name="description" rows="3" required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <select name="status" id="valueStatus"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
+              <input type="number" name="display_order" value="0"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <div class="flex justify-end space-x-3">
-          <button type="button" id="cancelValueEdit" onclick="resetValueForm()"
-            class="hidden px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500">
-            Cancel
+          <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            Add Value
           </button>
-          <button type="submit"
-            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <span id="valueSubmitText">Add Value</span>
-          </button>
-        </div>
-      </form>
-
-      <!-- Values List -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left">
-          <thead>
-            <tr class="border-b">
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Title</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Icon</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Order</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if ($values_result && $values_result->num_rows > 0): ?>
-              <?php while ($value = $values_result->fetch_assoc()): ?>
-                <tr class="border-b hover:bg-gray-50">
-                  <td class="py-3 px-4 text-sm text-gray-700">
-                    <div class="font-medium"><?php echo htmlspecialchars($value['title']); ?></div>
-                    <div class="text-gray-500 text-xs mt-1"><?php echo htmlspecialchars(substr($value['description'], 0, 100)) . '...'; ?></div>
-                  </td>
-                  <td class="py-3 px-4 text-sm text-gray-700">
-                    <?php if ($value['icon_class']): ?>
-                      <i class="<?php echo htmlspecialchars($value['icon_class']); ?> text-lg"></i>
-                    <?php endif; ?>
-                  </td>
-                  <td class="py-3 px-4 text-sm text-gray-700"><?php echo $value['display_order']; ?></td>
-                  <td class="py-3 px-4 text-sm">
-                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    <?php echo $value['status'] === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
-                      <?php echo ucfirst($value['status']); ?>
-                    </span>
-                  </td>
-                  <td class="py-3 px-4 text-sm">
-                    <button onclick="editValue(<?php echo htmlspecialchars(json_encode($value)); ?>)"
-                      class="text-indigo-600 hover:text-indigo-900 mr-3">
-                      <i class="fas fa-edit"></i>
-                    </button>
-                    <form method="POST" action="" class="inline" onsubmit="return confirm('Are you sure you want to delete this value?');">
-                      <input type="hidden" name="form_token" value="<?php echo $_SESSION['form_token']; ?>">
-                      <input type="hidden" name="action" value="delete_value">
-                      <input type="hidden" name="id" value="<?php echo $value['id']; ?>">
-                      <button type="submit" class="text-red-600 hover:text-red-900">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </form>
-                  </td>
-                </tr>
-              <?php endwhile; ?>
-            <?php else: ?>
-              <tr>
-                <td colspan="5" class="py-3 px-4 text-sm text-gray-500 text-center">No values found.</td>
-              </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
+        </form>
       </div>
-    </div>
 
-    <!-- Company Statistics Section -->
-    <div class="bg-white shadow-lg rounded-lg p-6">
-      <h5 class="text-lg font-semibold text-gray-800 mb-4">Company Statistics</h5>
+      <!-- List Existing Values -->
+      <div class="space-y-4">
+        <?php if ($values_result && $values_result->num_rows > 0): ?>
+          <?php while ($value = $values_result->fetch_assoc()): ?>
+            <form method="POST" action="" class="border-b pb-4">
+              <input type="hidden" name="form_token" value="<?php echo $_SESSION['form_token']; ?>">
+              <input type="hidden" name="action" value="edit_value">
+              <input type="hidden" name="id" value="<?php echo $value['id']; ?>">
 
-      <!-- Add Statistic Form -->
-      <form method="POST" action="" id="statForm" class="mb-6">
-        <input type="hidden" name="form_token" value="<?php echo $_SESSION['form_token']; ?>">
-        <input type="hidden" name="action" id="statAction" value="add_stat">
-        <input type="hidden" name="id" id="statId">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                  <input type="text" name="title" value="<?php echo htmlspecialchars($value['title']); ?>" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Icon Class (Font Awesome)</label>
+                  <input type="text" name="icon_class" value="<?php echo htmlspecialchars($value['icon_class']); ?>"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+              </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Label *</label>
-            <input type="text" name="label" id="statLabel" required
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          </div>
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb maidenhead-2">Description</label>
+                <textarea name="description" rows="3" required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"><?php echo htmlspecialchars($value['description']); ?></textarea>
+              </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Value *</label>
-            <input type="text" name="value" id="statValue" required
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
+                  <input type="number" name="display_order" value="<?php echo $value['display_order']; ?>"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="active" <?php echo $value['status'] === 'active' ? 'selected' : ''; ?>>Active</option>
+                    <option value="inactive" <?php echo $value['status'] === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                  </select>
+                </div>
+              </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Prefix</label>
-            <input type="text" name="prefix" id="statPrefix"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="e.g., $">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Suffix</label>
-            <input type="text" name="suffix" id="statSuffix"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="e.g., %, +">
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
-            <input type="number" name="display_order" id="statOrder" value="0"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <select name="status" id="statStatus"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="flex justify-end space-x-3">
-          <button type="button" id="cancelStatEdit" onclick="resetStatForm()"
-            class="hidden px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500">
-            Cancel
-          </button>
-          <button type="submit"
-            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <span id="statSubmitText">Add Statistic</span>
-          </button>
-        </div>
-      </form>
-
-      <!-- Statistics List -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left">
-          <thead>
-            <tr class="border-b">
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Label</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Value</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Order</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
-              <th class="py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <?php if ($stats_result && $stats_result->num_rows > 0): ?>
-              <?php while ($stat = $stats_result->fetch_assoc()): ?>
-                <tr class="border-b hover:bg-gray-50">
-                  <td class="py-3 px-4 text-sm text-gray-700"><?php echo htmlspecialchars($stat['label']); ?></td>
-                  <td class="py-3 px-4 text-sm text-gray-700">
-                    <?php echo htmlspecialchars($stat['prefix'] . $stat['value'] . $stat['suffix']); ?>
-                  </td>
-                  <td class="py-3 px-4 text-sm text-gray-700"><?php echo $stat['display_order']; ?></td>
-                  <td class="py-3 px-4 text-sm">
-                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    <?php echo $stat['status'] === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
-                      <?php echo ucfirst($stat['status']); ?>
-                    </span>
-                  </td>
-                  <td class="py-3 px-4 text-sm">
-                    <button onclick="editStat(<?php echo htmlspecialchars(json_encode($stat)); ?>)"
-                      class="text-indigo-600 hover:text-indigo-900 mr-3">
-                      <i class="fas fa-edit"></i>
-                    </button>
-                    <form method="POST" action="" class="inline" onsubmit="return confirm('Are you sure you want to delete this statistic?');">
-                      <input type="hidden" name="form_token" value="<?php echo $_SESSION['form_token']; ?>">
-                      <input type="hidden" name="action" value="delete_stat">
-                      <input type="hidden" name="id" value="<?php echo $stat['id']; ?>">
-                      <button type="submit" class="text-red-600 hover:text-red-900">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </form>
-                  </td>
-                </tr>
-              <?php endwhile; ?>
-            <?php else: ?>
-              <tr>
-                <td colspan="5" class="py-3 px-4 text-sm text-gray-500 text-center">No statistics found.</td>
-              </tr>
-            <?php endif; ?>
-          </tbody>
-        </table>
+              <div class="flex justify-between items-center">
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  Update
+                </button>
+                <form method="POST" action="" onsubmit="return confirm('Are you sure you want to delete this value?');">
+                  <input type="hidden" name="form_token" value="<?php echo $_SESSION['form_token']; ?>">
+                  <input type="hidden" name="action" value="delete_value">
+                  <input type="hidden" name="id" value="<?php echo $value['id']; ?>">
+                  <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </form>
+          <?php endwhile; ?>
+        <?php else: ?>
+          <p class="text-gray-500">No company values found.</p>
+        <?php endif; ?>
       </div>
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- JavaScript for User Dropdown -->
   <script>
-    // User dropdown functionality
-    document.getElementById('userDropdownButton').addEventListener('click', function() {
-      document.getElementById('userDropdownMenu').classList.toggle('hidden');
+    const userDropdownButton = document.getElementById('userDropdownButton');
+    const userDropdownMenu = document.getElementById('userDropdownMenu');
+
+    userDropdownButton.addEventListener('click', () => {
+      userDropdownMenu.classList.toggle('hidden');
     });
 
     // Close dropdown when clicking outside
-    document.addEventListener('click', function(event) {
-      const dropdown = document.getElementById('userDropdownMenu');
-      const button = document.getElementById('userDropdownButton');
-      if (!button.contains(event.target)) {
-        dropdown.classList.add('hidden');
+    document.addEventListener('click', (event) => {
+      if (!userDropdownButton.contains(event.target) && !userDropdownMenu.contains(event.target)) {
+        userDropdownMenu.classList.add('hidden');
       }
     });
-
-    // Edit value function
-    function editValue(value) {
-      document.getElementById('valueAction').value = 'edit_value';
-      document.getElementById('valueId').value = value.id;
-      document.getElementById('valueTitle').value = value.title;
-      document.getElementById('valueIcon').value = value.icon_class || '';
-      document.getElementById('valueDescription').value = value.description;
-      document.getElementById('valueOrder').value = value.display_order;
-      document.getElementById('valueStatus').value = value.status;
-      document.getElementById('valueSubmitText').textContent = 'Update Value';
-      document.getElementById('cancelValueEdit').classList.remove('hidden');
-
-      // Scroll to form
-      document.getElementById('valueForm').scrollIntoView({
-        behavior: 'smooth'
-      });
-    }
-
-    // Reset value form
-    function resetValueForm() {
-      document.getElementById('valueAction').value = 'add_value';
-      document.getElementById('valueId').value = '';
-      document.getElementById('valueForm').reset();
-      document.getElementById('valueSubmitText').textContent = 'Add Value';
-      document.getElementById('cancelValueEdit').classList.add('hidden');
-    }
-
-    // Edit statistic function
-    function editStat(stat) {
-      document.getElementById('statAction').value = 'edit_stat';
-      document.getElementById('statId').value = stat.id;
-      document.getElementById('statLabel').value = stat.label;
-      document.getElementById('statValue').value = stat.value;
-      document.getElementById('statPrefix').value = stat.prefix || '';
-      document.getElementById('statSuffix').value = stat.suffix || '';
-      document.getElementById('statOrder').value = stat.display_order;
-      document.getElementById('statStatus').value = stat.status;
-      document.getElementById('statSubmitText').textContent = 'Update Statistic';
-      document.getElementById('cancelStatEdit').classList.remove('hidden');
-
-      // Scroll to form
-      document.getElementById('statForm').scrollIntoView({
-        behavior: 'smooth'
-      });
-    }
-
-    // Reset statistic form
-    function resetStatForm() {
-      document.getElementById('statAction').value = 'add_stat';
-      document.getElementById('statId').value = '';
-      document.getElementById('statForm').reset();
-      document.getElementById('statSubmitText').textContent = 'Add Statistic';
-      document.getElementById('cancelStatEdit').classList.add('hidden');
-    }
   </script>
 </body>
 

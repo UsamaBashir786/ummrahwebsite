@@ -7,6 +7,22 @@ if (!isset($_SESSION['user_id'])) {
   exit();
 }
 
+// Function to format numbers in shortened form
+function formatNumber($number)
+{
+  if ($number < 1000) {
+    return number_format($number);
+  } elseif ($number < 1000000) {
+    $formatted = $number / 1000;
+    // Check if it's a whole number
+    return ($formatted == floor($formatted)) ? number_format($formatted) . 'k' : number_format($formatted, 1) . 'k';
+  } else {
+    $formatted = $number / 1000000;
+    // Check if it's a whole number
+    return ($formatted == floor($formatted)) ? number_format($formatted) . 'M' : number_format($formatted, 1) . 'M';
+  }
+}
+
 $user_id = $_SESSION['user_id'];
 
 // Fetch user data
@@ -228,7 +244,7 @@ $upcoming_trips_query->close();
       <div class="stat-card bg-white p-6 border-l-4 border-yellow-500">
         <div class="flex justify-between items-center">
           <div>
-            <h3 class="text-2xl font-bold text-gray-800">Rs<?php echo number_format($stats['total_spent'], 2); ?></h3>
+            <h3 class="text-2xl font-bold text-gray-800">Rs<?php echo formatNumber($stats['total_spent']); ?></h3>
             <p class="text-sm text-gray-500">Total Spent</p>
           </div>
           <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 text-yellow-500">
@@ -271,7 +287,7 @@ $upcoming_trips_query->close();
                       <span class="status-badge status-<?php echo $booking['booking_status']; ?>">
                         <?php echo ucfirst($booking['booking_status']); ?>
                       </span>
-                      <p class="text-lg font-bold text-cyan-600 mt-2">Rs<?php echo number_format($booking['price'], 2); ?></p>
+                      <p class="text-lg font-bold text-cyan-600 mt-2">Rs<?php echo formatNumber($booking['price']); ?></p>
                     </div>
                   </div>
                 </div>

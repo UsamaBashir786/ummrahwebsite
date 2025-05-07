@@ -590,23 +590,41 @@ if (!empty($filter)) {
               <div class="mt-4 grid grid-cols-3 gap-4">
                 <div class="col-span-2">
                   <!-- Pricing -->
-                  <div class="grid grid-cols-3 gap-2">
-                    <div class="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center">
-                      <span class="text-xs text-gray-500">Economy</span>
-                      <span class="font-bold text-gray-800">Rs.<?php echo number_format($flight['economy_price']); ?></span>
-                      <span class="text-xs text-gray-500"><?php echo $flight['economy_seats']; ?> seats</span>
-                    </div>
-                    <div class="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center">
-                      <span class="text-xs text-gray-500">Business</span>
-                      <span class="font-bold text-gray-800">Rs.<?php echo number_format($flight['business_price']); ?></span>
-                      <span class="text-xs text-gray-500"><?php echo $flight['business_seats']; ?> seats</span>
-                    </div>
-                    <div class="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center">
-                      <span class="text-xs text-gray-500">First Class</span>
-                      <span class="font-bold text-gray-800">Rs.<?php echo number_format($flight['first_class_price']); ?></span>
-                      <span class="text-xs text-gray-500"><?php echo $flight['first_class_seats']; ?> seats</span>
-                    </div>
-                  </div>
+                  <!--<div class="grid grid-cols-3 gap-2">-->
+                  <!--  <div class="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center">-->
+                  <!--    <span class="text-xs text-gray-500">Economy</span>-->
+                  <!--    <span class="font-bold text-gray-800">Rs.<?php echo number_format($flight['economy_price']); ?></span>-->
+                  <!--    <span class="text-xs text-gray-500"><?php echo $flight['economy_seats']; ?> seats</span>-->
+                  <!--  </div>-->
+                  <!--  <div class="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center">-->
+                  <!--    <span class="text-xs text-gray-500">Business</span>-->
+                  <!--    <span class="font-bold text-gray-800">Rs.<?php echo number_format($flight['business_price']); ?></span>-->
+                  <!--    <span class="text-xs text-gray-500"><?php echo $flight['business_seats']; ?> seats</span>-->
+                  <!--  </div>-->
+                  <!--  <div class="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center">-->
+                  <!--    <span class="text-xs text-gray-500">First Class</span>-->
+                  <!--    <span class="font-bold text-gray-800">Rs.<?php echo number_format($flight['first_class_price']); ?></span>-->
+                  <!--    <span class="text-xs text-gray-500"><?php echo $flight['first_class_seats']; ?> seats</span>-->
+                  <!--  </div>-->
+                  <!--</div>-->
+                  <!-- Pricing -->
+<div class="grid grid-cols-2 gap-2">
+  <div class="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center">
+    <span class="text-xs text-gray-500">Economy</span>
+    <span class="font-bold text-gray-800">Rs.<?php echo formatNumber($flight['economy_price']); ?></span>
+    <span class="text-xs text-gray-500"><?php echo $flight['economy_seats']; ?> seats</span>
+  </div>
+  <div class="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center">
+    <span class="text-xs text-gray-500">Business</span>
+    <span class="font-bold text-gray-800">Rs.<?php echo formatNumber($flight['business_price']); ?></span>
+    <span class="text-xs text-gray-500"><?php echo $flight['business_seats']; ?> seats</span>
+  </div>
+  <div class="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 flex flex-col items-center">
+    <span class="text-xs text-gray-500">First Class</span>
+    <span class="font-bold text-gray-800">Rs.<?php echo formatNumber($flight['first_class_price']); ?></span>
+    <span class="text-xs text-gray-500"><?php echo $flight['first_class_seats']; ?> seats</span>
+  </div>
+</div>
 
                   <!-- Duration & Distance -->
                   <div class="mt-3 flex items-center gap-4 text-sm text-gray-600">

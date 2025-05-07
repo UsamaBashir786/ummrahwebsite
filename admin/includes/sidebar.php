@@ -45,17 +45,17 @@
   .nav-panel {
     overflow-y: auto;
   }
-
-  nav {
-    overflow-y: scroll;
+  .navbar-target{
+      overflow-y:scroll;
+      z-index:1000 !important;
   }
 </style>
 
 <!-- Sidebar Overlay -->
-<div class="fixed inset-0 bg-gray-900 bg-opacity-60 hidden transition-opacity duration-300" id="nav-overlay"></div>
+<div class="fixed inset-0 bg-opacity-60 hidden transition-opacity duration-300" id="nav-overlay"></div>
 
 <!-- Sidebar -->
-<nav class="overflow-y-scroll fixed top-0 left-0 w-72 h-full bg-gray-50 shadow-xl transform -translate-x-full transition-transform duration-300 lg:translate-x-0" id="nav-panel">
+<nav class="navbar-target overflow-y-scroll fixed top-0 left-0 w-70 h-full bg-gray-50 shadow-xl transform -translate-x-full transition-transform duration-300 lg:translate-x-0" id="nav-panel">
   <div class="p-5">
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
@@ -63,7 +63,7 @@
         <i class="fas fa-plane-departure text-2xl text-blue-700"></i>
         <h5 class="font-semibold text-xl text-gray-900">Ummrah</h5>
       </div>
-      <button class="block lg:hidden w-5 bg-amber-950 text-gray-600 hover:text-gray-800 text-2xl focus:outline-none" id="nav-close">
+      <button class="block lg:hidden w-5 text-gray-600 hover:text-gray-800 text-2xl focus:outline-none" id="nav-close">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -265,8 +265,8 @@
               Contact
             </a>
           </li>
-
-          <!-- FAQ's -->
+          
+                <!-- FAQ's -->
           <li>
             <a href="faqs.php" class="nav-link flex items-center px-3 py-2 text-sm font-semibold rounded-md <?= $currentPage == 'faqs.php' ? 'text-white bg-blue-600' : 'text-gray-800 hover:bg-blue-100' ?>">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 <?= $currentPage == 'faqs.php' ? 'text-white' : 'text-gray-600' ?>" viewBox="0 0 20 20" fill="currentColor">
@@ -275,26 +275,23 @@
               FAQs
             </a>
           </li>
-
-          <!-- Contact Information -->
-          <li>
-            <a href="contact-info.php" class="nav-link flex items-center px-3 py-2 text-sm font-semibold rounded-md <?= $currentPage == 'contact-info.php' ? 'text-white bg-blue-600' : 'text-gray-800 hover:bg-blue-100' ?>">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 <?= $currentPage == 'contact-info.php' ? 'text-white' : 'text-gray-600' ?>" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M14.243 5.757a6 6 0 10-.986 9.284 1 1 0 111.087 1.678A8 8 0 1118 10a3 3 0 01-4.8 2.401A4 4 0 1114 10a1 1 0 102 0c0-1.537-.586-3.07-1.757-4.243zM12 10a2 2 0 10-4 0 2 2 0 004 0z" clip-rule="evenodd" />
-              </svg>
-              Contact Info
-            </a>
-          </li>
-          
-          <!-- About Us -->
-          <li>
-            <a href="about-us.php" class="nav-link flex items-center px-3 py-2 text-sm font-semibold rounded-md <?= $currentPage == 'about-us.php' ? 'text-white bg-blue-600' : 'text-gray-800 hover:bg-blue-100' ?>">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 <?= $currentPage == 'about-us.php' ? 'text-white' : 'text-gray-600' ?>" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-              </svg>
-              About Us
-            </a>
-          </li>
+            <li>
+              <a href="contact-info.php" class="nav-link flex items-center px-3 py-2 text-sm font-semibold rounded-md <?= $currentPage == 'contact-info.php' ? 'text-white bg-blue-600' : 'text-gray-800 hover:bg-blue-100' ?>">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 <?= $currentPage == 'contact-info.php' ? 'text-white' : 'text-gray-600' ?>" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 2a1 1 0 00-1 1v1a1 1 0 002 0V3a1 1 0 00-1-1zM4 4h3a3 3 0 006 0h3a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm2.5 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm2.45 4a2.5 2.5 0 10-4.9 0h4.9zM12 9a1 1 0 100 2h3a1 1 0 100-2h-3zm-1 4a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" clip-rule="evenodd" />
+                </svg>
+                Contact Info
+              </a>
+            </li>
+            <!-- About Us -->
+<li>
+  <a href="about-us.php" class="nav-link flex items-center px-3 py-2 text-sm font-semibold rounded-md <?= $currentPage == 'about-us.php' ? 'text-white bg-blue-600' : 'text-gray-800 hover:bg-blue-100' ?>">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 <?= $currentPage == 'about-us.php' ? 'text-white' : 'text-gray-600' ?>" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+    </svg>
+    About Us
+  </a>
+</li>
         </ul>
       </div>
 
@@ -381,3 +378,32 @@
     navToggle.classList.remove('hidden');
   }
 </script>
+<script>
+  // Dropdown toggle logic
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-nav-target');
+      const targetEl = document.querySelector(targetId);
+      if (targetEl) {
+        targetEl.classList.toggle('hidden');
+      }
+    });
+  });
+
+  // Sidebar close button for mobile
+  const navCloseBtn = document.getElementById('nav-close');
+  const navOverlay = document.getElementById('nav-overlay');
+  const navPanel = document.getElementById('nav-panel');
+
+  navCloseBtn?.addEventListener('click', () => {
+    navPanel.classList.add('-translate-x-full');
+    navOverlay.classList.add('hidden');
+  });
+
+  // Optional: overlay click closes menu
+  navOverlay?.addEventListener('click', () => {
+    navPanel.classList.add('-translate-x-full');
+    navOverlay.classList.add('hidden');
+  });
+</script>
+

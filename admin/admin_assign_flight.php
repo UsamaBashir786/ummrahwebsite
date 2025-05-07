@@ -11,28 +11,6 @@ if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true)
   exit;
 }
 
-
-
-// try {
-//     $conn = require_once '../config/db.php';
-
-//     session_name('admin_session');
-//     session_start();
-
-//     if (!isset($_SESSION['admin_loggedin']) || $_SESSION['admin_loggedin'] !== true) {
-//         header('Location: login.php');
-//         exit;
-//     }
-// } catch (Exception $e) {
-//     error_log("Error: " . $e->getMessage());
-//     die("An error occurred. Please contact support.");
-// }
-
-
-
-
-
-
 // Get booking ID from POST or GET
 $booking_id = isset($_POST['booking_id']) ? intval($_POST['booking_id']) : (isset($_GET['booking_id']) ? intval($_GET['booking_id']) : 0);
 
@@ -47,6 +25,7 @@ $error_message = '';
 $booking = null;
 $flights = [];
 $booking_details = [];
+$flight = null; // Initialize $flight to avoid undefined variable issues
 
 // Store form values to maintain state after submission
 $form_flight_id = isset($_POST['flight_id']) ? intval($_POST['flight_id']) : 0;
@@ -57,8 +36,22 @@ $form_passenger_name = isset($_POST['passenger_name']) ? $_POST['passenger_name'
 $form_passenger_email = isset($_POST['passenger_email']) ? $_POST['passenger_email'] : '';
 $form_passenger_phone = isset($_POST['passenger_phone']) ? $_POST['passenger_phone'] : '';
 
+// Function to send email notifications with error handling
+function sendEmailNotification($to, $subject, $message, $action, $booking_id) {
+    $headers = "From: Umrah Partner Team <no-reply@umrahpartner.com>\r\n";
+    $headers .= "Reply-To: info@umrahflights.com\r\n";
+    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+    $result = @mail($to, $subject, $message, $headers);
+    if (!$result) {
+        $error = error_get_last();
+        error_log("Failed to send email for action '$action' on booking #$booking_id to $to: " . ($error ? $error['message'] : 'Unknown error'));
+    }
+    return $result;
+}
+
 // Fetch booking details
-$stmt = $conn->prepare("SELECT b.id, b.user_id, b.package_id, b.created_at, u.full_name 
+$stmt = $conn->prepare("SELECT b.id, b.user_id, b.package_id, b.created_at, u.full_name, u.email, u.phone 
                        FROM package_bookings b 
                        JOIN users u ON b.user_id = u.id 
                        WHERE b.id = ?");
@@ -191,7 +184,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
                                   WHERE user_id = ?");
             $user_id = $booking['user_id'];
             $stmt->bind_param(
-              "issidssii",
+              "issidsssi",
               $flight_id,
               $cabin_class,
               $adult_count,
@@ -235,6 +228,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['assign_flight'])) {
           $conn->commit();
           $success_message = "Flight assigned successfully to booking #$booking_id.";
 
+          // Send email to user
+          $user_email = $booking['email'];
+          $user_subject = 'Your Flight Booking Has Been ' . (!empty($booking_details) ? 'Updated' : 'Assigned') . ' - UmrahFlights';
+          $user_message = "Dear " . htmlspecialchars($passenger_name) . ",\n\n";
+          $user_message .= "Your flight booking for Booking ID #$booking_id has been " . (!empty($booking_details) ? "updated" : "assigned") . ".\n\n";
+          $user_message .= "Flight Details:\n";
+          $user_message .= "Airline: " . htmlspecialchars($flight['airline_name']) . "\n";
+          $user_message .= "Flight Number: " . htmlspecialchars($flight['flight_number']) . "\n";
+          $user_message .= "Route: " . htmlspecialchars($flight['departure_city']) . " to " . htmlspecialchars($flight['arrival_city']) . "\n";
+          $user_message .= "Date: " . date('D, M j, Y', strtotime($flight['departure_date'])) . "\n";
+          $user_message .= "Time: " . date('H:i', strtotime($flight['departure_time'])) . "\n";
+          $user_message .= "Cabin Class: " . ucfirst(str_replace('_', ' ', $cabin_class)) . "\n";
+          $user_message .= "Passengers: $adult_count Adult(s), $children_count Child(ren)\n";
+          $user_message .= "Total Price: PKR " . number_format($total_price, 0) . "\n\n";
+          $user_message .= "For any queries, contact us at info@umrahflights.com.\n\n";
+          $user_message .= "Best regards,\nUmrahFlights Team";
+          sendEmailNotification($user_email, $user_subject, $user_message, (!empty($booking_details) ? "update" : "assign"), $booking_id);
+
+          // Send email to admin
+          $admin_to = 'info@umrahpartner.com';
+          $admin_subject = 'Flight Booking ' . (!empty($booking_details) ? 'Updated' : 'Assigned') . ' - Admin Notification';
+          $admin_message = "Flight booking for Booking ID #$booking_id has been " . (!empty($booking_details) ? "updated" : "assigned") . ".\n\n";
+          $admin_message .= "Details:\n";
+          $admin_message .= "Passenger: " . htmlspecialchars($passenger_name) . "\n";
+          $admin_message .= "Email: " . htmlspecialchars($passenger_email) . "\n";
+          $admin_message .= "Phone: " . htmlspecialchars($passenger_phone) . "\n";
+          $admin_message .= "Airline: " . htmlspecialchars($flight['airline_name']) . "\n";
+          $admin_message .= "Flight Number: " . htmlspecialchars($flight['flight_number']) . "\n";
+          $admin_message .= "Route: " . htmlspecialchars($flight['departure_city']) . " to " . htmlspecialchars($flight['arrival_city']) . "\n";
+          $admin_message .= "Date: " . date('D, M j, Y', strtotime($flight['departure_date'])) . "\n";
+          $user_message .= "Time: " . date('H:i', strtotime($flight['departure_time'])) . "\n";
+          $admin_message .= "Cabin Class: " . ucfirst(str_replace('_', ' ', $cabin_class)) . "\n";
+          $admin_message .= "Passengers: $adult_count Adult(s), $children_count Child(ren)\n";
+          $admin_message .= "Total Price: PKR " . number_format($total_price, 0) . "\n";
+          sendEmailNotification($admin_to, $admin_subject, $admin_message, (!empty($booking_details) ? "update" : "assign"), $booking_id);
+
           // Refresh booking details
           $stmt = $conn->prepare("SELECT * FROM flight_bookings WHERE user_id = ?");
           $stmt->bind_param("i", $booking['user_id']);
@@ -272,18 +301,18 @@ if ($booking) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Assign Flight | UmrahFlights</title>
-  <!-- Tailwind CSS (same as index.php and add-transportation.php) -->
+  <!-- Tailwind CSS -->
   <link rel="stylesheet" href="../src/output.css">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <!-- SweetAlert2 (for consistency with add-transportation.php) -->
+  <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body class="bg-gray-100 font-sans min-h-screen">
   <?php include 'includes/sidebar.php'; ?>
   <main class="ml-0 md:ml-64 mt-10 px-4 sm:px-6 lg:px-8 transition-all duration-300" role="main" aria-label="Main content">
-    <!-- Top Navbar (aligned with index.php and add-transportation.php) -->
+    <!-- Top Navbar -->
     <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
@@ -327,11 +356,11 @@ if ($booking) {
         </a>
       </div>
 
-      <!-- Alerts (aligned with index.php and add-transportation.php) -->
+      <!-- Alerts -->
       <?php if ($error_message): ?>
         <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 flex justify-between items-center" role="alert">
           <span><?php echo htmlspecialchars($error_message); ?></span>
-          <button class="text-red-700 hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-red-500" onclick="this.parentElement.remove()" aria-label="Close alert">
+  <button class="text-red-700 hover:text-red-900 focus:outline-none focus:ring-2 focus:ring-red-500" onclick="this.parentElement.remove()" aria-label="Close alert">
             <i class="fas fa-times"></i>
           </button>
         </div>

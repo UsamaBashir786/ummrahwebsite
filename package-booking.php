@@ -31,6 +31,14 @@ if ($result->num_rows === 0) {
 $package = $result->fetch_assoc();
 $stmt->close();
 
+// Fetch user details
+$stmt = $conn->prepare("SELECT full_name, email FROM users WHERE id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$user_result = $stmt->get_result();
+$user = $user_result->fetch_assoc();
+$stmt->close();
+
 // Initialize variables
 $error_message = "";
 $success_message = "";
@@ -66,12 +74,58 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
       $stmt->execute();
       $stmt->close();
 
+      // Send email to User
+      $to = $user['email'];
+      $email_subject = 'Thank You for Your Booking with Umrah Partner';
+      $email_message = "Dear {$user['full_name']},\n\n";
+      $email_message .= "Thank you for booking with Umrah Partner! Your booking has been successfully created, and we will process it shortly.\n\n";
+      $email_message .= "Booking Details:\n";
+      $email_message .= "Booking Reference: $booking_reference\n";
+      $email_message .= "Package: {$package['title']}\n";
+      $email_message .= "Travel Date: $travel_date\n";
+      $email_message .= "Number of Travelers: $num_travelers\n";
+      $email_message .= "Total Price: Rs " . number_format($total_price, 2) . "\n";
+      $email_message .= "Payment Status: Pending\n";
+      $email_message .= "Special Requests: " . ($special_requests ?: 'None') . "\n\n";
+      $email_message .= "You can view your booking details in your account under 'My Bookings'.\n";
+      $email_message .= "For any queries, contact us at info@umrahpartner.com.\n\n";
+      $email_message .= "Best regards,\nUmrah Partner Team";
+
+      $headers = "From: no-reply@umrahpartner.com\r\n";
+      $headers .= "Reply-To: info@umrahpartner.com\r\n";
+      $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+
+      if (!mail($to, $email_subject, $email_message, $headers)) {
+        throw new Exception('Failed to send user email.');
+      }
+
+      // Send email to Admin
+      $admin_to = 'info@umrahpartner.com';
+      $admin_subject = 'New Booking Submission';
+      $admin_message = "New Booking Submission\n\n";
+      $admin_message .= "A new booking has been created.\n\n";
+      $admin_message .= "Details:\n";
+      $admin_message .= "Booking Reference: $booking_reference\n";
+      $admin_message .= "User: {$user['full_name']} ({$user['email']})\n";
+      $admin_message .= "Package: {$package['title']}\n";
+      $admin_message .= "Travel Date: $travel_date\n";
+      $admin_message .= "Number of Travelers: $num_travelers\n";
+      $admin_message .= "Total Price: Rs " . number_format($total_price, 2) . "\n";
+      $admin_message .= "Payment Status: Pending\n";
+      $admin_message .= "Special Requests: " . ($special_requests ?: 'None') . "\n";
+      $admin_message .= "Submitted At: " . date('Y-m-d H:i:s') . "\n";
+
+      if (!mail($admin_to, $admin_subject, $admin_message, $headers)) {
+        throw new Exception('Failed to send admin email.');
+      }
+
       // Commit transaction
       $conn->commit();
       $success_message = "Booking created successfully! Reference: $booking_reference. Proceed to payment or view your bookings.";
     } catch (Exception $e) {
       $conn->rollback();
-      $error_message = "Error creating booking: " . $e->getMessage();
+      $error_message = "Booking created, but email notification failed. Please contact us directly. Error: " . $e->getMessage();
+      error_log("Booking Email Error: " . $e->getMessage());
     }
   }
 }
@@ -102,6 +156,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
     }
   </script>
   <style>
+    .bg-primary {
+      background: #0d6efd;
+    }
+
     body {
       margin-top: 65px !important;
     }
@@ -201,6 +259,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Total Price</label>
                 <p id="total-price" class="text-lg font-semibold text-gray-800">Rs <?php echo number_format($package['price'] * $num_travelers, 2); ?></p>
+ нашего
               </div>
             </div>
             <!-- Special Requests -->
