@@ -8,17 +8,23 @@ if (!isset($_SESSION['user_id'])) {
   exit;
 }
 
-// Check if package ID is provided
-if (!isset($_GET['package_id']) || empty($_GET['package_id'])) {
+// Check if package ID is provided - handle both 'id' and 'package_id' for compatibility
+$package_id = 0;
+if (isset($_GET['id']) && !empty($_GET['id'])) {
+  $package_id = (int)$_GET['id'];
+} elseif (isset($_GET['package_id']) && !empty($_GET['package_id'])) {
+  $package_id = (int)$_GET['package_id'];
+} else {
   header('Location: packages.php');
   exit;
 }
 
-$package_id = (int)$_GET['package_id'];
 $user_id = $_SESSION['user_id'];
 
-// Fetch package details
-$stmt = $conn->prepare("SELECT id, title, price FROM umrah_packages WHERE id = ?");
+// Fetch package details with all fields from add-packages.php
+$stmt = $conn->prepare("SELECT id, star_rating, title, description, makkah_nights, 
+                       madinah_nights, total_days, inclusions, price, package_image 
+                       FROM umrah_packages WHERE id = ?");
 $stmt->bind_param("i", $package_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -30,6 +36,12 @@ if ($result->num_rows === 0) {
 
 $package = $result->fetch_assoc();
 $stmt->close();
+
+// Parse inclusions JSON - add safety checks to prevent errors
+$inclusions = [];
+if (!empty($package['inclusions'])) {
+  $inclusions = json_decode($package['inclusions'], true) ?: [];
+}
 
 // Fetch user details
 $stmt = $conn->prepare("SELECT full_name, email FROM users WHERE id = ?");
@@ -63,29 +75,100 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
     // Generate booking reference
     $booking_reference = 'PB' . strtoupper(uniqid());
 
+    // Default status values
+    $booking_status = 'pending';
+    $payment_status = 'pending';
+
     // Start transaction
     $conn->begin_transaction();
     try {
-      // Insert booking
-      $sql = "INSERT INTO package_bookings (user_id, package_id, travel_date, num_travelers, total_price, booking_status, payment_status, booking_reference, special_requests) 
-                    VALUES (?, ?, ?, ?, ?, 'pending', 'pending', ?, ?)";
+      // Insert booking with additional fields matching package structure
+      $sql = "INSERT INTO package_bookings 
+              (user_id, package_id, travel_date, num_travelers, total_price, 
+               booking_status, payment_status, booking_reference, special_requests,
+               star_rating, makkah_nights, madinah_nights, total_days) 
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
       $stmt = $conn->prepare($sql);
-      $stmt->bind_param("iisidss", $user_id, $package_id, $travel_date, $num_travelers, $total_price, $booking_reference, $special_requests);
+
+      // Make sure we have the correct number of parameters
+      $stmt->bind_param(
+        "iisiidsssiiii",
+        $user_id,
+        $package_id,
+        $travel_date,
+        $num_travelers,
+        $total_price,
+        $booking_status,
+        $payment_status,
+        $booking_reference,
+        $special_requests,
+        $package['star_rating'],
+        $package['makkah_nights'],
+        $package['madinah_nights'],
+        $package['total_days']
+      );
+
       $stmt->execute();
+      $booking_id = $conn->insert_id;
       $stmt->close();
 
       // Send email to User
       $to = $user['email'];
       $email_subject = 'Thank You for Your Booking with Umrah Partner';
+
+      // Format star rating for display
+      $star_rating_display = '';
+      switch ($package['star_rating']) {
+        case 'low_budget':
+          $star_rating_display = 'Low Budget Economy';
+          break;
+        case '3_star':
+          $star_rating_display = '3 Star';
+          break;
+        case '4_star':
+          $star_rating_display = '4 Star';
+          break;
+        case '5_star':
+          $star_rating_display = '5 Star';
+          break;
+      }
+
+      // Format inclusions for display
+      $inclusions_text = '';
+      foreach ($inclusions as $inclusion) {
+        switch ($inclusion) {
+          case 'flight':
+            $inclusions_text .= "- Flight\n";
+            break;
+          case 'hotel':
+            $inclusions_text .= "- Hotel\n";
+            break;
+          case 'transport':
+            $inclusions_text .= "- Transport\n";
+            break;
+          case 'guide':
+            $inclusions_text .= "- Guide\n";
+            break;
+          case 'vip_services':
+            $inclusions_text .= "- VIP Services\n";
+            break;
+        }
+      }
+
       $email_message = "Dear {$user['full_name']},\n\n";
       $email_message .= "Thank you for booking with Umrah Partner! Your booking has been successfully created, and we will process it shortly.\n\n";
       $email_message .= "Booking Details:\n";
       $email_message .= "Booking Reference: $booking_reference\n";
       $email_message .= "Package: {$package['title']}\n";
+      $email_message .= "Category: $star_rating_display\n";
+      $email_message .= "Makkah Nights: {$package['makkah_nights']}\n";
+      $email_message .= "Madinah Nights: {$package['madinah_nights']}\n";
+      $email_message .= "Total Days: {$package['total_days']}\n";
       $email_message .= "Travel Date: $travel_date\n";
       $email_message .= "Number of Travelers: $num_travelers\n";
       $email_message .= "Total Price: Rs " . number_format($total_price, 2) . "\n";
-      $email_message .= "Payment Status: Pending\n";
+      $email_message .= "Payment Status: Pending\n\n";
+      $email_message .= "Package Inclusions:\n$inclusions_text\n";
       $email_message .= "Special Requests: " . ($special_requests ?: 'None') . "\n\n";
       $email_message .= "You can view your booking details in your account under 'My Bookings'.\n";
       $email_message .= "For any queries, contact us at info@umrahpartner.com.\n\n";
@@ -108,10 +191,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
       $admin_message .= "Booking Reference: $booking_reference\n";
       $admin_message .= "User: {$user['full_name']} ({$user['email']})\n";
       $admin_message .= "Package: {$package['title']}\n";
+      $admin_message .= "Category: $star_rating_display\n";
+      $admin_message .= "Makkah Nights: {$package['makkah_nights']}\n";
+      $admin_message .= "Madinah Nights: {$package['madinah_nights']}\n";
+      $admin_message .= "Total Days: {$package['total_days']}\n";
       $admin_message .= "Travel Date: $travel_date\n";
       $admin_message .= "Number of Travelers: $num_travelers\n";
       $admin_message .= "Total Price: Rs " . number_format($total_price, 2) . "\n";
       $admin_message .= "Payment Status: Pending\n";
+      $admin_message .= "Package Inclusions:\n$inclusions_text\n";
       $admin_message .= "Special Requests: " . ($special_requests ?: 'None') . "\n";
       $admin_message .= "Submitted At: " . date('Y-m-d H:i:s') . "\n";
 
@@ -129,6 +217,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
     }
   }
 }
+
+// Helper function to display star rating
+function displayStarRating($rating)
+{
+  switch ($rating) {
+    case 'low_budget':
+      return 'Low Budget Economy';
+    case '3_star':
+      return '3 Star';
+    case '4_star':
+      return '4 Star';
+    case '5_star':
+      return '5 Star';
+    default:
+      return 'Unknown';
+  }
+}
 ?>
 
 <!DOCTYPE html>
@@ -137,7 +242,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Book <?php echo htmlspecialchars($package['title']); ?> - UmrahFlights</title>
+  <title>Book <?php echo htmlspecialchars($package['title'] ?? 'Umrah Package'); ?> - UmrahFlights</title>
   <link rel="stylesheet" href="src/output.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -176,6 +281,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
     .loading-spinner {
       display: none;
     }
+
+    .inclusion-badge {
+      display: inline-block;
+      padding: 0.3rem 0.7rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+      background-color: #E5F2F2;
+      color: #047857;
+      border: 1px solid #047857;
+    }
   </style>
 </head>
 
@@ -201,7 +318,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
             </svg>
           </li>
           <li class="flex items-center">
-            <a href="package-details.php?id=<?php echo $package_id; ?>" class="hover:text-green-200"><?php echo htmlspecialchars($package['title']); ?></a>
+            <a href="package-details.php?id=<?php echo $package_id; ?>" class="hover:text-green-200"><?php echo htmlspecialchars($package['title'] ?? 'Package Details'); ?></a>
             <svg class="h-4 w-4 mx-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
@@ -216,7 +333,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
   <section class="py-12">
     <div class="container mx-auto px-4 max-w-4xl">
       <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6">Booking: <?php echo htmlspecialchars($package['title']); ?></h2>
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Booking: <?php echo htmlspecialchars($package['title'] ?? 'Umrah Package'); ?></h2>
 
         <!-- Messages -->
         <?php if (!empty($error_message)): ?>
@@ -233,15 +350,82 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
           </div>
         <?php endif; ?>
 
+        <!-- Package Summary -->
+        <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+          <div class="flex flex-col md:flex-row gap-4">
+            <!-- Package Image -->
+            <div class="md:w-1/3">
+              <img
+                src="<?php echo !empty($package['package_image']) ? htmlspecialchars($package['package_image']) : 'assets/images/default-package.jpg'; ?>"
+                alt="<?php echo htmlspecialchars($package['title'] ?? 'Umrah Package'); ?>"
+                class="w-full h-auto rounded-md object-cover"
+                style="max-height: 200px;">
+            </div>
+
+            <!-- Package Details -->
+            <div class="md:w-2/3">
+              <h3 class="text-xl font-bold text-gray-800"><?php echo htmlspecialchars($package['title'] ?? 'Umrah Package'); ?></h3>
+              <p class="text-sm text-gray-600 mb-2">Category: <?php echo displayStarRating($package['star_rating'] ?? ''); ?></p>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+                <div class="flex items-center">
+                  <i class="fas fa-mosque text-primary mr-2"></i>
+                  <span class="text-sm"><?php echo isset($package['makkah_nights']) ? $package['makkah_nights'] : 0; ?> Nights in Makkah</span>
+                </div>
+                <div class="flex items-center">
+                  <i class="fas fa-mosque text-primary mr-2"></i>
+                  <span class="text-sm"><?php echo isset($package['madinah_nights']) ? $package['madinah_nights'] : 0; ?> Nights in Madinah</span>
+                </div>
+                <div class="flex items-center">
+                  <i class="fas fa-calendar-alt text-primary mr-2"></i>
+                  <span class="text-sm"><?php echo isset($package['total_days']) ? $package['total_days'] : 0; ?> Days Total</span>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <p class="text-sm font-medium text-gray-700 mb-1">Inclusions:</p>
+                <div>
+                  <?php if (!empty($inclusions)): ?>
+                    <?php foreach ($inclusions as $inclusion): ?>
+                      <span class="inclusion-badge">
+                        <?php
+                        switch ($inclusion) {
+                          case 'flight':
+                            echo '<i class="fas fa-plane-departure mr-1"></i> Flight';
+                            break;
+                          case 'hotel':
+                            echo '<i class="fas fa-hotel mr-1"></i> Hotel';
+                            break;
+                          case 'transport':
+                            echo '<i class="fas fa-bus mr-1"></i> Transport';
+                            break;
+                          case 'guide':
+                            echo '<i class="fas fa-user-tie mr-1"></i> Guide';
+                            break;
+                          case 'vip_services':
+                            echo '<i class="fas fa-star mr-1"></i> VIP Services';
+                            break;
+                        }
+                        ?>
+                      </span>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <p class="text-sm text-gray-500">No inclusions specified</p>
+                  <?php endif; ?>
+                </div>
+              </div>
+
+              <p class="text-lg font-bold text-primary">
+                Rs <?php echo isset($package['price']) ? number_format($package['price'], 2) : '0.00'; ?> <span class="text-sm font-normal text-gray-600">per person</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
         <!-- Booking Form -->
         <?php if (empty($success_message)): ?>
           <form method="POST" id="booking-form" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <!-- Package Price -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Package Price (Per Person)</label>
-                <p class="text-lg font-semibold text-gray-800">Rs <?php echo number_format($package['price'], 2); ?></p>
-              </div>
               <!-- Travel Date -->
               <div>
                 <label for="travel_date" class="block text-sm font-medium text-gray-700 mb-1">Travel Date</label>
@@ -255,19 +439,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
                   value="<?php echo htmlspecialchars($num_travelers); ?>"
                   class="w-full px-4 py-2 rounded-lg border-gray-300 focus:ring focus:ring-primary focus:ring-opacity-50" required>
               </div>
-              <!-- Total Price (Display Only) -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Total Price</label>
-                <p id="total-price" class="text-lg font-semibold text-gray-800">Rs <?php echo number_format($package['price'] * $num_travelers, 2); ?></p>
- нашего
+            </div>
+
+            <!-- Price Summary -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-4">
+              <h3 class="text-lg font-semibold text-gray-800 mb-2">Price Summary</h3>
+              <div class="flex justify-between mb-2">
+                <span>Package Price (per person):</span>
+                <span>Rs <?php echo isset($package['price']) ? number_format($package['price'], 2) : '0.00'; ?></span>
+              </div>
+              <div class="flex justify-between mb-2">
+                <span>Number of Travelers:</span>
+                <span id="travelers-count">1</span>
+              </div>
+              <div class="flex justify-between font-bold text-lg text-primary border-t border-gray-200 pt-2 mt-2">
+                <span>Total Price:</span>
+                <span id="total-price">Rs <?php echo isset($package['price']) ? number_format($package['price'], 2) : '0.00'; ?></span>
               </div>
             </div>
+
             <!-- Special Requests -->
             <div>
               <label for="special_requests" class="block text-sm font-medium text-gray-700 mb-1">Special Requests (Optional)</label>
               <textarea name="special_requests" id="special_requests" class="w-full px-4 py-2 rounded-lg border-gray-300 focus:ring focus:ring-primary focus:ring-opacity-50"
                 rows="4" placeholder="E.g., dietary needs, accessibility requirements"><?php echo htmlspecialchars($special_requests); ?></textarea>
             </div>
+
             <!-- Submit Button -->
             <div class="flex justify-end gap-4">
               <a href="package-details.php?id=<?php echo $package_id; ?>"
@@ -301,14 +498,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
 
     // Update total price dynamically
     const numTravelersInput = document.getElementById('num_travelers');
+    const travelersCount = document.getElementById('travelers-count');
     const totalPriceDisplay = document.getElementById('total-price');
-    const packagePrice = <?php echo $package['price']; ?>;
+    const packagePrice = <?php echo isset($package['price']) ? $package['price'] : 0; ?>;
 
     numTravelersInput.addEventListener('input', function() {
       let travelers = parseInt(this.value) || 1;
       if (travelers < 1) travelers = 1;
       if (travelers > 10) travelers = 10;
       this.value = travelers;
+      travelersCount.textContent = travelers;
       const totalPrice = (packagePrice * travelers).toFixed(2);
       totalPriceDisplay.textContent = `Rs ${totalPrice.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
     });
