@@ -22,6 +22,7 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
 $user_id = $_SESSION['user_id'];
 
 // Fetch package details with all fields from add-packages.php
+// Removing package_type from the query since it doesn't exist in your table
 $stmt = $conn->prepare("SELECT id, star_rating, title, description, makkah_nights, 
                        madinah_nights, total_days, inclusions, price, package_image 
                        FROM umrah_packages WHERE id = ?");
@@ -82,17 +83,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
     // Start transaction
     $conn->begin_transaction();
     try {
-      // Insert booking with additional fields matching package structure
+      // Insert booking according to the package_bookings table structure
       $sql = "INSERT INTO package_bookings 
               (user_id, package_id, travel_date, num_travelers, total_price, 
-               booking_status, payment_status, booking_reference, special_requests,
-               star_rating, makkah_nights, madinah_nights, total_days) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+               booking_status, payment_status, booking_reference, special_requests) 
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
       $stmt = $conn->prepare($sql);
 
-      // Make sure we have the correct number of parameters
+      // Bind parameters according to the table structure
       $stmt->bind_param(
-        "iisiidsssiiii",
+        "iisidssss",
         $user_id,
         $package_id,
         $travel_date,
@@ -101,110 +101,107 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
         $booking_status,
         $payment_status,
         $booking_reference,
-        $special_requests,
-        $package['star_rating'],
-        $package['makkah_nights'],
-        $package['madinah_nights'],
-        $package['total_days']
+        $special_requests
       );
 
       $stmt->execute();
       $booking_id = $conn->insert_id;
       $stmt->close();
 
-      // Send email to User
-      $to = $user['email'];
-      $email_subject = 'Thank You for Your Booking with Umrah Partner';
+      // Try to send email to User, but don't fail the transaction if it doesn't work
+      try {
+        $to = $user['email'];
+        $email_subject = 'Thank You for Your Booking with Umrah Partner';
 
-      // Format star rating for display
-      $star_rating_display = '';
-      switch ($package['star_rating']) {
-        case 'low_budget':
-          $star_rating_display = 'Low Budget Economy';
-          break;
-        case '3_star':
-          $star_rating_display = '3 Star';
-          break;
-        case '4_star':
-          $star_rating_display = '4 Star';
-          break;
-        case '5_star':
-          $star_rating_display = '5 Star';
-          break;
-      }
-
-      // Format inclusions for display
-      $inclusions_text = '';
-      foreach ($inclusions as $inclusion) {
-        switch ($inclusion) {
-          case 'flight':
-            $inclusions_text .= "- Flight\n";
+        // Format star rating for display
+        $star_rating_display = '';
+        switch ($package['star_rating']) {
+          case 'low_budget':
+            $star_rating_display = 'Low Budget Economy';
             break;
-          case 'hotel':
-            $inclusions_text .= "- Hotel\n";
+          case '3_star':
+            $star_rating_display = '3 Star';
             break;
-          case 'transport':
-            $inclusions_text .= "- Transport\n";
+          case '4_star':
+            $star_rating_display = '4 Star';
             break;
-          case 'guide':
-            $inclusions_text .= "- Guide\n";
-            break;
-          case 'vip_services':
-            $inclusions_text .= "- VIP Services\n";
+          case '5_star':
+            $star_rating_display = '5 Star';
             break;
         }
-      }
 
-      $email_message = "Dear {$user['full_name']},\n\n";
-      $email_message .= "Thank you for booking with Umrah Partner! Your booking has been successfully created, and we will process it shortly.\n\n";
-      $email_message .= "Booking Details:\n";
-      $email_message .= "Booking Reference: $booking_reference\n";
-      $email_message .= "Package: {$package['title']}\n";
-      $email_message .= "Category: $star_rating_display\n";
-      $email_message .= "Makkah Nights: {$package['makkah_nights']}\n";
-      $email_message .= "Madinah Nights: {$package['madinah_nights']}\n";
-      $email_message .= "Total Days: {$package['total_days']}\n";
-      $email_message .= "Travel Date: $travel_date\n";
-      $email_message .= "Number of Travelers: $num_travelers\n";
-      $email_message .= "Total Price: Rs " . number_format($total_price, 2) . "\n";
-      $email_message .= "Payment Status: Pending\n\n";
-      $email_message .= "Package Inclusions:\n$inclusions_text\n";
-      $email_message .= "Special Requests: " . ($special_requests ?: 'None') . "\n\n";
-      $email_message .= "You can view your booking details in your account under 'My Bookings'.\n";
-      $email_message .= "For any queries, contact us at info@umrahpartner.com.\n\n";
-      $email_message .= "Best regards,\nUmrah Partner Team";
+        // Format inclusions for display
+        $inclusions_text = '';
+        foreach ($inclusions as $inclusion) {
+          switch ($inclusion) {
+            case 'flight':
+              $inclusions_text .= "- Flight\n";
+              break;
+            case 'hotel':
+              $inclusions_text .= "- Hotel\n";
+              break;
+            case 'transport':
+              $inclusions_text .= "- Transport\n";
+              break;
+            case 'guide':
+              $inclusions_text .= "- Guide\n";
+              break;
+            case 'vip_services':
+              $inclusions_text .= "- VIP Services\n";
+              break;
+          }
+        }
 
-      $headers = "From: no-reply@umrahpartner.com\r\n";
-      $headers .= "Reply-To: info@umrahpartner.com\r\n";
-      $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $email_message = "Dear {$user['full_name']},\n\n";
+        $email_message .= "Thank you for booking with Umrah Partner! Your booking has been successfully created, and we will process it shortly.\n\n";
+        $email_message .= "Booking Details:\n";
+        $email_message .= "Booking Reference: $booking_reference\n";
+        $email_message .= "Package: {$package['title']}\n";
+        $email_message .= "Category: $star_rating_display\n";
+        $email_message .= "Makkah Nights: {$package['makkah_nights']}\n";
+        $email_message .= "Madinah Nights: {$package['madinah_nights']}\n";
+        $email_message .= "Total Days: {$package['total_days']}\n";
+        $email_message .= "Travel Date: $travel_date\n";
+        $email_message .= "Number of Travelers: $num_travelers\n";
+        $email_message .= "Total Price: Rs " . number_format($total_price, 2) . "\n";
+        $email_message .= "Payment Status: Pending\n\n";
+        $email_message .= "Package Inclusions:\n$inclusions_text\n";
+        $email_message .= "Special Requests: " . ($special_requests ?: 'None') . "\n\n";
+        $email_message .= "You can view your booking details in your account under 'My Bookings'.\n";
+        $email_message .= "For any queries, contact us at info@umrahpartner.com.\n\n";
+        $email_message .= "Best regards,\nUmrah Partner Team";
 
-      if (!mail($to, $email_subject, $email_message, $headers)) {
-        throw new Exception('Failed to send user email.');
-      }
+        $headers = "From: no-reply@umrahpartner.com\r\n";
+        $headers .= "Reply-To: info@umrahpartner.com\r\n";
+        $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
 
-      // Send email to Admin
-      $admin_to = 'info@umrahpartner.com';
-      $admin_subject = 'New Booking Submission';
-      $admin_message = "New Booking Submission\n\n";
-      $admin_message .= "A new booking has been created.\n\n";
-      $admin_message .= "Details:\n";
-      $admin_message .= "Booking Reference: $booking_reference\n";
-      $admin_message .= "User: {$user['full_name']} ({$user['email']})\n";
-      $admin_message .= "Package: {$package['title']}\n";
-      $admin_message .= "Category: $star_rating_display\n";
-      $admin_message .= "Makkah Nights: {$package['makkah_nights']}\n";
-      $admin_message .= "Madinah Nights: {$package['madinah_nights']}\n";
-      $admin_message .= "Total Days: {$package['total_days']}\n";
-      $admin_message .= "Travel Date: $travel_date\n";
-      $admin_message .= "Number of Travelers: $num_travelers\n";
-      $admin_message .= "Total Price: Rs " . number_format($total_price, 2) . "\n";
-      $admin_message .= "Payment Status: Pending\n";
-      $admin_message .= "Package Inclusions:\n$inclusions_text\n";
-      $admin_message .= "Special Requests: " . ($special_requests ?: 'None') . "\n";
-      $admin_message .= "Submitted At: " . date('Y-m-d H:i:s') . "\n";
+        mail($to, $email_subject, $email_message, $headers);
 
-      if (!mail($admin_to, $admin_subject, $admin_message, $headers)) {
-        throw new Exception('Failed to send admin email.');
+        // Send email to Admin
+        $admin_to = 'info@umrahpartner.com';
+        $admin_subject = 'New Booking Submission';
+        $admin_message = "New Booking Submission\n\n";
+        $admin_message .= "A new booking has been created.\n\n";
+        $admin_message .= "Details:\n";
+        $admin_message .= "Booking Reference: $booking_reference\n";
+        $admin_message .= "User: {$user['full_name']} ({$user['email']})\n";
+        $admin_message .= "Package: {$package['title']}\n";
+        $admin_message .= "Category: $star_rating_display\n";
+        $admin_message .= "Makkah Nights: {$package['makkah_nights']}\n";
+        $admin_message .= "Madinah Nights: {$package['madinah_nights']}\n";
+        $admin_message .= "Total Days: {$package['total_days']}\n";
+        $admin_message .= "Travel Date: $travel_date\n";
+        $admin_message .= "Number of Travelers: $num_travelers\n";
+        $admin_message .= "Total Price: Rs " . number_format($total_price, 2) . "\n";
+        $admin_message .= "Payment Status: Pending\n";
+        $admin_message .= "Package Inclusions:\n$inclusions_text\n";
+        $admin_message .= "Special Requests: " . ($special_requests ?: 'None') . "\n";
+        $admin_message .= "Submitted At: " . date('Y-m-d H:i:s') . "\n";
+
+        mail($admin_to, $admin_subject, $admin_message, $headers);
+      } catch (Exception $e) {
+        // Just log the error but continue with the transaction
+        error_log("Email Error: " . $e->getMessage());
       }
 
       // Commit transaction
@@ -212,8 +209,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['confirm_booking'])) {
       $success_message = "Booking created successfully! Reference: $booking_reference. Proceed to payment or view your bookings.";
     } catch (Exception $e) {
       $conn->rollback();
-      $error_message = "Booking created, but email notification failed. Please contact us directly. Error: " . $e->getMessage();
-      error_log("Booking Email Error: " . $e->getMessage());
+      $error_message = "Error creating booking: " . $e->getMessage();
+      error_log("Booking Error: " . $e->getMessage());
     }
   }
 }

@@ -88,13 +88,14 @@ $stmt->execute();
 $total_users = $stmt->get_result()->fetch_assoc()['total_users'] ?? 0;
 $stmt->close();
 
-// 4. Active Packages (by type)
+// 4. Active Packages (by star_rating)
 $stmt = $conn->prepare("
     SELECT 
         COUNT(*) AS total_packages,
-        SUM(CASE WHEN package_type = 'single' THEN 1 ELSE 0 END) AS single_packages,
-        SUM(CASE WHEN package_type = 'group' THEN 1 ELSE 0 END) AS group_packages,
-        SUM(CASE WHEN package_type = 'vip' THEN 1 ELSE 0 END) AS vip_packages
+        SUM(CASE WHEN star_rating = 'low_budget' THEN 1 ELSE 0 END) AS low_budget_packages,
+        SUM(CASE WHEN star_rating = '3_star' THEN 1 ELSE 0 END) AS three_star_packages,
+        SUM(CASE WHEN star_rating = '4_star' THEN 1 ELSE 0 END) AS four_star_packages,
+        SUM(CASE WHEN star_rating = '5_star' THEN 1 ELSE 0 END) AS five_star_packages
     FROM umrah_packages
 ");
 if (!$stmt) {
@@ -103,9 +104,10 @@ if (!$stmt) {
 $stmt->execute();
 $packages = $stmt->get_result()->fetch_assoc();
 $total_packages = $packages['total_packages'] ?? 0;
-$single_packages = $packages['single_packages'] ?? 0;
-$group_packages = $packages['group_packages'] ?? 0;
-$vip_packages = $packages['vip_packages'] ?? 0;
+$low_budget_packages = $packages['low_budget_packages'] ?? 0;
+$three_star_packages = $packages['three_star_packages'] ?? 0;
+$four_star_packages = $packages['four_star_packages'] ?? 0;
+$five_star_packages = $packages['five_star_packages'] ?? 0;
 $stmt->close();
 
 // 5. Booking Status Breakdown
@@ -260,7 +262,6 @@ $stmt->close();
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard | UmrahFlights</title>
   <!-- Tailwind CSS CDN -->
-  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
   <link rel="stylesheet" href="../src/output.css">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -277,9 +278,6 @@ $stmt->close();
     <nav class="bg-white shadow-lg rounded-lg p-5 mb-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
-          <!-- <button id="sidebarToggle" class="text-gray-500 hover:text-gray-700 focus:outline-none md:hidden">
-            <i class="fas fa-bars text-xl"></i>
-          </button> -->
           <h4 id="dashboardHeader" class="text-lg font-semibold text-gray-800 cursor-pointer hover:text-indigo-600">Dashboard</h4>
         </div>
 
@@ -307,26 +305,26 @@ $stmt->close();
         </div>
       </div>
     </nav>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const dropdownBtn = document.getElementById("userDropdownButton");
-    const dropdownMenu = document.getElementById("userDropdownMenu");
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        const dropdownBtn = document.getElementById("userDropdownButton");
+        const dropdownMenu = document.getElementById("userDropdownMenu");
 
-    // Toggle menu on button click
-    dropdownBtn.addEventListener("click", function (e) {
-      e.stopPropagation(); // Stop event from bubbling to document
-      dropdownMenu.classList.toggle("hidden");
-    });
+        // Toggle menu on button click
+        dropdownBtn.addEventListener("click", function(e) {
+          e.stopPropagation(); // Stop event from bubbling to document
+          dropdownMenu.classList.toggle("hidden");
+        });
 
-    // Hide the dropdown when clicking outside
-    document.addEventListener("click", function (e) {
-      // If click target is not the button or inside the menu, hide it
-      if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
-        dropdownMenu.classList.add("hidden");
-      }
-    });
-  });
-</script>
+        // Hide the dropdown when clicking outside
+        document.addEventListener("click", function(e) {
+          // If click target is not the button or inside the menu, hide it
+          if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+            dropdownMenu.classList.add("hidden");
+          }
+        });
+      });
+    </script>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
@@ -412,6 +410,12 @@ $stmt->close();
             <div>
               <h3 class="text-2xl font-bold text-gray-800"><?php echo $total_packages; ?></h3>
               <p class="text-sm text-gray-500">Active Packages</p>
+              <p class="text-xs text-gray-500 mt-1">
+                Low Budget: <?php echo $low_budget_packages; ?> |
+                3-Star: <?php echo $three_star_packages; ?> |
+                4-Star: <?php echo $four_star_packages; ?> |
+                5-Star: <?php echo $five_star_packages; ?>
+              </p>
             </div>
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 text-yellow-500">
               <i class="fas fa-box text-xl"></i>

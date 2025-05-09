@@ -63,20 +63,20 @@ function getStarRating($rating, $display_type = 'icons')
   if ($display_type === 'icons') {
     switch ($rating) {
       case 'low_budget':
-        return '<i class="fas fa-star text-yellow-400"></i>';
+        return '<i class="fas fa-star text-amber-400"></i>';
       case '3_star':
-        return '<i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i>';
+        return '<i class="fas fa-star text-amber-400"></i><i class="fas fa-star text-amber-400"></i><i class="fas fa-star text-amber-400"></i>';
       case '4_star':
-        return '<i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i>';
+        return '<i class="fas fa-star text-amber-400"></i><i class="fas fa-star text-amber-400"></i><i class="fas fa-star text-amber-400"></i><i class="fas fa-star text-amber-400"></i>';
       case '5_star':
-        return '<i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i><i class="fas fa-star text-yellow-400"></i>';
+        return '<i class="fas fa-star text-amber-400"></i><i class="fas fa-star text-amber-400"></i><i class="fas fa-star text-amber-400"></i><i class="fas fa-star text-amber-400"></i><i class="fas fa-star text-amber-400"></i>';
       default:
         return '';
     }
   } else {
     switch ($rating) {
       case 'low_budget':
-        return 'Low Budget Economy';
+        return 'Economy';
       case '3_star':
         return '3 Star';
       case '4_star':
@@ -94,15 +94,15 @@ function getPackageTypeTitle($star_rating)
 {
   switch ($star_rating) {
     case 'low_budget':
-      return 'Umrah Packages 2025 from Pakistan | Low Budget Economy Umrah Packages';
+      return 'Economy Umrah Packages 2025';
     case '3_star':
-      return 'All Inclusive Umrah Packages 2025 | 3 Star Umrah Packages';
+      return '3 Star Umrah Packages 2025';
     case '4_star':
-      return 'All Inclusive Umrah Packages 2025 | 4 Star Umrah Packages';
+      return '4 Star Umrah Packages 2025';
     case '5_star':
-      return 'All Inclusive Umrah Packages 2025 | 5 Star Umrah Packages';
+      return '5 Star Umrah Packages 2025';
     default:
-      return 'All Umrah Packages 2025';
+      return 'Umrah Packages 2025';
   }
 }
 
@@ -130,128 +130,245 @@ if (empty($filter_category)) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Umrah Packages 2025 from Pakistan - UmrahFlights</title>
-  <!-- Include Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Include Font Awesome -->
+  <title>Umrah Packages 2025 - UmrahFlights</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
     body {
-      font-family: 'Arial', sans-serif;
+      font-family: 'Manrope', sans-serif;
+      background: #f9fafb;
+      color: #1f2937;
+      overflow-x: hidden;
     }
 
     .package-card {
-      transition: all 0.3s ease;
+      background: linear-gradient(145deg, #ffffff, #f1f5f9);
+      border-radius: 24px;
+      overflow: hidden;
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .package-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      transform: translateY(-12px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     }
 
-    .blue-button {
-      background-color: #0277bd;
+    .gradient-button {
+      background: linear-gradient(90deg, #10b981, #059669);
+      color: white;
+      border-radius: 16px;
+      padding: 12px 32px;
+      font-weight: 600;
+      transition: transform 0.3s ease, background 0.3s ease;
     }
 
-    .blue-button:hover {
-      background-color: #0288d1;
+    .gradient-button:hover {
+      background: linear-gradient(90deg, #059669, #10b981);
+      transform: scale(1.05);
     }
 
-    .teal-bg {
-      background-color: #009688;
+    .header-bg {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      position: relative;
+      overflow: hidden;
+      clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
     }
 
-    .package-title {
-      background: rgba(0, 0, 0, 0.7);
+    .header-bg::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('https://source.unsplash.com/random/1600x400?mosque,kaaba') no-repeat center center/cover;
+      opacity: 0.2;
+      z-index: 0;
+    }
+
+    .package-image {
+      height: 260px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .package-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+
+    .package-card:hover .package-image img {
+      transform: scale(1.2);
+    }
+
+    .package-overlay {
       position: absolute;
       bottom: 0;
       left: 0;
       width: 100%;
-      padding: 10px;
+      padding: 20px;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
       color: white;
-    }
-
-    .star-rating {
-      display: flex;
-      margin-top: 5px;
-    }
-
-    .star-rating .fas {
-      margin-right: 2px;
-    }
-
-    .hotel-name {
-      min-height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      font-weight: 700;
+      font-size: 1.2rem;
+      text-align: center;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     .section-title {
-      border-bottom: 2px solid #0277bd;
-      display: inline-block;
-      padding-bottom: 5px;
+      position: relative;
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: #1f2937;
+      padding-bottom: 16px;
+      margin-bottom: 32px;
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 120px;
+      height: 5px;
+      background: linear-gradient(to right, #10b981, #059669);
+      border-radius: 3px;
+    }
+
+    .filter-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 10px 30 Dísa px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      transition: transform 0.3s ease;
+    }
+
+    .filter-card:hover {
+      transform: translateY(-8px);
+    }
+
+    .input-field {
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 14px;
+      background: #ffffff;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .input-field:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+      outline: none;
+    }
+
+    .footer-bg {
+      background: linear-gradient(to bottom, #1f2937, #111827);
+      clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 100%);
+    }
+
+    .social-icon {
+      transition: transform 0.3s ease, color 0.3s ease;
+      font-size: 1.5rem;
+    }
+
+    .social-icon:hover {
+      transform: scale(1.4);
+      color: #10b981;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 20px;
+      background: #ecfdf5;
+      color: #059669;
+      border-radius: 9999px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin: 6px;
+      transition: background 0.3s ease;
+    }
+
+    .chip:hover {
+      background: #d1fae5;
+    }
+
+    .animate-on-scroll {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .animate-on-scroll.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      .package-overlay {
+        font-size: 1rem;
+        padding: 16px;
+      }
+
+      .package-image {
+        height: 220px;
+      }
+
+      .section-title {
+        font-size: 1.75rem;
+      }
+
+      .filter-card {
+        padding: 24px;
+      }
     }
   </style>
 </head>
 
-<body class="bg-gray-50">
+<body>
   <!-- Navbar -->
-  <header class="bg-white shadow-sm">
-    <div class="container mx-auto px-4 py-3">
-      <div class="flex justify-between items-center">
-        <div>
-          <a href="index.php" class="text-xl font-bold text-gray-800">UMRAH</a>
-        </div>
-        <nav>
-          <ul class="flex space-x-6">
-            <li><a href="index.php" class="text-gray-600 hover:text-teal-600">Home</a></li>
-            <li><a href="about.php" class="text-gray-600 hover:text-teal-600">About Us</a></li>
-            <li><a href="contact.php" class="text-gray-600 hover:text-teal-600">Contact Us</a></li>
-            <li><a href="packages.php" class="text-gray-600 hover:text-teal-600">Packages</a></li>
-            <li class="relative">
-              <a href="#" class="text-gray-600 hover:text-teal-600">More <i class="fas fa-chevron-down text-xs ml-1"></i></a>
-            </li>
-            <li><a href="login.php" class="text-gray-600 hover:text-teal-600">Login</a></li>
-            <li><a href="register.php" class="text-teal-600 hover:text-teal-700">Register</a></li>
-          </ul>
-        </nav>
-      </div>
-    </div>
-  </header>
+  <?php include 'includes/navbar.php' ?>
 
   <!-- Page Header -->
-  <section class="teal-bg text-white py-6">
-    <div class="container mx-auto px-4">
-      <h1 class="text-2xl font-bold">Umrah Packages 2025 from Pakistan</h1>
-      <div class="mt-2">
-        <a href="index.php" class="text-white hover:text-gray-200">Home</a>
-        <span class="mx-2">&gt;</span>
+  <section class="header-bg text-white py-20 relative">
+    <div class="container mx-auto px-4 relative z-10">
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">Umrah Packages 2025</h1>
+      <p class="text-lg md:text-xl text-gray-100 max-w-2xl">Embark on a spiritual journey with our curated Umrah packages from Pakistan, designed for comfort and devotion.</p>
+      <div class="mt-6 text-sm md:text-base">
+        <a href="index.php" class="text-gray-200 hover:text-white transition">Home</a>
+        <span class="mx-2">></span>
         <span class="text-gray-200">Umrah Packages</span>
       </div>
     </div>
   </section>
 
   <!-- Filter Section -->
-  <section class="py-8">
+  <section class="py-16">
     <div class="container mx-auto px-4">
-      <div class="bg-white rounded-lg shadow p-6 max-w-4xl mx-auto">
-        <h2 class="text-lg font-medium text-gray-800 mb-4">Filter Packages</h2>
+      <div class="filter-card animate-on-scroll">
+        <h2 class="text-2xl font-bold text-gray-800 mb-8">Discover Your Ideal Package</h2>
         <form action="" method="GET">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             <div>
-              <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Package Category</label>
-              <select name="category" id="category" class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <label for="category" class="block text-sm font-medium text-gray-700 mb-3">Package Category</label>
+              <select name="category" id="category" class="w-full input-field">
                 <option value="">All Categories</option>
-                <option value="low_budget" <?php echo $filter_category === 'low_budget' ? 'selected' : ''; ?>>Low Budget Economy</option>
+                <option value="low_budget" <?php echo $filter_category === 'low_budget' ? 'selected' : ''; ?>>Economy</option>
                 <option value="3_star" <?php echo $filter_category === '3_star' ? 'selected' : ''; ?>>3 Star</option>
                 <option value="4_star" <?php echo $filter_category === '4_star' ? 'selected' : ''; ?>>4 Star</option>
                 <option value="5_star" <?php echo $filter_category === '5_star' ? 'selected' : ''; ?>>5 Star</option>
               </select>
             </div>
             <div>
-              <label for="days" class="block text-sm font-medium text-gray-700 mb-1">Total Days</label>
-              <select name="days" id="days" class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <label for="days" class="block text-sm font-medium text-gray-700 mb-3">Total Days</label>
+              <select name="days" id="days" class="w-full input-field">
                 <option value="">Any Duration</option>
                 <option value="7" <?php echo $filter_days === 7 ? 'selected' : ''; ?>>7 Days</option>
                 <option value="10" <?php echo $filter_days === 10 ? 'selected' : ''; ?>>10 Days</option>
@@ -261,16 +378,16 @@ if (empty($filter_category)) {
               </select>
             </div>
             <div>
-              <label for="price_min" class="block text-sm font-medium text-gray-700 mb-1">Min Price (PKR)</label>
-              <input type="number" name="price_min" id="price_min" class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="0" value="<?php echo $filter_price_min; ?>">
+              <label for="price_min" class="block text-sm font-medium text-gray-700 mb-3">Min Price (PKR)</label>
+              <input type="number" name="price_min" id="price_min" class="w-full input-field" placeholder="0" value="<?php echo $filter_price_min; ?>">
             </div>
             <div>
-              <label for="price_max" class="block text-sm font-medium text-gray-700 mb-1">Max Price (PKR)</label>
-              <input type="number" name="price_max" id="price_max" class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="0" value="<?php echo $filter_price_max; ?>">
+              <label for="price_max" class="block text-sm font-medium text-gray-700 mb-3">Max Price (PKR)</label>
+              <input type="number" name="price_max" id="price_max" class="w-full input-field" placeholder="0" value="<?php echo $filter_price_max; ?>">
             </div>
           </div>
-          <div class="mt-4 text-right">
-            <button type="submit" class="blue-button text-white py-2 px-6 rounded">Filter</button>
+          <div class="mt-8 text-right">
+            <button type="submit" class="gradient-button">Search Packages</button>
           </div>
         </form>
       </div>
@@ -279,11 +396,11 @@ if (empty($filter_category)) {
 
   <?php if (empty($packages)): ?>
     <!-- No Packages Found -->
-    <section class="py-8">
+    <section class="py-16">
       <div class="container mx-auto px-4">
-        <div class="bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded">
-          <h3 class="font-medium mb-2">No packages found</h3>
-          <p>No packages match your selected criteria. Please try different filters or check back later.</p>
+        <div class="bg-white border border-gray-100 text-gray-700 p-10 rounded-3xl text-center shadow-lg animate-on-scroll">
+          <h3 class="font-bold text-2xl mb-4">No Packages Found</h3>
+          <p class="text-lg">We couldn't find any packages matching your criteria. Try different filters or check back later.</p>
         </div>
       </div>
     </section>
@@ -300,52 +417,32 @@ if (empty($filter_category)) {
 
     <!-- Package Categories -->
     <?php foreach ($grouped_packages as $category => $category_packages): ?>
-      <section class="py-8">
+      <section class="py-16">
         <div class="container mx-auto px-4">
-          <h2 class="text-xl font-bold text-gray-800 mb-6">
-            <span class="section-title"><?php echo getPackageTypeTitle($category); ?></span>
-          </h2>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <h2 class="section-title animate-on-scroll"><?php echo getPackageTypeTitle($category); ?></h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <?php foreach ($category_packages as $package): ?>
-              <div class="package-card bg-white rounded-lg shadow overflow-hidden">
-                <div class="relative">
-                  <img src="<?php echo htmlspecialchars($package['package_image']); ?>" alt="<?php echo htmlspecialchars($package['title']); ?>" class="w-full h-48 object-cover">
-                  <div class="package-title text-center">
-                    <?php echo $package['total_days']; ?> Nights <?php echo getStarRating($package['star_rating'], 'text'); ?> Umrah Package 2025
+              <div class="package-card animate-on-scroll">
+                <div class="package-image">
+                  <img src="<?php echo htmlspecialchars($package['package_image']); ?>" alt="<?php echo htmlspecialchars($package['title']); ?>" loading="lazy">
+                  <div class="package-overlay">
+                    <?php echo $package['total_days']; ?> Nights <?php echo getStarRating($package['star_rating'], 'text'); ?>
                   </div>
                 </div>
-
-                <div class="p-0">
-                  <div class="grid grid-cols-2">
-                    <div class="p-4 text-center border-r border-gray-200">
-                      <img src="assets/images/makkah-icon.jpg" alt="Makkah" class="w-8 h-8 mx-auto mb-2">
-                      <div class="font-medium">Makkah <?php echo $package['makkah_nights']; ?> Nights</div>
-                      <div class="hotel-name text-sm text-gray-600 mt-1">Al Aseel Ajyad</div>
-                      <div class="text-xs text-gray-500 mt-1">(similar)</div>
-                      <div class="star-rating flex justify-center mt-1">
-                        <?php echo getStarRating($category); ?>
-                      </div>
-                    </div>
-                    <div class="p-4 text-center">
-                      <img src="assets/images/madinah-icon.jpg" alt="Madinah" class="w-8 h-8 mx-auto mb-2">
-                      <div class="font-medium">Madinah <?php echo $package['madinah_nights']; ?> Nights</div>
-                      <div class="hotel-name text-sm text-gray-600 mt-1">Al Shourfah Hotel</div>
-                      <div class="text-xs text-gray-500 mt-1">(similar)</div>
-                      <div class="star-rating flex justify-center mt-1">
-                        <?php echo getStarRating($category); ?>
-                      </div>
-                    </div>
+                <div class="p-8">
+                  <div class="flex flex-wrap justify-center mb-6">
+                    <span class="chip">
+                      <i class="fas fa-mosque mr-2"></i> Makkah <?php echo $package['makkah_nights']; ?> Nights
+                    </span>
+                    <span class="chip">
+                      <i class="fas fa-kaaba mr-2"></i> Madinah <?php echo $package['madinah_nights']; ?> Nights
+                    </span>
                   </div>
-
-                  <div class="mt-0">
-                    <a href="package-details.php?id=<?php echo $package['id']; ?>" class="block w-full blue-button text-white text-center py-3 font-medium">VIEW DETAILS</a>
-                  </div>
-
-                  <div class="bg-gray-100 p-2 text-center font-bold text-blue-600">
+                  <div class="flex justify-center mb-6"><?php echo getStarRating($category); ?></div>
+                  <div class="text-center text-3xl font-bold text-gray-800 mb-6">
                     PKR <?php echo number_format($package['price'], 0); ?> /PP
-                    <span class="text-xs text-gray-500 ml-1">| <?php echo $package['total_days']; ?> Nights</span>
                   </div>
+                  <a href="package-details.php?id=<?php echo $package['id']; ?>" class="block gradient-button text-center">Explore Package</a>
                 </div>
               </div>
             <?php endforeach; ?>
@@ -356,79 +453,73 @@ if (empty($filter_category)) {
   <?php endif; ?>
 
   <!-- Call to Action -->
-  <section class="py-12 text-center">
+  <section class="py-20 text-center bg-gradient-to-r from-emerald-50 to-teal-50">
     <div class="container mx-auto px-4">
-      <h2 class="text-2xl font-bold text-gray-800 mb-4">Can't Find What You're Looking For?</h2>
-      <p class="text-gray-600 mb-6">Contact our Umrah specialists to customize a package that fits your needs and budget.</p>
-      <a href="contact.php" class="inline-block blue-button text-white font-medium py-2 px-6 rounded-md transition duration-300">
-        Contact Us
-      </a>
+      <h2 class="text-3xl font-bold text-gray-800 mb-6 animate-on-scroll">Craft Your Perfect Umrah</h2>
+      <p class="text-lg text-gray-600 mb-8 max-w-3xl mx-auto animate-on-scroll">Let our experts tailor a bespoke Umrah package that aligns with your spiritual and budgetary needs.</p>
+      <a href="contact.php" class="gradient-button inline-block text-lg animate-on-scroll">Get in Touch</a>
     </div>
   </section>
 
   <!-- Footer -->
-  <footer class="bg-gray-900 text-white py-12">
+  <footer class="footer-bg py-20 text-gray-200">
     <div class="container mx-auto px-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div>
-          <h3 class="text-lg font-semibold mb-4">About Us</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">
-            We specialize in providing comprehensive Umrah packages with premium services, ensuring a comfortable and spiritual journey for all our clients.
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-12">
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">About Us</h3>
+          <p class="text-gray-300 text-sm leading-relaxed">
+            We specialize in creating transformative Umrah experiences, blending premium services with spiritual fulfillment.
           </p>
-          <div class="flex space-x-4 mt-4">
-            <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-facebook"></i></a>
-            <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="text-gray-400 hover:text-white"><i class="fab fa-instagram"></i></a>
+          <div class="flex space-x-6 mt-6">
+            <a href="#" class="social-icon"><i class="fab fa-facebook"></i></a>
+            <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
           </div>
         </div>
-
-        <div>
-          <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
-          <ul class="space-y-2">
-            <li><a href="index.php" class="text-gray-400 hover:text-white">Home</a></li>
-            <li><a href="about.php" class="text-gray-400 hover:text-white">About Us</a></li>
-            <li><a href="packages.php" class="text-gray-400 hover:text-white">Our Packages</a></li>
-            <li><a href="faqs.php" class="text-gray-400 hover:text-white">FAQs</a></li>
-            <li><a href="contact.php" class="text-gray-400 hover:text-white">Contact Us</a></li>
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">Quick Links</h3>
+          <ul class="space-y-4">
+            <li><a href="index.php" class="text-gray-300 hover:text-white transition">Home</a></li>
+            <li><a href="about.php" class="text-gray-300 hover:text-white transition">About Us</a></li>
+            <li><a href="packages.php" class="text-gray-300 hover:text-white transition">Our Packages</a></li>
+            <li><a href="faqs.php" class="text-gray-300 hover:text-white transition">FAQs</a></li>
+            <li><a href="contact.php" class="text-gray-300 hover:text-white transition">Contact Us</a></li>
           </ul>
         </div>
-
-        <div>
-          <h3 class="text-lg font-semibold mb-4">Our Services</h3>
-          <ul class="space-y-2">
-            <li><a href="packages.php" class="text-gray-400 hover:text-white">Umrah Packages</a></li>
-            <li><a href="flight-booking.php" class="text-gray-400 hover:text-white">Flight Booking</a></li>
-            <li><a href="hotel.php" class="text-gray-400 hover:text-white">Hotel Reservation</a></li>
-            <li><a href="visa.php" class="text-gray-400 hover:text-white">Visa Processing</a></li>
-            <li><a href="transport.php" class="text-gray-400 hover:text-white">Transportation</a></li>
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">Our Services</h3>
+          <ul class="space-y-4">
+            <li><a href="packages.php" class="text-gray-300 hover:text-white transition">Umrah Packages</a></li>
+            <li><a href="flight-booking.php" class="text-gray-300 hover:text-white transition">Flight Booking</a></li>
+            <li><a href="hotel.php" class="text-gray-300 hover:text-white transition">Hotel Reservation</a></li>
+            <li><a href="visa.php" class="text-gray-300 hover:text-white transition">Visa Processing</a></li>
+            <li><a href="transport.php" class="text-gray-300 hover:text-white transition">Transportation</a></li>
           </ul>
         </div>
-
-        <div>
-          <h3 class="text-lg font-semibold mb-4">Contact Us</h3>
-          <ul class="space-y-2 text-gray-400">
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">Contact Us</h3>
+          <ul class="space-y-4 text-gray-300">
             <li class="flex items-start">
-              <i class="fas fa-map-marker-alt mt-1 mr-3 text-teal-500"></i>
+              <i class="fas fa-map-marker-alt mt-1 mr-3 text-emerald-400"></i>
               <span>123 Main Street, City, Country</span>
             </li>
             <li class="flex items-center">
-              <i class="fas fa-phone mr-3 text-teal-500"></i>
+              <i class="fas fa-phone mr-3 text-emerald-400"></i>
               <span>+44 775 983691</span>
             </li>
             <li class="flex items-center">
-              <i class="fas fa-envelope mr-3 text-teal-500"></i>
+              <i class="fas fa-envelope mr-3 text-emerald-400"></i>
               <span>info@umrahpartner.com</span>
             </li>
           </ul>
         </div>
       </div>
-
-      <div class="border-t border-gray-800 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center">
+      <div class="border-t border-gray-700 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center animate-on-scroll">
         <p class="text-gray-400 text-sm">© 2025 Umrah Partners. All rights reserved.</p>
-        <div class="flex space-x-6 mt-4 md:mt-0">
-          <a href="privacy.php" class="text-gray-400 hover:text-white text-sm">Privacy Policy</a>
-          <a href="terms.php" class="text-gray-400 hover:text-white text-sm">Terms of Service</a>
-          <a href="cookies.php" class="text-gray-400 hover:text-white text-sm">Cookie Policy</a>
+        <div class="flex space-x-8 mt-4 md:mt-0">
+          <a href="privacy.php" class="text-gray-400 hover:text-white text-sm transition">Privacy Policy</a>
+          <a href="terms.php" class="text-gray-400 hover:text-white text-sm transition">Terms of Service</a>
+          <a href="cookies.php" class="text-gray-400 hover:text-white text-sm transition">Cookie Policy</a>
         </div>
       </div>
     </div>
@@ -436,7 +527,40 @@ if (empty($filter_category)) {
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Add any JavaScript functionality here
+      // Smooth scroll for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+          e.preventDefault();
+          document.querySelector(this.getAttribute('href')).scrollIntoView({
+            behavior: 'smooth'
+          });
+        });
+      });
+
+      // Scroll animations
+      const elements = document.querySelectorAll('.animate-on-scroll');
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+            }
+          });
+        }, {
+          threshold: 0.1
+        }
+      );
+
+      elements.forEach((el) => observer.observe(el));
+
+      // Lazy load images
+      const images = document.querySelectorAll('img[loading="lazy"]');
+      images.forEach((img) => {
+        img.addEventListener('load', () => {
+          img.classList.add('opacity-100');
+          img.classList.remove('opacity-0');
+        });
+      });
     });
   </script>
 </body>

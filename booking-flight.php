@@ -5,7 +5,7 @@ session_start();
 include 'config/db.php';
 
 // Log the start of the script
-error_log("Starting flight-booking.php, session ID: " . session_id());
+error_log("Starting booking-flight.php, session ID: " . session_id());
 
 // Initialize variables
 $flight = null;
@@ -31,7 +31,7 @@ if (isset($_GET['success']) && $_GET['success'] == '1') {
 if (!isset($_SESSION['user_id'])) {
   $error_message = "Please log in to book a flight.";
   error_log("User not logged in, redirecting to login.php");
-  header("Location: login.php?redirect=flight-booking.php");
+  header("Location: login.php?redirect=booking-flight.php");
   ob_end_flush();
   exit();
 }
@@ -248,23 +248,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
       $conn->commit();
       error_log("Flight booking successful for user_id=$user_id, flight_id=$flight_id, booking_reference=$booking_reference");
 
-      // FIXED REDIRECTION CODE
-      // Get the current script's directory path relative to the domain root
-      $script_path = dirname($_SERVER['PHP_SELF']);
-      $script_name = basename($_SERVER['PHP_SELF']);
-
-      // Make sure path ends with a slash if not root
-      $path_prefix = ($script_path == '/' ? '' : $script_path) . '/';
-
-      // Construct absolute redirect URL with proper path
+      // Construct redirect URL
       $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
       $host = $_SERVER['HTTP_HOST'];
+      $script_path = dirname($_SERVER['PHP_SELF']);
+      $script_name = basename($_SERVER['PHP_SELF']);
+      $path_prefix = ($script_path == '/' ? '' : $script_path) . '/';
       $redirect_url = "$protocol://$host$path_prefix$script_name?flight_id=$flight_id&cabin_class=" . urlencode($cabin_class) . "&success=1";
 
-      // Log the redirect URL for debugging
       error_log("Redirecting to: $redirect_url");
-
-      // Use 303 See Other redirect to ensure the browser uses GET for the new page
       header("Location: $redirect_url", true, 303);
       ob_end_flush();
       exit();
@@ -278,8 +270,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
     error_log("Validation errors: " . $error_message);
   }
 }
-
-// HTML and UI code would follow here...
 ?>
 
 <!DOCTYPE html>
@@ -288,229 +278,432 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Book Flight | UmrahFlights</title>
-  <link rel="stylesheet" href="src/output.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#047857',
-            secondary: '#10B981',
-            accent: '#F59E0B',
-          },
-        },
-      },
-    }
-  </script>
+  <title>Book Your Flight | UmrahFlights</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+    body {
+      font-family: 'Manrope', sans-serif;
+      background: #f9fafb;
+      color: #1f2937;
+      overflow-x: hidden;
+    }
+
     .booking-form {
-      background-color: #f9fafb;
-      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      transition: transform 0.3s ease;
+    }
+
+    .booking-form:hover {
+      transform: translateY(-8px);
     }
 
     .summary-card {
-      background-color: #ffffff;
-      border-radius: 12px;
+      background: linear-gradient(145deg, #ffffff, #f1f5f9);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: transform 0.4s ease;
+    }
+
+    .summary-card:hover {
+      transform: translateY(-8px);
+    }
+
+    .gradient-button {
+      background: linear-gradient(90deg, #10b981, #059669);
+      color: white;
+      border-radius: 16px;
+      padding: 12px 32px;
+      font-weight: 600;
+      transition: transform 0.3s ease, background 0.3s ease;
+    }
+
+    .gradient-button:hover {
+      background: linear-gradient(90deg, #059669, #10b981);
+      transform: scale(1.05);
+    }
+
+    .input-field {
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 14px 14px 14px 40px;
+      background: #ffffff;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .input-field:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+      outline: none;
     }
 
     .input-icon {
       position: absolute;
-      left: 12px;
+      left: 14px;
       top: 50%;
       transform: translateY(-50%);
       color: #6b7280;
     }
 
-    .input-field {
-      padding-left: 40px;
-    }
-
-    .animate-pulse-once {
-      animation: pulse 1s ease-in-out 1;
-    }
-
     .readonly-field {
-      background-color: #e5e7eb;
+      background: #f3f4f6;
       cursor: not-allowed;
+      opacity: 0.9;
     }
-    .bg-primary {
-      background: #0d6efd !important;
+
+    .header-bg {
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+      position: relative;
+      overflow: hidden;
+      clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+    }
+
+    .header-bg::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('https://source.unsplash.com/random/1600x400?mosque,kaaba') no-repeat center center/cover;
+      opacity: 0.2;
+      z-index: 0;
+    }
+
+    .section-title {
+      position: relative;
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: #1f2937;
+      padding-bottom: 16px;
+      margin-bottom: 32px;
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 120px;
+      height: 5px;
+      background: linear-gradient(to right, #10b981, #059669);
+      border-radius: 3px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      background: #ecfdf5;
+      color: #059669;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+
+    .chip:hover {
+      background: #d1fae5;
+    }
+
+    .animate-on-scroll {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .animate-on-scroll.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .alert {
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .footer-bg {
+      background: linear-gradient(to bottom, #1f2937, #111827);
+      clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 100%);
+    }
+
+    .social-icon {
+      transition: transform 0.3s ease, color 0.3s ease;
+      font-size: 1.5rem;
+    }
+
+    .social-icon:hover {
+      transform: scale(1.4);
+      color: #10b981;
+    }
+
+    @media (max-width: 768px) {
+      .section-title {
+        font-size: 1.75rem;
+      }
+
+      .booking-form,
+      .summary-card {
+        padding: 24px;
+      }
+
+      .gradient-button {
+        padding: 10px 24px;
+      }
     }
   </style>
 </head>
 
-<body class="bg-gray-50 min-h-screen">
+<body>
+  <!-- Navbar -->
   <?php include 'includes/navbar.php'; ?>
-  <br><br><br>
 
-  <div class="container mx-auto px-4 py-8">
-    <div class="text-center mb-8 animate__animated animate__fadeIn">
-      <h1 class="text-3xl md:text-4xl font-bold text-primary mb-2">
-        <i class="fas fa-ticket-alt mr-2"></i> Book Your Flight
-      </h1>
-      <p class="text-gray-600 max-w-2xl mx-auto">Complete your booking details to secure your seats for a seamless Umrah journey.</p>
+  <!-- Page Header -->
+  <section class="header-bg text-white py-20 relative">
+    <div class="container mx-auto px-4 relative z-10">
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">Book Your Flight</h1>
+      <p class="text-lg md:text-xl text-gray-100 max-w-2xl">Secure your seats for a seamless Umrah journey with ease.</p>
+      <div class="mt-6 text-sm md:text-base">
+        <a href="index.php" class="text-gray-200 hover:text-white transition">Home</a>
+        <span class="mx-2">></span>
+        <a href="flight-booking.php" class="text-gray-200 hover:text-white transition">Flight Booking</a>
+        <span class="mx-2">></span>
+        <span class="text-gray-200">Book Flight</span>
+      </div>
     </div>
+  </section>
 
-    <!-- Error/Success Messages -->
-    <?php if ($error_message): ?>
-      <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg shadow-sm animate__animated animate__fadeIn" role="alert">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
-          </div>
-          <div>
+  <!-- Main Content -->
+  <section class="py-16">
+    <div class="container mx-auto px-4">
+      <!-- Error/Success Messages -->
+      <?php if ($error_message): ?>
+        <div class="alert bg-red-50 border-l-4 border-red-500 text-red-700 p-6 mb-8 animate-on-scroll" role="alert">
+          <div class="flex items-center">
+            <i class="fas fa-exclamation-circle text-red-500 text-xl mr-3"></i>
             <p class="font-medium"><?php echo htmlspecialchars($error_message); ?></p>
           </div>
         </div>
-      </div>
-    <?php endif; ?>
-    <?php if ($success_message): ?>
-      <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-lg shadow-sm animate__animated animate__fadeIn" role="alert">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <i class="fas fa-check-circle text-green-500 mr-2"></i>
-          </div>
-          <div>
-            <p class="font-medium"><?php echo htmlspecialchars($success_message); ?></p>
-            <p class="mt-2">You will receive a confirmation email soon.</p>
-            <p class="mt-2">
-              <a href="user/index.php" class="text-blue-600 hover:underline">View My Bookings</a>
-            </p>
-            <p class="mt-2">
-              <a href="flight-booking.php?flight_id=<?php echo $flight_id; ?>&cabin_class=<?php echo urlencode($cabin_class); ?>" class="text-blue-600 hover:underline">Book Another Flight</a>
-            </p>
-            <p class="mt-2">
-              <a href="index.php" class="text-blue-600 hover:underline">Back to Home</a>
-            </p>
-          </div>
-        </div>
-      </div>
-    <?php endif; ?>
-
-    <!-- Booking Form and Summary -->
-    <?php if (!$success_message && $flight && $user && $available_seats > 0): ?>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Booking Form -->
-        <div class="lg:col-span-2">
-          <div class="booking-form p-6 shadow-lg animate__animated animate__fadeIn animate__delay-1s">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Passenger Details</h2>
-            <form method="post" id="booking-form">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Passenger Name -->
-                <div class="relative">
-                  <label for="passenger_name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <i class="fas fa-user input-icon"></i>
-                  <input type="text" id="passenger_name" name="passenger_name" class="w-full input-field rounded-lg border-gray-300 shadow-sm readonly-field py-3" value="<?php echo htmlspecialchars($user['full_name']); ?>" readonly required>
-                </div>
-                <!-- Passenger Email -->
-                <div class="relative">
-                  <label for="passenger_email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                  <i class="fas fa-envelope input-icon"></i>
-                  <input type="email" id="passenger_email" name="passenger_email" class="w-full input-field rounded-lg border-gray-300 shadow-sm readonly-field py-3" value="<?php echo htmlspecialchars($user['email']); ?>" readonly required>
-                </div>
-                <!-- Passenger Phone -->
-                <div class="relative">
-                  <label for="passenger_phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                  <i class="fas fa-phone input-icon"></i>
-                  <input type="tel" id="passenger_phone" name="passenger_phone" class="w-full input-field rounded-lg border-gray-300 shadow-sm readonly-field py-3" value="<?php echo htmlspecialchars($user['phone']); ?>" readonly required>
-                </div>
-                <!-- Adult Count -->
-                <div>
-                  <label for="adult_count" class="block text-sm font-medium text-gray-700 mb-1">Adults (18+)</label>
-                  <select id="adult_count" name="adult_count" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 py-3" required>
-                    <?php for ($i = 1; $i <= $available_seats; $i++): ?>
-                      <option value="<?php echo $i; ?>" <?php echo (isset($_POST['adult_count']) && $_POST['adult_count'] == $i) ? 'selected' : ''; ?>><?php echo $i; ?></option>
-                    <?php endfor; ?>
-                  </select>
-                </div>
-                <!-- Children Count -->
-                <div>
-                  <label for="children_count" class="block text-sm font-medium text-gray-700 mb-1">Children (2-11)</label>
-                  <select id="children_count" name="children_count" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 py-3">
-                    <?php for ($i = 0; $i <= $available_seats; $i++): ?>
-                      <option value="<?php echo $i; ?>" <?php echo (isset($_POST['children_count']) && $_POST['children_count'] == $i) ? 'selected' : ''; ?>><?php echo $i; ?></option>
-                    <?php endfor; ?>
-                  </select>
-                </div>
-              </div>
-              <div class="mt-6">
-                <button type="submit" id="confirm-booking" class="w-full bg-primary hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out flex items-center justify-center shadow-md">
-                  <i class="fas fa-check-circle mr-2"></i> Confirm Booking
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <!-- Flight Summary -->
-        <div class="lg:col-span-1">
-          <div class="summary-card p-6 shadow-lg animate__animated animate__fadeIn animate__delay-1s">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Flight Summary</h2>
-            <!-- Seat Availability -->
-            <div class="mb-6">
-              <h3 class="text-lg font-semibold text-primary"><i class="fas fa-chair mr-2"></i> Seat Availability</h3>
-              <div class="mt-2">
-                <p><span class="font-medium">Available Seats:</span> <?php echo $available_seats; ?> in <?php echo ucfirst($cabin_class); ?> Class</p>
+      <?php endif; ?>
+      <?php if ($success_message): ?>
+        <div class="alert bg-green-50 border-l-4 border-green-500 text-green-700 p-6 mb-8 animate-on-scroll" role="alert">
+          <div class="flex">
+            <i class="fas fa-check-circle text-green-500 text-xl mr-3"></i>
+            <div>
+              <p class="font-medium"><?php echo htmlspecialchars($success_message); ?></p>
+              <p class="mt-2 text-sm">You will receive a confirmation email soon.</p>
+              <div class="mt-4 space-y-2">
+                <p><a href="user/index.php" class="text-emerald-600 hover:text-emerald-800 transition">View My Bookings</a></p>
+                <p><a href="flight-booking.php?flight_id=<?php echo $flight_id; ?>&cabin_class=<?php echo urlencode($cabin_class); ?>" class="text-emerald-600 hover:text-emerald-800 transition">Book Another Flight</a></p>
+                <p><a href="index.php" class="text-emerald-600 hover:text-emerald-800 transition">Back to Home</a></p>
               </div>
             </div>
-            <!-- Outbound Flight -->
-            <div class="mb-6">
-              <h3 class="text-lg font-semibold text-primary"><i class="fas fa-plane-departure mr-2"></i> Outbound Flight</h3>
-              <div class="mt-2 space-y-2">
-                <p><span class="font-medium">Airline:</span> <?php echo htmlspecialchars($flight['airline_name']); ?></p>
-                <p><span class="font-medium">Flight:</span> <?php echo htmlspecialchars($flight['flight_number']); ?></p>
-                <p><span class="font-medium">Route:</span> <?php echo htmlspecialchars($flight['departure_city']); ?> to <?php echo htmlspecialchars($flight['arrival_city']); ?></p>
-                <p><span class="font-medium">Date:</span> <?php echo date('D, M j, Y', strtotime($flight['departure_date'])); ?></p>
-                <p><span class="font-medium">Time:</span> <?php echo date('H:i', strtotime($flight['departure_time'])); ?></p>
-                <p><span class="font-medium">Duration:</span> <?php echo htmlspecialchars($flight['flight_duration']); ?> hours</p>
-                <p><span class="font-medium">Class:</span> <?php echo ucfirst($cabin_class); ?></p>
-                <p><span class="font-medium">Price per Seat:</span> PKR <?php echo number_format($flight[$cabin_class . '_price'], 0); ?></p>
-              </div>
+          </div>
+        </div>
+      <?php endif; ?>
+
+      <!-- Booking Form and Summary -->
+      <?php if (!$success_message && $flight && $user && $available_seats > 0): ?>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <!-- Booking Form -->
+          <div class="lg:col-span-2">
+            <div class="booking-form animate-on-scroll">
+              <h2 class="section-title">Passenger Details</h2>
+              <form method="post" id="booking-form">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <!-- Passenger Name -->
+                  <div class="relative">
+                    <label for="passenger_name" class="block text-sm font-medium text-gray-700 mb-3">Full Name</label>
+                    <i class="fas fa-user input-icon"></i>
+                    <input type="text" id="passenger_name" name="passenger_name" class="w-full input-field readonly-field" value="<?php echo htmlspecialchars($user['full_name']); ?>" readonly required>
+                  </div>
+                  <!-- Passenger Email -->
+                  <div class="relative">
+                    <label for="passenger_email" class="block text-sm font-medium text-gray-700 mb-3">Email Address</label>
+                    <i class="fas fa-envelope input-icon"></i>
+                    <input type="email" id="passenger_email" name="passenger_email" class="w-full input-field readonly-field" value="<?php echo htmlspecialchars($user['email']); ?>" readonly required>
+                  </div>
+                  <!-- Passenger Phone -->
+                  <div class="relative">
+                    <label for="passenger_phone" class="block text-sm font-medium text-gray-700 mb-3">Phone Number</label>
+                    <i class="fas fa-phone input-icon"></i>
+                    <input type="tel" id="passenger_phone" name="passenger_phone" class="w-full input-field readonly-field" value="<?php echo htmlspecialchars($user['phone']); ?>" readonly required>
+                  </div>
+                  <!-- Adult Count -->
+                  <div class="relative">
+                    <label for="adult_count" class="block text-sm font-medium text-gray-700 mb-3">Adults (18+)</label>
+                    <i class="fas fa-users input-icon"></i>
+                    <select id="adult_count" name="adult_count" class="w-full input-field" required>
+                      <?php for ($i = 1; $i <= $available_seats; $i++): ?>
+                        <option value="<?php echo $i; ?>" <?php echo (isset($_POST['adult_count']) && $_POST['adult_count'] == $i) ? 'selected' : ''; ?>><?php echo $i; ?></option>
+                      <?php endfor; ?>
+                    </select>
+                  </div>
+                  <!-- Children Count -->
+                  <div class="relative">
+                    <label for="children_count" class="block text-sm font-medium text-gray-700 mb-3">Children (2-11)</label>
+                    <i class="fas fa-child input-icon"></i>
+                    <select id="children_count" name="children_count" class="w-full input-field">
+                      <?php for ($i = 0; $i <= $available_seats; $i++): ?>
+                        <option value="<?php echo $i; ?>" <?php echo (isset($_POST['children_count']) && $_POST['children_count'] == $i) ? 'selected' : ''; ?>><?php echo $i; ?></option>
+                      <?php endfor; ?>
+                    </select>
+                  </div>
+                </div>
+                <div class="mt-8 text-center">
+                  <button type="submit" id="confirm-booking" class="gradient-button w-full md:w-auto"><i class="fas fa-check-circle mr-2"></i>Confirm Booking</button>
+                </div>
+              </form>
             </div>
-            <!-- Return Flight (if applicable) -->
-            <?php if ($flight['has_return']): ?>
+          </div>
+
+          <!-- Flight Summary -->
+          <div class="lg:col-span-1">
+            <div class="summary-card animate-on-scroll">
+              <h2 class="section-title">Flight Summary</h2>
+              <!-- Seat Availability -->
               <div class="mb-6">
-                <h3 class="text-lg font-semibold text-purple-600"><i class="fas fa-plane-arrival mr-2"></i> Return Flight</h3>
-                <div class="mt-2 space-y-2">
-                  <p><span class="font-medium">Airline:</span> <?php echo htmlspecialchars($flight['return_airline']); ?></p>
-                  <p><span class="font-medium">Flight:</span> <?php echo htmlspecialchars($flight['return_flight_number']); ?></p>
-                  <p><span class="font-medium">Route:</span> <?php echo htmlspecialchars($flight['arrival_city']); ?> to <?php echo htmlspecialchars($flight['departure_city']); ?></p>
-                  <p><span class="font-medium">Date:</span> <?php echo date('D, M j, Y', strtotime($flight['return_date'])); ?></p>
-                  <p><span class="font-medium">Time:</span> <?php echo date('H:i', strtotime($flight['return_time'])); ?></p>
-                  <p><span class="font-medium">Duration:</span> <?php echo htmlspecialchars($flight['return_flight_duration']); ?> hours</p>
-                  <p><span class="font-medium">Class:</span> <?php echo ucfirst($cabin_class); ?></p>
+                <h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-chair mr-2 text-emerald-600"></i>Seat Availability</h3>
+                <p class="mt-2 text-sm text-gray-600">
+                  <span class="font-medium"><?php echo $available_seats; ?></span> seats available in <span class="font-medium"><?php echo ucfirst($cabin_class); ?></span> Class
+                </p>
+                <span class="chip mt-2"><i class="fas fa-ticket-alt mr-1"></i><?php echo ucfirst($cabin_class); ?></span>
+              </div>
+              <!-- Outbound Flight -->
+              <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-plane-departure mr-2 text-emerald-600"></i>Outbound Flight</h3>
+                <div class="mt-2 space-y-2 text-sm text-gray-600">
+                  <p><span class="font-medium">Airline:</span> <?php echo htmlspecialchars($flight['airline_name']); ?></p>
+                  <p><span class="font-medium">Flight:</span> <?php echo htmlspecialchars($flight['flight_number']); ?></p>
+                  <p><span class="font-medium">Route:</span> <?php echo htmlspecialchars($flight['departure_city']); ?> to <?php echo htmlspecialchars($flight['arrival_city']); ?></p>
+                  <p><span class="font-medium">Date:</span> <?php echo date('D, M j, Y', strtotime($flight['departure_date'])); ?></p>
+                  <p><span class="font-medium">Time:</span> <?php echo date('H:i', strtotime($flight['departure_time'])); ?></p>
+                  <p><span class="font-medium">Duration:</span> <?php echo htmlspecialchars($flight['flight_duration']); ?> hours</p>
+                  <p><span class="font-medium">Price per Seat:</span> PKR <?php echo number_format($flight[$cabin_class . '_price'], 0); ?></p>
                 </div>
               </div>
-            <?php endif; ?>
-            <!-- Price Breakdown -->
-            <div class="border-t pt-4">
-              <h3 class="text-lg font-semibold text-gray-800">Price Breakdown</h3>
-              <div class="mt-2 space-y-2">
-                <p><span class="font-medium">Price per Seat:</span> PKR <?php echo number_format($flight[$cabin_class . '_price'], 0); ?></p>
-                <p><span class="font-medium">Passengers:</span> <span id="passenger-count">1 Adult</span></p>
-                <p class="text-lg font-bold text-secondary"><span class="font-medium">Total:</span> PKR <span id="total-price"><?php echo number_format($flight[$cabin_class . '_price'], 0); ?></span></p>
+              <!-- Return Flight (if applicable) -->
+              <?php if ($flight['has_return']): ?>
+                <div class="mb-6">
+                  <h3 class="text-lg font-semibold text-gray-800"><i class="fas fa-plane-arrival mr-2 text-purple-600"></i>Return Flight</h3>
+                  <div class="mt-2 space-y-2 text-sm text-gray-600">
+                    <p><span class="font-medium">Airline:</span> <?php echo htmlspecialchars($flight['return_airline']); ?></p>
+                    <p><span class="font-medium">Flight:</span> <?php echo htmlspecialchars($flight['return_flight_number']); ?></p>
+                    <p><span class="font-medium">Route:</span> <?php echo htmlspecialchars($flight['arrival_city']); ?> to <?php echo htmlspecialchars($flight['departure_city']); ?></p>
+                    <p><span class="font-medium">Date:</span> <?php echo date('D, M j, Y', strtotime($flight['return_date'])); ?></p>
+                    <p><span class="font-medium">Time:</span> <?php echo date('H:i', strtotime($flight['return_time'])); ?></p>
+                    <p><span class="font-medium">Duration:</span> <?php echo htmlspecialchars($flight['return_flight_duration']); ?> hours</p>
+                  </div>
+                </div>
+              <?php endif; ?>
+              <!-- Price Breakdown -->
+              <div class="border-t pt-4">
+                <h3 class="text-lg font-semibold text-gray-800">Price Breakdown</h3>
+                <div class="mt-2 space-y-2 text-sm text-gray-600">
+                  <p><span class="font-medium">Price per Seat:</span> PKR <?php echo number_format($flight[$cabin_class . '_price'], 0); ?></p>
+                  <p><span class="font-medium">Passengers:</span> <span id="passenger-count">1 Adult</span></p>
+                  <p class="text-lg font-bold text-emerald-600"><span class="font-medium">Total:</span> PKR <span id="total-price"><?php echo number_format($flight[$cabin_class . '_price'], 0); ?></span></p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    <?php elseif (!$success_message && $flight && $available_seats == 0): ?>
-      <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg shadow-sm animate__animated animate__fadeIn" role="alert">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
-          </div>
-          <div>
-            <p class="font-medium">No seats available in <?php echo ucfirst($cabin_class); ?> class for this flight.</p>
-            <p class="mt-2">Please select a different flight or cabin class.</p>
+      <?php elseif (!$success_message && $flight && $available_seats == 0): ?>
+        <div class="alert bg-red-50 border-l-4 border-red-500 text-red-700 p-6 mb-8 animate-on-scroll" role="alert">
+          <div class="flex items-center">
+            <i class="fas fa-exclamation-circle text-red-500 text-xl mr-3"></i>
+            <div>
+              <p class="font-medium">No seats available in <?php echo ucfirst($cabin_class); ?> class for this flight.</p>
+              <p class="mt-2 text-sm">Please select a different flight or cabin class.</p>
+              <a href="flight-booking.php" class="text-emerald-600 hover:text-emerald-800 transition mt-2 inline-block">Search Flights</a>
+            </div>
           </div>
         </div>
+      <?php endif; ?>
+    </div>
+  </section>
+
+  <!-- Call to Action -->
+  <section class="py-20 text-center bg-gradient-to-r from-emerald-50 to-teal-50">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold text-gray-800 mb-6 animate-on-scroll">Plan Your Umrah Journey</h2>
+      <p class="text-lg text-gray-600 mb-8 max-w-3xl mx-auto animate-on-scroll">Explore our packages and services for a complete spiritual experience.</p>
+      <a href="packages.php" class="gradient-button inline-block text-lg animate-on-scroll">View Packages</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer-bg py-20 text-gray-200">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-12">
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">About Us</h3>
+          <p class="text-gray-300 text-sm leading-relaxed">
+            We specialize in creating transformative Umrah experiences, blending premium services with spiritual fulfillment.
+          </p>
+          <div class="flex space-x-6 mt-6">
+            <a href="#" class="social-icon"><i class="fab fa-facebook"></i></a>
+            <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+          </div>
+        </div>
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">Quick Links</h3>
+          <ul class="space-y-4">
+            <li><a href="index.php" class="text-gray-300 hover:text-white transition">Home</a></li>
+            <li><a href="about.php" class="text-gray-300 hover:text-white transition">About Us</a></li>
+            <li><a href="packages.php" class="text-gray-300 hover:text-white transition">Our Packages</a></li>
+            <li><a href="faqs.php" class="text-gray-300 hover:text-white transition">FAQs</a></li>
+            <li><a href="contact.php" class="text-gray-300 hover:text-white transition">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">Our Services</h3>
+          <ul class="space-y-4">
+            <li><a href="packages.php" class="text-gray-300 hover:text-white transition">Umrah Packages</a></li>
+            <li><a href="flight-booking.php" class="text-gray-300 hover:text-white transition">Flight Booking</a></li>
+            <li><a href="hotel.php" class="text-gray-300 hover:text-white transition">Hotel Reservation</a></li>
+            <li><a href="visa.php" class="text-gray-300 hover:text-white transition">Visa Processing</a></li>
+            <li><a href="transport.php" class="text-gray-300 hover:text-white transition">Transportation</a></li>
+          </ul>
+        </div>
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">Contact Us</h3>
+          <ul class="space-y-4 text-gray-300">
+            <li class="flex items-start">
+              <i class="fas fa-map-marker-alt mt-1 mr-3 text-emerald-400"></i>
+              <span>123 Main Street, City, Country</span>
+            </li>
+            <li class="flex items-center">
+              <i class="fas fa-phone mr-3 text-emerald-400"></i>
+              <span>+44 775 983691</span>
+            </li>
+            <li class="flex items-center">
+              <i class="fas fa-envelope mr-3 text-emerald-400"></i>
+              <span>info@umrahpartner.com</span>
+            </li>
+          </ul>
+        </div>
       </div>
-    <?php endif; ?>
-  </div>
+      <div class="border-t border-gray-700 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center animate-on-scroll">
+        <p class="text-gray-400 text-sm">© 2025 Umrah Partners. All rights reserved.</p>
+        <div class="flex space-x-8 mt-4 md:mt-0">
+          <a href="privacy.php" class="text-gray-400 hover:text-white text-sm transition">Privacy Policy</a>
+          <a href="terms.php" class="text-gray-400 hover:text-white text-sm transition">Terms of Service</a>
+          <a href="cookies.php" class="text-gray-400 hover:text-white text-sm transition">Cookie Policy</a>
+        </div>
+      </div>
+    </div>
+  </footer>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -547,10 +740,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
         if (adults > 0) passengerText += `${adults} Adult${adults > 1 ? 's' : ''}`;
         if (children > 0) passengerText += `${passengerText ? ', ' : ''}${children} Child${children > 1 ? 'ren' : ''}`;
         passengerCountSpan.textContent = passengerText || '1 Adult';
-
-        // Animate price update
-        totalPriceSpan.classList.add('animate-pulse-once');
-        setTimeout(() => totalPriceSpan.classList.remove('animate-pulse-once'), 1000);
       }
 
       // Store initial children count
@@ -575,16 +764,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !$error_message) {
       const confirmButton = document.getElementById('confirm-booking');
       if (bookingForm && confirmButton) {
         bookingForm.addEventListener('submit', function() {
-          confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+          confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
           confirmButton.disabled = true;
         });
       }
+
+      // Scroll animations
+      const elements = document.querySelectorAll('.animate-on-scroll');
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+            }
+          });
+        }, {
+          threshold: 0.1
+        }
+      );
+      elements.forEach((el) => observer.observe(el));
     });
   </script>
 </body>
 
 </html>
-
 <?php
 $conn->close();
 ob_end_flush();

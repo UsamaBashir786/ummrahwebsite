@@ -16,7 +16,7 @@ $bookings = [];
 $filters = [
   'status' => $_GET['status'] ?? '',
   'payment' => $_GET['payment'] ?? '',
-  'package_type' => $_GET['package_type'] ?? '',
+  'star_rating' => $_GET['star_rating'] ?? '',
   'search' => $_GET['search'] ?? '',
   'date_from' => $_GET['date_from'] ?? '',
   'date_to' => $_GET['date_to'] ?? '',
@@ -105,7 +105,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
 }
 
 // Build the query with filters
-$sql = "SELECT pb.*, up.title as package_title, up.package_type, up.price as package_price, 
+$sql = "SELECT pb.*, up.title as package_title, up.star_rating, up.price as package_price, 
                u.full_name as user_name, u.email as user_email 
         FROM package_bookings pb
         JOIN umrah_packages up ON pb.package_id = up.id
@@ -127,9 +127,9 @@ if (!empty($filters['payment'])) {
   $types .= "s";
 }
 
-if (!empty($filters['package_type'])) {
-  $sql .= " AND up.package_type = ?";
-  $params[] = $filters['package_type'];
+if (!empty($filters['star_rating'])) {
+  $sql .= " AND up.star_rating = ?";
+  $params[] = $filters['star_rating'];
   $types .= "s";
 }
 
@@ -233,19 +233,19 @@ if (!$conn) {
   }
 }
 
-// Get package type breakdown
+// Get star rating breakdown
 $package_query = "SELECT 
-                     up.package_type,
+                     up.star_rating,
                      COALESCE(COUNT(*), 0) as count
                   FROM package_bookings pb
                   JOIN umrah_packages up ON pb.package_id = up.id
                   WHERE pb.booking_status != 'cancelled'
-                  GROUP BY up.package_type";
+                  GROUP BY up.star_rating";
 
 // Log the package query for debugging
-error_log("Package Type Query: " . $package_query);
+error_log("Star Rating Query: " . $package_query);
 
-$package_stats = ['single' => 0, 'group' => 0, 'vip' => 0];
+$package_stats = ['low_budget' => 0, '3_star' => 0, '4_star' => 0, '5_star' => 0];
 if (!$conn) {
   error_log("Database connection failed when fetching package stats.");
   $message = "Database connection error. Please try again later.";
@@ -254,11 +254,11 @@ if (!$conn) {
   $result = $conn->query($package_query);
   if ($result) {
     while ($row = $result->fetch_assoc()) {
-      $package_stats[$row['package_type']] = $row['count'];
+      $package_stats[$row['star_rating']] = $row['count'];
     }
   } else {
-    error_log("Package type query failed: " . $conn->error);
-    $message = "Error fetching package type statistics: " . $conn->error;
+    error_log("Star rating query failed: " . $conn->error);
+    $message = "Error fetching star rating statistics: " . $conn->error;
     $message_type = "error";
   }
 }
@@ -279,7 +279,7 @@ if (!$conn) {
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     .status-badge,
-    .package-type-badge {
+    .star-rating-badge {
       @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
     }
 
@@ -299,16 +299,20 @@ if (!$conn) {
       @apply bg-red-100 text-red-800;
     }
 
-    .package-single {
+    .star-low_budget {
       @apply bg-indigo-100 text-indigo-800;
     }
 
-    .package-group {
+    .star-3_star {
       @apply bg-purple-100 text-purple-800;
     }
 
-    .package-vip {
+    .star-4_star {
       @apply bg-yellow-100 text-yellow-800;
+    }
+
+    .star-5_star {
+      @apply bg-green-100 text-green-800;
     }
 
     .action-btn {
@@ -403,11 +407,12 @@ if (!$conn) {
             <i class="fas fa-tag text-yellow-600 text-xl"></i>
           </div>
           <div>
-            <h3 class="text-gray-500 text-sm font-medium">Package Types</h3>
+            <h3 class="text-gray-500 text-sm font-medium">Star Ratings</h3>
             <p class="text-sm font-medium text-gray-800">
-              Single: <?php echo $package_stats['single'] ?? 0; ?>,
-              Group: <?php echo $package_stats['group'] ?? 0; ?>,
-              VIP: <?php echo $package_stats['vip'] ?? 0; ?>
+              Low Budget: <?php echo $package_stats['low_budget'] ?? 0; ?>,
+              3-Star: <?php echo $package_stats['3_star'] ?? 0; ?>,
+              4-Star: <?php echo $package_stats['4_star'] ?? 0; ?>,
+              5-Star: <?php echo $package_stats['5_star'] ?? 0; ?>
             </p>
           </div>
         </div>
@@ -449,12 +454,13 @@ if (!$conn) {
             </select>
           </div>
           <div>
-            <label for="package_type" class="block text-sm font-medium text-gray-700 mb-1">Package Type</label>
-            <select id="package_type" name="package_type" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-              <option value="">All Types</option>
-              <option value="single" <?php echo $filters['package_type'] === 'single' ? 'selected' : ''; ?>>Single</option>
-              <option value="group" <?php echo $filters['package_type'] === 'group' ? 'selected' : ''; ?>>Group</option>
-              <option value="vip" <?php echo $filters['package_type'] === 'vip' ? 'selected' : ''; ?>>VIP</option>
+            <label for="star_rating" class="block text-sm font-medium text-gray-700 mb-1">Star Rating</label>
+            <select id="star_rating" name="star_rating" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+              <option value="">All Ratings</option>
+              <option value="low_budget" <?php echo $filters['star_rating'] === 'low_budget' ? 'selected' : ''; ?>>Low Budget</option>
+              <option value="3_star" <?php echo $filters['star_rating'] === '3_star' ? 'selected' : ''; ?>>3-Star</option>
+              <option value="4_star" <?php echo $filters['star_rating'] === '4_star' ? 'selected' : ''; ?>>4-Star</option>
+              <option value="5_star" <?php echo $filters['star_rating'] === '5_star' ? 'selected' : ''; ?>>5-Star</option>
             </select>
           </div>
           <div>
@@ -492,7 +498,7 @@ if (!$conn) {
                 <th class="px-6 py-3 text-left">ID</th>
                 <th class="px-6 py-3 text-left">Guest</th>
                 <th class="px-6 py-3 text-left">Package</th>
-                <th class="px-6 py-3 text-left">Type</th>
+                <th class="px-6 py-3 text-left">Rating</th>
                 <th class="px-6 py-3 text-left">Travel Date</th>
                 <th class="px-6 py-3 text-center">Travelers</th>
                 <th class="px-6 py-3 text-left">Reference</th>
@@ -517,8 +523,8 @@ if (!$conn) {
                     </td>
                     <td class="px-6 py-3"><?php echo htmlspecialchars($booking['package_title']); ?></td>
                     <td class="px-6 py-3">
-                      <span class="inline-block px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs font-medium">
-                        <?php echo ucfirst($booking['package_type']); ?>
+                      <span class="inline-block px-2 py-1 rounded star-rating-badge star-<?php echo $booking['star_rating']; ?>">
+                        <?php echo str_replace('_', ' ', ucfirst($booking['star_rating'])); ?>
                       </span>
                     </td>
                     <td class="px-6 py-3"><?php echo date('M d, Y', strtotime($booking['travel_date'])); ?></td>
@@ -526,33 +532,33 @@ if (!$conn) {
                     <td class="px-6 py-3"><?php echo htmlspecialchars($booking['booking_reference']); ?></td>
                     <td class="px-6 py-3 font-medium">PKR <?php echo number_format($booking['total_price'] ?? 0, 0); ?></td>
                     <td class="px-6 py-3">
-                      <span class="inline-block px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-medium">
+                      <span class="inline-block px-2 py-1 rounded status-badge status-<?php echo $booking['booking_status']; ?>">
                         <?php echo ucfirst($booking['booking_status']); ?>
                       </span>
                     </td>
                     <td class="px-6 py-3">
-                      <span class="inline-block px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-medium">
+                      <span class="inline-block px-2 py-1 rounded status-badge payment-<?php echo $booking['payment_status']; ?>">
                         <?php echo ucfirst($booking['payment_status']); ?>
                       </span>
                     </td>
                     <td class="px-6 py-3 text-center">
                       <div class="flex justify-center space-x-2">
                         <?php if ($booking['booking_status'] === 'pending'): ?>
-                          <a href="?action=confirm&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" title="Confirm Booking" class="text-green-600 hover:text-green-800">
+                          <a href="?action=confirm&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" title="Confirm Booking" class="text-green-600 hover:text-green-800 action-btn">
                             <i class="fas fa-check"></i>
                           </a>
                         <?php endif; ?>
                         <?php if ($booking['booking_status'] !== 'cancelled'): ?>
-                          <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" title="Cancel Booking" class="text-red-600 hover:text-red-800">
+                          <a href="?action=cancel&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" title="Cancel Booking" class="text-red-600 hover:text-red-800 action-btn cancel-booking" data-id="<?php echo $booking['id']; ?>">
                             <i class="fas fa-times"></i>
                           </a>
                         <?php endif; ?>
                         <?php if ($booking['payment_status'] === 'pending'): ?>
-                          <a href="?action=complete_payment&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" title="Mark Paid" class="text-indigo-600 hover:text-indigo-800">
+                          <a href="?action=complete_payment&id=<?php echo $booking['id']; ?>&<?php echo http_build_query($filters); ?>" title="Mark Paid" class="text-indigo-600 hover:text-indigo-800 action-btn">
                             <i class="fas fa-dollar-sign"></i>
                           </a>
                         <?php endif; ?>
-                        <button type="button" title="View Details" class="text-gray-600 hover:text-gray-800 view-details" data-id="<?php echo $booking['id']; ?>">
+                        <button type="button" title="View Details" class="text-gray-600 hover:text-gray-800 action-btn view-details" data-id="<?php echo $booking['id']; ?>">
                           <i class="fas fa-eye"></i>
                         </button>
                       </div>
@@ -691,7 +697,7 @@ if (!$conn) {
                 <div class="md:col-span-2">
                   <h4 class="font-semibold text-gray-700 mb-3">Package Details</h4>
                   <p><span class="font-medium">Package Title:</span> ${booking.package_title}</p>
-                  <p><span class="font-medium">Package Type:</span> <span class="package-type-badge package-${booking.package_type}">${booking.package_type.charAt(0).toUpperCase() + booking.package_type.slice(1)}</span></p>
+                  <p><span class="font-medium">Star Rating:</span> <span class="star-rating-badge star-${booking.star_rating}">${booking.star_rating.replace('_', ' ').charAt(0).toUpperCase() + booking.star_rating.replace('_', ' ').slice(1)}</span></p>
                   <p><span class="font-medium">Price Per Person:</span> PKR ${parseInt(booking.package_price || 0).toLocaleString()}</p>
                 </div>
               </div>
@@ -721,7 +727,6 @@ if (!$conn) {
       document.querySelectorAll('.cancel-booking').forEach(button => {
         button.addEventListener('click', (e) => {
           e.preventDefault();
-          const bookingId = button.getAttribute('data-id');
           const href = button.getAttribute('href');
           Swal.fire({
             title: 'Are you sure?',

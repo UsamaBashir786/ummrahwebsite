@@ -32,573 +32,721 @@ if ($faqs_result && $faqs_result->num_rows > 0) {
   }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-  <?php include 'includes/css-links.php' ?>
-  <link rel="stylesheet" href="assets/css/style.css">
-  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home | UmrahFlights</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- AOS Animation Library -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+    body {
+      font-family: 'Manrope', sans-serif;
+      background: #f9fafb;
+      color: #1f2937;
+      overflow-x: hidden;
+    }
+
+    .gradient-button {
+      background: linear-gradient(90deg, #10b981, #059669);
+      color: white;
+      border-radius: 16px;
+      padding: 12px 32px;
+      font-weight: 600;
+      transition: transform 0.3s ease, background 0.3s ease;
+    }
+
+    .gradient-button:hover {
+      background: linear-gradient(90deg, #059669, #10b981);
+      transform: scale(1.05);
+    }
+
+    .outline-button {
+      border: 2px solid #10b981;
+      color: #10b981;
+      background: transparent;
+      border-radius: 16px;
+      padding: 12px 32px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .outline-button:hover {
+      background: #10b981;
+      color: white;
+      transform: scale(1.05);
+    }
+
+    .section-title {
+      position: relative;
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: #1f2937;
+      padding-bottom: 16px;
+      margin-bottom: 32px;
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 120px;
+      height: 5px;
+      background: linear-gradient(to right, #10b981, #059669);
+      border-radius: 3px;
+    }
+
+    .card {
+      background: linear-gradient(145deg, #ffffff, #f1f5f9);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: transform 0.4s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+    }
+
+    .hero-section {
+      position: relative;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    }
+
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('https://source.unsplash.com/random/1600x900?kaaba,mosque') no-repeat center center/cover;
+      opacity: 0.2;
+      z-index: 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      color: white;
+      max-width: 800px;
+      padding: 2rem;
+    }
+
+    .package-img {
+      height: 240px;
+      position: relative;
+      overflow: hidden;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+    }
+
+    .package-img img {
+      transition: transform 0.7s ease;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .package-card:hover .package-img img {
+      transform: scale(1.05);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      background: #ecfdf5;
+      color: #059669;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+
+    .chip:hover {
+      background: #d1fae5;
+    }
+
+    .destination-card {
+      position: relative;
+      height: 350px;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+
+    .destination-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.7s ease;
+    }
+
+    .destination-card:hover .destination-img {
+      transform: scale(1.05);
+    }
+
+    .destination-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.2));
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 2rem;
+    }
+
+    .feature-icon {
+      width: 3rem;
+      height: 3rem;
+      background: #ecfdf5;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #059669;
+      font-size: 1.25rem;
+    }
+
+    .testimonial-card {
+      background: white;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats-section {
+      background: linear-gradient(to right, #10b981, #059669);
+      padding: 5rem 0;
+      color: white;
+      clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 100%);
+    }
+
+    .stat-card {
+      text-align: center;
+      padding: 1.5rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      backdrop-filter: blur(5px);
+    }
+
+    .cta-section {
+      position: relative;
+      background: url('https://source.unsplash.com/random/1600x600?mosque') center/cover no-repeat;
+      padding: 6rem 0;
+    }
+
+    .cta-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(17, 24, 39, 0.8);
+    }
+
+    .newsletter-form {
+      display: flex;
+      max-width: 500px;
+      margin: 2rem auto 0;
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .newsletter-input {
+      flex-grow: 1;
+      padding: 1rem 1.5rem;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    .newsletter-btn {
+      background: linear-gradient(90deg, #10b981, #059669);
+      color: white;
+      border: none;
+      padding: 1rem 1.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .newsletter-btn:hover {
+      background: linear-gradient(90deg, #059669, #10b981);
+    }
+
+    .animate-on-scroll {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .animate-on-scroll.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .footer-bg {
+      background: linear-gradient(to bottom, #1f2937, #111827);
+      clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 100%);
+    }
+
+    .social-icon {
+      transition: transform 0.3s ease, color 0.3s ease;
+      font-size: 1.5rem;
+    }
+
+    .social-icon:hover {
+      transform: scale(1.4);
+      color: #10b981;
+    }
+
+    .swiper-button-next,
+    .swiper-button-prev {
+      color: #10b981 !important;
+    }
+
+    .swiper-pagination-bullet-active {
+      background-color: #10b981 !important;
+    }
+
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+      .section-title {
+        font-size: 1.75rem;
+      }
+
+      .hero-title {
+        font-size: 2.5rem;
+      }
+
+      .newsletter-form {
+        flex-direction: column;
+      }
+
+      .newsletter-input {
+        border-radius: 16px;
+        margin-bottom: 1rem;
+      }
+
+      .newsletter-btn {
+        border-radius: 16px;
+        width: 100%;
+      }
+
+      .grid-cols-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 
-<body>
+<body class="flex flex-col min-h-screen">
   <!-- Navbar -->
   <?php include 'includes/navbar.php'; ?>
 
-
   <!-- Hero Section -->
-  <section class="hero-section relative bg-cover bg-center min-h-screen flex items-center justify-center" style="background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/assets/img/hero.jpg');">
-    <div class="container mx-auto px-4 text-center">
-      <div data-aos="fade-up" data-aos-duration="1000" class="max-w-4xl mx-auto text-white">
-        <h1 class="text-5xl md:text-6xl font-bold mb-6 leading-tight">Journey to Umrah</h1>
-        <p class="text-xl mb-8 opacity-90 max-w-2xl mx-auto">Embark on a transformative spiritual experience with our comprehensive and carefully curated Umrah packages.</p>
-        <div class="flex justify-center">
-          <a href="packages.php" class="btn-primary bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 px-8 rounded-lg text-lg transition duration-300">
-            Explore Packages
-          </a>
-        </div>
-      </div>
-      <div class="scroll-down absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white animate-bounce">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-        </svg>
+  <section class="hero-section">
+    <div class="hero-content animate-on-scroll">
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">Embark on a Sacred Journey</h1>
+      <p class="text-lg md:text-xl text-gray-100 max-w-2xl mx-auto mb-8">Experience spiritual transformation with our premium Umrah packages tailored for comfort and serenity.</p>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="packages.php" class="gradient-button"><i class="fas fa-arrow-right mr-2"></i>Explore Packages</a>
+        <a href="contact-us.php" class="outline-button"><i class="fas fa-phone mr-2"></i>Contact Us</a>
       </div>
     </div>
   </section>
 
-  <!-- Featured Packages Section -->
-  <section class="py-16 bg-gray-50">
+  <!-- Featured Destinations Section -->
+  <section class="py-20 bg-white">
     <div class="container mx-auto px-4">
-      <div class="text-center mb-12" data-aos="fade-up">
-        <span class="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold mb-2">FEATURED PACKAGES</span>
-        <h2 class="text-4xl font-bold text-gray-800 mb-4">Find Your Perfect Umrah Package</h2>
-        <p class="text-gray-600 max-w-2xl mx-auto">Choose from our selection of comprehensive Umrah packages designed to provide a seamless and spiritually enriching experience.</p>
+      <div class="text-center mb-12 animate-on-scroll">
+        <h2 class="section-title">Discover Holy Destinations</h2>
+        <p class="text-gray-600 max-w-2xl mx-auto">Explore significant places in your spiritual journey with our guided tours and comprehensive packages.</p>
       </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="destination-card animate-on-scroll">
+          <img src="/assets/img/mecca.jpg" alt="Mecca" class="destination-img">
+          <div class="destination-overlay">
+            <h3 class="text-white text-xl font-bold">Mecca</h3>
+            <p class="text-gray-200">The holiest city in Islam and the birthplace of Prophet Muhammad</p>
+          </div>
+        </div>
+        <div class="destination-card animate-on-scroll">
+          <img src="/assets/img/madinah.jpg" alt="Madinah" class="destination-img">
+          <div class="destination-overlay">
+            <h3 class="text-white text-xl font-bold">Madinah</h3>
+            <p class="text-gray-200">The second holiest city in Islam and the burial place of Prophet Muhammad</p>
+          </div>
+        </div>
+        <div class="destination-card animate-on-scroll">
+          <img src="/assets/img/jeddah.jpg" alt="Jeddah" class="destination-img">
+          <div class="destination-overlay">
+            <h3 class="text-white text-xl font-bold">Jeddah</h3>
+            <p class="text-gray-200">The gateway to Mecca and a major urban center in western Saudi Arabia</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
+  <!-- Packages Section -->
+  <section class="py-20 bg-gray-50">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-12 animate-on-scroll">
+        <span class="chip mb-3">Premium Selections</span>
+        <h2 class="section-title">Discover Our Umrah Packages</h2>
+        <p class="text-gray-600 max-w-2xl mx-auto">Choose from our carefully designed packages tailored for comfort and spiritual enrichment.</p>
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <?php if (empty($packages)): ?>
           <div class="col-span-full text-center">
-            <p class="text-gray-600">No packages available at the moment. Please check back later.</p>
+            <p class="text-gray-500">No packages available at the moment. Please check back later.</p>
           </div>
         <?php else: ?>
-          <?php foreach ($packages as $package): ?>
-            <div class="package-card" data-aos="fade-up" data-aos-delay="<?php echo $loop * 100; ?>">
-              <div class="relative">
-                <img
-                  src="<?php echo htmlspecialchars($package['package_image']); ?>"
-                  alt="<?php echo htmlspecialchars($package['title']); ?>"
-                  class="w-full h-64 object-cover">
-                <div class="absolute top-0 right-0 bg-green-600 text-white py-2 px-4 rounded-bl-lg text-sm font-semibold">
-                  Limited Offer
-                </div>
-                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
-                  <div class="inline-block bg-white/20 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-lg mb-2">
-                    <?php echo ucfirst(htmlspecialchars($package['package_type'])); ?> Package
-                  </div>
+          <?php foreach ($packages as $index => $package): ?>
+            <div class="card package-card animate-on-scroll">
+              <!-- Package Header -->
+              <div class="package-img">
+                <img src="<?php echo htmlspecialchars($package['package_image']); ?>" alt="<?php echo htmlspecialchars($package['title']); ?>">
+                <div class="absolute top-4 right-4 chip"><?php echo ucfirst(str_replace('_', ' ', htmlspecialchars($package['star_rating']))); ?></div>
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
                   <h3 class="text-white text-xl font-bold"><?php echo htmlspecialchars($package['title']); ?></h3>
+                  <div class="flex flex-wrap gap-2 mt-2">
+                    <span class="chip"><?php echo (int)$package['total_days']; ?> Days</span>
+                    <span class="chip">Makkah: <?php echo (int)$package['makkah_nights']; ?> Nights</span>
+                    <span class="chip">Madinah: <?php echo (int)$package['madinah_nights']; ?> Nights</span>
+                  </div>
                 </div>
               </div>
-
-              <div class="p-5 flex flex-col flex-grow">
+              <!-- Package Content -->
+              <div class="p-6 flex flex-col">
                 <div class="flex justify-between items-center mb-4">
-                  <div class="text-2xl font-bold text-green-600">
-                    Rs<?php echo number_format($package['price'], 2); ?>
-                  </div>
-                  <div class="text-sm text-gray-500">
-                    <?php echo ucfirst(htmlspecialchars($package['flight_class'])); ?> Flight
+                  <span class="text-2xl font-bold text-emerald-600">Rs <?php echo number_format($package['price'], 0); ?></span>
+                  <div class="flex">
+                    <?php
+                    $starCount = 0;
+                    switch ($package['star_rating']) {
+                      case '5_star':
+                        $starCount = 5;
+                        break;
+                      case '4_star':
+                        $starCount = 4;
+                        break;
+                      case '3_star':
+                        $starCount = 3;
+                        break;
+                      case 'low_budget':
+                        $starCount = 2;
+                        break;
+                    }
+                    for ($i = 0; $i < $starCount; $i++):
+                    ?>
+                      <i class="fas fa-star text-yellow-400"></i>
+                    <?php endfor; ?>
                   </div>
                 </div>
-
-                <div class="mb-4 flex-grow">
-                  <ul class="space-y-2">
+                <p class="text-gray-600 mb-6 line-clamp-2"><?php echo htmlspecialchars(substr($package['description'], 0, 120)) . '...'; ?></p>
+                <div class="mb-6">
+                  <h4 class="text-sm font-semibold text-gray-500 uppercase mb-3">Package Includes</h4>
+                  <div class="grid grid-cols-2 gap-2">
                     <?php
                     $inclusions = json_decode($package['inclusions'], true);
                     if (is_array($inclusions) && !empty($inclusions)):
-                      // Display only first 3 inclusions
                       $count = 0;
                       foreach ($inclusions as $inclusion):
-                        if ($count >= 3) break;
-                        $icon_class = '';
-                        switch ($inclusion) {
-                          case 'flight':
-                            $icon_class = 'fa-plane';
-                            break;
-                          case 'hotel':
-                            $icon_class = 'fa-hotel';
-                            break;
-                          case 'transport':
-                            $icon_class = 'fa-car';
-                            break;
-                          case 'guide':
-                            $icon_class = 'fa-user';
-                            break;
-                          case 'vip_services':
-                            $icon_class = 'fa-star';
-                            break;
-                          default:
-                            $icon_class = 'fa-check';
-                        }
+                        if ($count >= 4) break;
+                        $icon_class = match ($inclusion) {
+                          'flight' => 'fa-plane',
+                          'hotel' => 'fa-hotel',
+                          'transport' => 'fa-car',
+                          'guide' => 'fa-user',
+                          'vip_services' => 'fa-star',
+                          'visa' => 'fa-passport',
+                          'meals' => 'fa-utensils',
+                          'ziyarat' => 'fa-map-marked-alt',
+                          default => 'fa-check'
+                        };
                         $count++;
                     ?>
-                        <li class="flex items-center text-gray-700">
-                          <i class="fas <?php echo $icon_class; ?> mr-2 text-green-500 w-5"></i>
-                          <span><?php echo ucfirst(str_replace('_', ' ', $inclusion)); ?></span>
-                        </li>
+                        <div class="flex items-center gap-2 text-gray-700">
+                          <div class="feature-icon"><i class="fas <?php echo $icon_class; ?>"></i></div>
+                          <span class="text-sm"><?php echo ucfirst(str_replace('_', ' ', $inclusion)); ?></span>
+                        </div>
                       <?php
                       endforeach;
-                      if (count($inclusions) > 3):
+                      if (count($inclusions) > 4):
                       ?>
-                        <li class="text-sm text-gray-500 italic">
-                          + <?php echo count($inclusions) - 3; ?> more inclusions
-                        </li>
-                    <?php
-                      endif;
-                    endif;
-                    ?>
-                  </ul>
+                        <div class="col-span-2 text-xs text-emerald-600 font-medium mt-1">
+                          + <?php echo count($inclusions) - 4; ?> more inclusions
+                        </div>
+                    <?php endif;
+                    endif; ?>
+                  </div>
                 </div>
-
-                <a href="package-details.php?id=<?php echo $package['id']; ?>"
-                  class="block text-center bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition duration-300 mt-auto">
-                  View Details
-                </a>
+                <div class="flex flex-col gap-2 mt-auto">
+                  <a href="package-details.php?id=<?php echo $package['id']; ?>" class="gradient-button w-full text-center"><i class="fas fa-eye mr-2"></i>View Details</a>
+                  <a href="package-booking.php?package_id=<?php echo $package['id']; ?>" class="outline-button w-full text-center"><i class="fas fa-book mr-2"></i>Book Now</a>
+                </div>
               </div>
             </div>
           <?php endforeach; ?>
         <?php endif; ?>
       </div>
-
-      <div class="text-center mt-10">
-        <a href="packages.php" class="inline-flex items-center bg-white hover:bg-gray-50 text-green-600 border border-green-600 font-medium py-3 px-6 rounded-lg transition duration-300">
-          View All Packages
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-          </svg>
-        </a>
+      <div class="text-center mt-12 animate-on-scroll">
+        <a href="all-packages.php" class="gradient-button"><i class="fas fa-arrow-right mr-2"></i>View All Packages</a>
       </div>
     </div>
   </section>
 
-  <!-- Services Section -->
-  <section id="services" class="py-16 bg-white">
+  <!-- Key Features Section -->
+  <section class="py-20 bg-white">
     <div class="container mx-auto px-4">
-      <div class="text-center mb-12" data-aos="fade-up">
-        <span class="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold mb-2">OUR SERVICES</span>
-        <h2 class="text-4xl font-bold text-gray-800 mb-4">Comprehensive Umrah Services</h2>
-        <p class="text-gray-600 max-w-2xl mx-auto">We offer a complete range of services to make your sacred journey comfortable and spiritually fulfilling.</p>
+      <div class="text-center mb-12 animate-on-scroll">
+        <h2 class="section-title">Our Exceptional Services</h2>
+        <p class="text-gray-600 max-w-2xl mx-auto">Top-quality Umrah services ensuring comfort, convenience, and spiritual fulfillment.</p>
       </div>
-
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <!-- Flights -->
-        <div class="service-block bg-white rounded-xl shadow-md p-6 text-center" data-aos="fade-up" data-aos-delay="100">
-          <div class="service-icon w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-800 mb-2">Flight Bookings</h3>
-          <p class="text-gray-600 mb-4">We offer direct and connecting flights from multiple airports with comfortable seating and excellent in-flight services.</p>
-          <a href="flights.php" class="text-green-600 hover:text-green-700 font-medium inline-flex items-center">
-            Learn More <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </a>
+        <div class="card animate-on-scroll">
+          <div class="feature-icon mb-4"><i class="fas fa-map-marked-alt"></i></div>
+          <h3 class="text-xl font-bold mb-2">Strategic Locations</h3>
+          <p class="text-gray-600 text-sm">Premium hotels within walking distance from Haram to maximize worship time.</p>
         </div>
-
-        <!-- Hotels -->
-        <div class="service-block bg-white rounded-xl shadow-md p-6 text-center" data-aos="fade-up" data-aos-delay="200">
-          <div class="service-icon w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-800 mb-2">Premium Hotels</h3>
-          <p class="text-gray-600 mb-4">Stay in carefully selected hotels near the holy sites for maximum convenience during your spiritual journey.</p>
-          <a href="hotels.php" class="text-green-600 hover:text-green-700 font-medium inline-flex items-center">
-            Learn More <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </a>
+        <div class="card animate-on-scroll">
+          <div class="feature-icon mb-4"><i class="fas fa-user-tie"></i></div>
+          <h3 class="text-xl font-bold mb-2">Expert Guidance</h3>
+          <p class="text-gray-600 text-sm">Knowledgeable guides assist throughout your journey, enhancing your spiritual experience.</p>
         </div>
-
-        <!-- Transportation -->
-        <div class="service-block bg-white rounded-xl shadow-md p-6 text-center" data-aos="fade-up" data-aos-delay="300">
-          <div class="service-icon w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-800 mb-2">Transportation</h3>
-          <p class="text-gray-600 mb-4">Reliable and comfortable transportation between Makkah, Madinah, and Jeddah with professional drivers.</p>
-          <a href="transportation.php" class="text-green-600 hover:text-green-700 font-medium inline-flex items-center">
-            Learn More <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </a>
+        <div class="card animate-on-scroll">
+          <div class="feature-icon mb-4"><i class="fas fa-plane"></i></div>
+          <h3 class="text-xl font-bold mb-2">Comfortable Travel</h3>
+          <p class="text-gray-600 text-sm">Direct flights with premium airlines and hassle-free transport between destinations.</p>
         </div>
-
-        <!-- Guided Tours -->
-        <div class="service-block bg-white rounded-xl shadow-md p-6 text-center" data-aos="fade-up" data-aos-delay="400">
-          <div class="service-icon w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-800 mb-2">Guided Assistance</h3>
-          <p class="text-gray-600 mb-4">Experienced guides to assist you throughout your journey and enhance your spiritual experience.</p>
-          <a href="packages.php" class="text-green-600 hover:text-green-700 font-medium inline-flex items-center">
-            Learn More <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </a>
+        <div class="card animate-on-scroll">
+          <div class="feature-icon mb-4"><i class="fas fa-headset"></i></div>
+          <h3 class="text-xl font-bold mb-2">24/7 Support</h3>
+          <p class="text-gray-600 text-sm">Dedicated support team available round the clock during your sacred journey.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Why Choose Us Section -->
-  <section class="py-16 bg-gray-50">
+  <!-- Testimonials Section -->
+  <section class="py-20 bg-gray-50">
     <div class="container mx-auto px-4">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-        <div data-aos="fade-right">
-          <span class="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold mb-2">WHY CHOOSE US</span>
-          <h2 class="text-4xl font-bold text-gray-800 mb-6">Experience the Difference with Our Umrah Services</h2>
-          <p class="text-gray-600 mb-8">We take pride in offering exceptional Umrah services that stand out from the rest. Here's why pilgrims choose us for their sacred journey:</p>
-
-          <div class="space-y-4">
-            <div class="flex items-start">
-              <div class="flex-shrink-0 mr-4">
-                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <h4 class="text-lg font-semibold text-gray-800 mb-1">Experienced Professionals</h4>
-                <p class="text-gray-600">Our team consists of experienced professionals who understand the spiritual significance of Umrah.</p>
-              </div>
-            </div>
-
-            <div class="flex items-start">
-              <div class="flex-shrink-0 mr-4">
-                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <h4 class="text-lg font-semibold text-gray-800 mb-1">Personalized Packages</h4>
-                <p class="text-gray-600">We offer customized packages to suit different needs and budgets, ensuring a comfortable journey.</p>
-              </div>
-            </div>
-
-            <div class="flex items-start">
-              <div class="flex-shrink-0 mr-4">
-                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <h4 class="text-lg font-semibold text-gray-800 mb-1">Premium Accommodations</h4>
-                <p class="text-gray-600">Stay in carefully selected hotels near the Haram to maximize your time for worship.</p>
-              </div>
-            </div>
-
-            <div class="flex items-start">
-              <div class="flex-shrink-0 mr-4">
-                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-              <div>
-                <h4 class="text-lg font-semibold text-gray-800 mb-1">24/7 Support</h4>
-                <p class="text-gray-600">Our dedicated support team is available round the clock to assist you during your journey.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="relative" data-aos="fade-left">
-          <!-- SVG Illustration of Kaaba -->
-          <svg width="100%" height="400" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- Background -->
-            <rect width="800" height="600" fill="#F9FAFB" />
-
-            <!-- Sky -->
-            <rect width="800" height="300" fill="#E0F2FE" />
-
-            <!-- Kaaba -->
-            <rect x="300" y="200" width="200" height="200" fill="#111827" />
-
-            <!-- Kaaba Door -->
-            <rect x="380" y="250" width="40" height="80" fill="#D4AF37" />
-
-            <!-- Kaaba Corner Stones -->
-            <circle cx="300" cy="200" r="10" fill="#D4AF37" />
-            <circle cx="500" cy="200" r="10" fill="#D4AF37" />
-            <circle cx="300" cy="400" r="10" fill="#D4AF37" />
-            <circle cx="500" cy="400" r="10" fill="#D4AF37" />
-
-            <!-- Kaaba Kiswa Border -->
-            <rect x="300" y="250" width="200" height="20" fill="#D4AF37" opacity="0.8" />
-
-            <!-- Tawaf Circle -->
-            <circle cx="400" cy="300" r="180" stroke="#E5E7EB" stroke-width="20" stroke-dasharray="10 10" fill="none" />
-
-            <!-- People -->
-            <circle cx="250" cy="300" r="8" fill="#047857" />
-            <circle cx="270" cy="350" r="8" fill="#047857" />
-            <circle cx="280" cy="270" r="8" fill="#047857" />
-            <circle cx="520" cy="300" r="8" fill="#047857" />
-            <circle cx="540" cy="350" r="8" fill="#047857" />
-            <circle cx="530" cy="270" r="8" fill="#047857" />
-            <circle cx="400" cy="150" r="8" fill="#047857" />
-            <circle cx="450" cy="170" r="8" fill="#047857" />
-            <circle cx="350" cy="170" r="8" fill="#047857" />
-            <circle cx="400" cy="450" r="8" fill="#047857" />
-            <circle cx="450" cy="430" r="8" fill="#047857" />
-            <circle cx="350" cy="430" r="8" fill="#047857" />
-
-            <!-- Minarets -->
-            <rect x="200" y="150" width="20" height="200" fill="#E5E7EB" />
-            <polygon points="200,150 220,150 210,120" fill="#E5E7EB" />
-            <rect x="580" y="150" width="20" height="200" fill="#E5E7EB" />
-            <polygon points="580,150 600,150 590,120" fill="#E5E7EB" />
-
-            <!-- Ground -->
-            <rect y="400" width="800" height="200" fill="#E5E7EB" />
-          </svg>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Umrah Process Section -->
-  <section class="py-16 bg-white">
-    <div class="container mx-auto px-4">
-      <div class="text-center mb-12" data-aos="fade-up">
-        <span class="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold mb-2">THE JOURNEY</span>
-        <h2 class="text-4xl font-bold text-gray-800 mb-4">Understanding the Umrah Process</h2>
-        <p class="text-gray-600 max-w-2xl mx-auto">Follow these essential steps to complete your Umrah pilgrimage with spiritual fulfillment.</p>
-      </div>
-
-      <div class="timeline-container max-w-4xl mx-auto">
-        <div class="timeline-item" data-aos="fade-up" data-aos-delay="100">
-          <h3 class="text-xl font-bold text-gray-800 mb-2">1. Ihram (Purification & Intention)</h3>
-          <p class="text-gray-600 mb-2">Enter the sacred state of Ihram by performing Ghusl (ritual bath), wearing the proper Ihram garments, and making the Niyyah (intention) for Umrah.</p>
-          <div class="bg-green-50 p-4 rounded-lg">
-            <p class="text-green-700 font-medium">
-              <i class="fas fa-info-circle mr-2"></i>
-              Men wear two white unstitched cloths, while women wear modest regular clothes.
-            </p>
-          </div>
-        </div>
-
-        <div class="timeline-item" data-aos="fade-up" data-aos-delay="200">
-          <h3 class="text-xl font-bold text-gray-800 mb-2">2. Tawaf (Circumambulation)</h3>
-          <p class="text-gray-600 mb-2">Perform seven counterclockwise circuits around the Kaaba, starting from the Black Stone (Hajar al-Aswad), reciting prayers throughout.</p>
-          <div class="bg-green-50 p-4 rounded-lg">
-            <p class="text-green-700 font-medium">
-              <i class="fas fa-info-circle mr-2"></i>
-              The first three circuits are performed at a faster pace (for men), and the remaining four at a normal walking pace.
-            </p>
-          </div>
-        </div>
-
-        <div class="timeline-item" data-aos="fade-up" data-aos-delay="300">
-          <h3 class="text-xl font-bold text-gray-800 mb-2">3. Sa'i (Walking between Safa & Marwa)</h3>
-          <p class="text-gray-600 mb-2">Walk seven times between the hills of Safa and Marwa, commemorating Hagar's search for water for her son Ishmael.</p>
-          <div class="bg-green-50 p-4 rounded-lg">
-            <p class="text-green-700 font-medium">
-              <i class="fas fa-info-circle mr-2"></i>
-              Men are encouraged to jog lightly in the marked section between the green lights.
-            </p>
-          </div>
-        </div>
-
-        <div class="timeline-item" data-aos="fade-up" data-aos-delay="400">
-          <h3 class="text-xl font-bold text-gray-800 mb-2">4. Halq or Taqsir (Cutting of Hair)</h3>
-          <p class="text-gray-600 mb-2">Conclude your Umrah by cutting some hair from your head. Men have the option to shave their heads completely (Halq) or trim their hair (Taqsir), while women cut only a small amount of hair.</p>
-          <div class="bg-green-50 p-4 rounded-lg">
-            <p class="text-green-700 font-medium">
-              <i class="fas fa-info-circle mr-2"></i>
-              This step signifies the end of the Umrah rites and the state of Ihram.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Testimonial Section -->
-  <section class="py-16 bg-gray-50">
-    <div class="container mx-auto px-4">
-      <div class="text-center mb-12" data-aos="fade-up">
-        <span class="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold mb-2">TESTIMONIALS</span>
-        <h2 class="text-4xl font-bold text-gray-800 mb-4">What Our Pilgrims Say</h2>
+      <div class="text-center mb-12 animate-on-scroll">
+        <h2 class="section-title">Pilgrim Testimonials</h2>
         <p class="text-gray-600 max-w-2xl mx-auto">Hear from those who have experienced our Umrah services firsthand.</p>
       </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <div class="testimonial-card" data-aos="fade-up" data-aos-delay="100">
-          <div class="flex items-center mb-4">
-            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mr-3">
-              <span class="text-green-600 font-bold text-lg">A</span>
-            </div>
-            <div>
-              <h4 class="font-bold text-gray-800">Ahmed Khan</h4>
-              <p class="text-sm text-gray-500">Karachi, Pakistan</p>
+      <div class="swiper testimonial-slider animate-on-scroll">
+        <div class="swiper-wrapper">
+          <div class="swiper-slide">
+            <div class="testimonial-card">
+              <div class="flex mb-4">
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+              </div>
+              <p class="text-gray-600 italic mb-4">"The team made my first Umrah truly memorable. Every detail was handled with professionalism."</p>
+              <div class="flex items-center">
+                <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold">A</div>
+                <div class="ml-3">
+                  <p class="font-bold">Ahmed Khan</p>
+                  <p class="text-sm text-gray-500">Karachi, Pakistan</p>
+                </div>
+              </div>
             </div>
           </div>
-          <p class="text-gray-600 mt-6">
-            "The team at UmrahFlights made my first Umrah experience truly memorable. From the moment I landed in Saudi Arabia to the time I departed, every detail was taken care of with utmost professionalism."
-          </p>
-          <div class="mt-4 flex">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
+          <div class="swiper-slide">
+            <div class="testimonial-card">
+              <div class="flex mb-4">
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+              </div>
+              <p class="text-gray-600 italic mb-4">"As a woman traveling with family, I appreciated the care and excellent accommodations."</p>
+              <div class="flex items-center">
+                <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold">F</div>
+                <div class="ml-3">
+                  <p class="font-bold">Fatima Ali</p>
+                  <p class="text-sm text-gray-500">Lahore, Pakistan</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="swiper-slide">
+            <div class="testimonial-card">
+              <div class="flex mb-4">
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star-half-alt text-yellow-400"></i>
+              </div>
+              <p class="text-gray-600 italic mb-4">"The most organized Umrah trip I’ve experienced. Will book again."</p>
+              <div class="flex items-center">
+                <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold">M</div>
+                <div class="ml-3">
+                  <p class="font-bold">Muhammad Usman</p>
+                  <p class="text-sm text-gray-500">Islamabad, Pakistan</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="swiper-slide">
+            <div class="testimonial-card">
+              <div class="flex mb-4">
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+                <i class="fas fa-star text-yellow-400"></i>
+              </div>
+              <p class="text-gray-600 italic mb-4">"The premium package exceeded expectations with excellent hotels and punctual transport."</p>
+              <div class="flex items-center">
+                <div class="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold">S</div>
+                <div class="ml-3">
+                  <p class="font-bold">Saad Rahman</p>
+                  <p class="text-sm text-gray-500">Peshawar, Pakistan</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div class="text-center mt-10">
-        <a href="about-us.php" class="inline-flex items-center text-green-600 font-medium hover:text-green-700 transition duration-300">
-          See More Testimonials
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-          </svg>
-        </a>
+        <div class="swiper-pagination"></div>
+        <div class="swiper-button-next"></div>
+        <div class="swiper-button-prev"></div>
       </div>
     </div>
   </section>
 
   <!-- Stats Section -->
-  <section class="py-16 animated-bg text-white">
+  <section class="stats-section">
     <div class="container mx-auto px-4">
-      <div class="text-center mb-12" data-aos="fade-up">
-        <span class="inline-block px-3 py-1 bg-white text-green-700 rounded-full text-sm font-semibold mb-2">OUR ACHIEVEMENTS</span>
-        <h2 class="text-4xl font-bold mb-4">Trusted by Thousands of Pilgrims</h2>
-        <p class="max-w-2xl mx-auto opacity-90">We have been privileged to serve numerous pilgrims over the years, helping them fulfill their spiritual journey with comfort and peace of mind.</p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-        <div class="bg-white/10 backdrop-blur-sm p-6 rounded-lg" data-aos="fade-up" data-aos-delay="100">
-          <div class="counter-value text-white">5000+</div>
-          <div class="counter-label text-white opacity-90">Happy Pilgrims</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="stat-card animate-on-scroll">
+          <div class="text-4xl font-extrabold mb-2" data-count="5000">0</div>
+          <div class="text-lg font-medium">Happy Pilgrims</div>
         </div>
-
-        <div class="bg-white/10 backdrop-blur-sm p-6 rounded-lg" data-aos="fade-up" data-aos-delay="200">
-          <div class="counter-value text-white">10+</div>
-          <div class="counter-label text-white opacity-90">Years of Experience</div>
+        <div class="stat-card animate-on-scroll">
+          <div class="text-4xl font-extrabold mb-2" data-count="10">0</div>
+          <div class="text-lg font-medium">Years Experience</div>
         </div>
-
-        <div class="bg-white/10 backdrop-blur-sm p-6 rounded-lg" data-aos="fade-up" data-aos-delay="300">
-          <div class="counter-value text-white">20+</div>
-          <div class="counter-label text-white opacity-90">Expert Guides</div>
+        <div class="stat-card animate-on-scroll">
+          <div class="text-4xl font-extrabold mb-2" data-count="20">0</div>
+          <div class="text-lg font-medium">Expert Guides</div>
         </div>
-
-        <div class="bg-white/10 backdrop-blur-sm p-6 rounded-lg" data-aos="fade-up" data-aos-delay="400">
-          <div class="counter-value text-white">98%</div>
-          <div class="counter-label text-white opacity-90">Satisfaction Rate</div>
+        <div class="stat-card animate-on-scroll">
+          <div class="text-4xl font-extrabold mb-2" data-count="98">0</div>
+          <div class="text-lg font-medium">Satisfaction Rate</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- FAQ Section -->
-    <!-- FAQ Section -->
-  <section class="py-16 bg-white">
+  <!-- Umrah Process Timeline -->
+  <section class="py-20 bg-white">
     <div class="container mx-auto px-4">
-      <div class="text-center mb-12" data-aos="fade-up">
-        <span class="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold mb-2">FAQ</span>
-        <h2 class="text-4xl font-bold text-gray-800 mb-4">Frequently Asked Questions</h2>
-        <p class="text-gray-600 max-w-2xl mx-auto">Find answers to common questions about our Umrah packages and services.</p>
+      <div class="text-center mb-12 animate-on-scroll">
+        <h2 class="section-title">The Umrah Journey</h2>
+        <p class="text-gray-600 max-w-2xl mx-auto">Understand the essential steps of Umrah to prepare spiritually and physically.</p>
       </div>
-
-      <?php if (!empty($all_faqs)): ?>
-        <div class="max-w-3xl mx-auto">
-          <?php
-          // If you want to display by category, uncomment this section
-          /*
-        foreach ($faqs_by_category as $category => $faqs): ?>
-          <div class="mb-8">
-            <h3 class="text-xl font-bold text-gray-800 mb-4"><?php echo htmlspecialchars($category); ?></h3>
-            <?php foreach ($faqs as $faq): ?>
-              <div class="faq-item" data-aos="fade-up">
-                <div class="faq-question">
-                  <h3 class="text-lg font-semibold text-gray-800"><?php echo htmlspecialchars($faq['question']); ?></h3>
-                </div>
-                <div class="faq-answer">
-                  <p class="text-gray-600"><?php echo nl2br(htmlspecialchars($faq['answer'])); ?></p>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        <?php endforeach;
-        */
-
-          // Display all FAQs without category grouping
-          foreach ($all_faqs as $faq): ?>
-            <div class="faq-item" data-aos="fade-up">
-              <div class="faq-question">
-                <h3 class="text-lg font-semibold text-gray-800"><?php echo htmlspecialchars($faq['question']); ?></h3>
-              </div>
-              <div class="faq-answer">
-                <p class="text-gray-600"><?php echo nl2br(htmlspecialchars($faq['answer'])); ?></p>
-              </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="card relative animate-on-scroll">
+          <div class="absolute -top-6 left-6 bg-emerald-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold">1</div>
+          <div class="pt-6">
+            <h3 class="text-xl font-bold mb-2">Ihram (Purification & Intention)</h3>
+            <p class="text-gray-600 text-sm">Enter Ihram by performing Ghusl, wearing Ihram garments, and making Niyyah for Umrah.</p>
+            <div class="mt-4 bg-emerald-50 p-4 rounded-lg border-l-4 border-emerald-500">
+              <p class="text-sm text-emerald-700"><i class="fas fa-info-circle mr-2"></i>Men wear two white unstitched cloths, women wear modest clothes.</p>
             </div>
-          <?php endforeach; ?>
+          </div>
         </div>
-      <?php else: ?>
-        <div class="max-w-3xl mx-auto text-center">
-          <p class="text-gray-600">No FAQs available at the moment. Please check back later.</p>
+        <div class="card relative animate-on-scroll">
+          <div class="absolute -top-6 left-6 bg-emerald-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold">2</div>
+          <div class="pt-6">
+            <h3 class="text-xl font-bold mb-2">Tawaf (Circumambulation)</h3>
+            <p class="text-gray-600 text-sm">Perform seven counterclockwise circuits around the Kaaba, reciting prayers.</p>
+            <div class="mt-4 bg-emerald-50 p-4 rounded-lg border-l-4 border-emerald-500">
+              <p class="text-sm text-emerald-700"><i class="fas fa-info-circle mr-2"></i>First three circuits at a faster pace (men), then normal pace.</p>
+            </div>
+          </div>
         </div>
-      <?php endif; ?>
+        <div class="card relative animate-on-scroll">
+          <div class="absolute -top-6 left-6 bg-emerald-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold">3</div>
+          <div class="pt-6">
+            <h3 class="text-xl font-bold mb-2">Sa'i (Walking between Safa & Marwa)</h3>
+            <p class="text-gray-600 text-sm">Walk seven times between Safa and Marwa, commemorating Hagar’s search for water.</p>
+            <div class="mt-4 bg-emerald-50 p-4 rounded-lg border-l-4 border-emerald-500">
+              <p class="text-sm text-emerald-700"><i class="fas fa-info-circle mr-2"></i>Men jog lightly in the marked section between green lights.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card relative animate-on-scroll">
+          <div class="absolute -top-6 left-6 bg-emerald-600 text-white w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold">4</div>
+          <div class="pt-6">
+            <h3 class="text-xl font-bold mb-2">Halq or Taqsir (Cutting of Hair)</h3>
+            <p class="text-gray-600 text-sm">Conclude Umrah by cutting hair; men may shave (Halq) or trim (Taqsir).</p>
+            <div class="mt-4 bg-emerald-50 p-4 rounded-lg border-l-4 border-emerald-500">
+              <p class="text-sm text-emerald-700"><i class="fas fa-info-circle mr-2"></i>Signifies the end of Umrah rites and Ihram state.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
-
-  <!-- Call to Action -->
-  <section class="py-16 bg-green-700 text-white">
-    <div class="container mx-auto px-4 text-center" data-aos="fade-up">
-      <h2 class="text-3xl md:text-4xl font-bold mb-6">Ready to Begin Your Sacred Journey?</h2>
-      <p class="text-xl opacity-90 max-w-3xl mx-auto mb-8">Let us guide you on this spiritually enriching experience. Book your Umrah package today and take the first step towards fulfilling your religious obligation.</p>
-      <div class="flex flex-col sm:flex-row justify-center gap-4">
-        <a href="packages.php" class="bg-white text-green-700 hover:bg-gray-100 font-bold py-3 px-8 rounded-lg text-lg transition duration-300">
-          Explore Packages
-        </a>
-        <a href="contact-us.php" class="bg-transparent border-2 border-white text-white hover:bg-white hover:text-green-700 font-bold py-3 px-8 rounded-lg text-lg transition duration-300">
-          Contact Us
-        </a>
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="cta-overlay"></div>
+    <div class="container mx-auto px-4 text-center animate-on-scroll">
+      <h2 class="text-3xl font-bold text-white mb-4">Ready to Begin Your Sacred Journey?</h2>
+      <p class="text-lg text-gray-200 mb-8 max-w-3xl mx-auto">Take the first step towards fulfilling your religious obligation with our comprehensive Umrah packages.</p>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="packages.php" class="gradient-button"><i class="fas fa-arrow-right mr-2"></i>Explore Packages</a>
+        <a href="contact-us.php" class="outline-button"><i class="fas fa-phone mr-2"></i>Contact Us</a>
       </div>
     </div>
   </section>
 
   <!-- Newsletter Section -->
-  <section class="py-12 bg-gray-50">
+  <section class="py-20 bg-white">
     <div class="container mx-auto px-4">
-      <div class="max-w-4xl mx-auto text-center">
-        <h2 class="text-2xl font-bold text-gray-800 mb-2">Stay Updated</h2>
-        <p class="text-gray-600 mb-6">Subscribe to our newsletter for the latest updates on Umrah packages, travel tips, and special offers.</p>
-        <form class="flex flex-col md:flex-row gap-4 max-w-lg mx-auto">
-          <input type="email" placeholder="Your email address" class="flex-grow px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
-          <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition duration-300">
-            Subscribe
-          </button>
+      <div class="text-center animate-on-scroll">
+        <h2 class="section-title">Join Our Newsletter</h2>
+        <p class="text-gray-600 max-w-2xl mx-auto mb-6">Subscribe for updates on Umrah packages, travel guidelines, and exclusive offers.</p>
+        <form class="newsletter-form">
+          <input type="email" class="newsletter-input" placeholder="Your email address">
+          <button type="submit" class="newsletter-btn"><i class="fas fa-envelope mr-2"></i>Subscribe</button>
         </form>
         <p class="text-sm text-gray-500 mt-4">We respect your privacy and will never share your information.</p>
       </div>
@@ -606,80 +754,159 @@ if ($faqs_result && $faqs_result->num_rows > 0) {
   </section>
 
   <!-- Footer -->
-  <?php include 'includes/footer.php'; ?>
+  <footer class="footer-bg py-20 text-gray-200">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-12">
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">About Us</h3>
+          <p class="text-gray-300 text-sm leading-relaxed">
+            We specialize in creating transformative Umrah experiences, blending premium services with spiritual fulfillment.
+          </p>
+          <div class="flex space-x-6 mt-6">
+            <a href="#" class="social-icon"><i class="fab fa-facebook"></i></a>
+            <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+          </div>
+        </div>
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">Quick Links</h3>
+          <ul class="space-y-4">
+            <li><a href="index.php" class="text-gray-300 hover:text-white transition">Home</a></li>
+            <li><a href="about.php" class="text-gray-300 hover:text-white transition">About Us</a></li>
+            <li><a href="packages.php" class="text-gray-300 hover:text-white transition">Our Packages</a></li>
+            <li><a href="faqs.php" class="text-gray-300 hover:text-white transition">FAQs</a></li>
+            <li><a href="contact.php" class="text-gray-300 hover:text-white transition">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">Our Services</h3>
+          <ul class="space-y-4">
+            <li><a href="packages.php" class="text-gray-300 hover:text-white transition">Umrah Packages</a></li>
+            <li><a href="flight-booking.php" class="text-gray-300 hover:text-white transition">Flight Booking</a></li>
+            <li><a href="hotel-booking.php" class="text-gray-300 hover:text-white transition">Hotel Reservation</a></li>
+            <li><a href="visa.php" class="text-gray-300 hover:text-white transition">Visa Processing</a></li>
+            <li><a href="transport.php" class="text-gray-300 hover:text-white transition">Transportation</a></li>
+          </ul>
+        </div>
+        <div class="animate-on-scroll">
+          <h3 class="text-2xl font-bold mb-6 text-white">Contact Us</h3>
+          <ul class="space-y-4 text-gray-300">
+            <li class="flex items-start">
+              <i class="fas fa-map-marker-alt mt-1 mr-3 text-emerald-400"></i>
+              <span>123 Main Street, City, Country</span>
+            </li>
+            <li class="flex items-center">
+              <i class="fas fa-phone mr-3 text-emerald-400"></i>
+              <span>+44 775 983691</span>
+            </li>
+            <li class="flex items-center">
+              <i class="fas fa-envelope mr-3 text-emerald-400"></i>
+              <span>info@umrahpartner.com</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-gray-700 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center animate-on-scroll">
+        <p class="text-gray-400 text-sm">© 2025 Umrah Partners. All rights reserved.</p>
+        <div class="flex space-x-8 mt-4 md:mt-0">
+          <a href="privacy.php" class="text-gray-400 hover:text-white text-sm transition">Privacy Policy</a>
+          <a href="terms.php" class="text-gray-400 hover:text-white text-sm transition">Terms of Service</a>
+          <a href="cookies.php" class="text-gray-400 hover:text-white text-sm transition">Cookie Policy</a>
+        </div>
+      </div>
+    </div>
+  </footer>
 
-  <!-- Initialize AOS (Animate on Scroll) -->
+  <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Initialize AOS animation
-      AOS.init({
-        duration: 800,
-        easing: 'ease-in-out',
-        once: true
+      // Initialize Swiper
+      new Swiper('.testimonial-slider', {
+        slidesPerView: 1,
+        spaceBetween: 30,
+        loop: true,
+        pagination: {
+          el: '.swiper-pagination',
+          clickable: true,
+        },
+        navigation: {
+          nextEl: '.swiper-button-next',
+          prevEl: '.swiper-button-prev',
+        },
+        breakpoints: {
+          640: {
+            slidesPerView: 1
+          },
+          768: {
+            slidesPerView: 2
+          },
+          1024: {
+            slidesPerView: 3
+          },
+        },
+        autoplay: {
+          delay: 5000,
+          disableOnInteraction: false,
+        },
       });
 
-      // FAQ Toggle functionality
-      const faqQuestions = document.querySelectorAll('.faq-question');
-      faqQuestions.forEach(question => {
-        question.addEventListener('click', () => {
-          const faqItem = question.parentElement;
-          faqItem.classList.toggle('active');
+      // Stats counter animation
+      const statNumbers = document.querySelectorAll('[data-count]');
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const element = entry.target;
+            const target = parseInt(element.getAttribute('data-count'));
+            const duration = 2000;
+            const step = target / duration * 10;
+            let current = 0;
+            const timer = setInterval(() => {
+              current += step;
+              if (current >= target) {
+                element.textContent = target;
+                clearInterval(timer);
+              } else {
+                element.textContent = Math.floor(current);
+              }
+            }, 10);
+            observer.unobserve(element);
+          }
         });
+      }, {
+        threshold: 0.5
       });
+      statNumbers.forEach(number => observer.observe(number));
+
+      // Scroll animations
+      const elements = document.querySelectorAll('.animate-on-scroll');
+      const scrollObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+            }
+          });
+        }, {
+          threshold: 0.1
+        }
+      );
+      elements.forEach((el) => scrollObserver.observe(el));
 
       // Smooth scroll for anchor links
       document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
           e.preventDefault();
-          document.querySelector(this.getAttribute('href')).scrollIntoView({
-            behavior: 'smooth'
-          });
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
         });
       });
     });
   </script>
-
-  <?php include 'includes/js-links.php' ?>
-  <style>
-      /* For smooth scrolling to sections */
-html {
-  scroll-behavior: smooth;
-}
-
-/* ===== AOS Animation Fixes ===== */
-/* Fix for mobile overflow issues with AOS */
-html,
-body {
-  width: 100%;
-  overflow-x: hidden;
-}
-
-[data-aos][data-aos][data-aos-delay="50"].aos-animate,
-body[data-aos-delay="50"] [data-aos].aos-animate {
-  transition-delay: 50ms;
-}
-
-[data-aos][data-aos][data-aos-delay="100"].aos-animate,
-body[data-aos-delay="100"] [data-aos].aos-animate {
-  transition-delay: 100ms;
-}
-
-[data-aos][data-aos][data-aos-delay="200"].aos-animate,
-body[data-aos-delay="200"] [data-aos].aos-animate {
-  transition-delay: 200ms;
-}
-
-[data-aos][data-aos][data-aos-delay="300"].aos-animate,
-body[data-aos-delay="300"] [data-aos].aos-animate {
-  transition-delay: 300ms;
-}
-
-[data-aos][data-aos][data-aos-delay="400"].aos-animate,
-body[data-aos-delay="400"] [data-aos].aos-animate {
-  transition-delay: 400ms;
-}
-
-  </style>
 </body>
 
 </html>
