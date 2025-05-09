@@ -1,0 +1,199 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+body {
+  font-family: 'Manrope', sans-serif;
+  background: #f9fafb;
+  color: #1f2937;
+  overflow-x: hidden;
+}
+
+.transport-card {
+  background: linear-gradient(145deg, #ffffff, #f1f5f9);
+  border-radius: 24px;
+  overflow: hidden;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.transport-card:hover {
+  transform: translateY(-12px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.gradient-button {
+  background: linear-gradient(90deg, #10b981, #059669);
+  color: white;
+  border-radius: 16px;
+  padding: 12px 32px;
+  font-weight: 600;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.gradient-button:hover {
+  background: linear-gradient(90deg, #059669, #10b981);
+  transform: scale(1.05);
+}
+
+.header-bg {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  position: relative;
+  overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+}
+
+.header-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('https://source.unsplash.com/random/1600x400?mosque,kaaba') no-repeat center center/cover;
+  opacity: 0.2;
+  z-index: 0;
+}
+
+.tab-button {
+  padding: 12px 24px;
+  font-weight: 600;
+  border-radius: 12px 12px 0 0;
+  transition: background 0.3s ease, color 0.3s ease;
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.tab-button.active {
+  background: linear-gradient(90deg, #10b981, #059669);
+  color: white;
+}
+
+.tab-button:hover {
+  background: #d1d5db;
+}
+
+.filter-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease;
+}
+
+.filter-card:hover {
+  transform: translateY(-8px);
+}
+
+.input-field {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px;
+  background: #ffffff;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.input-field:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+  outline: none;
+}
+
+.section-title {
+  position: relative;
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #1f2937;
+  padding-bottom: 16px;
+  margin-bottom: 32px;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 120px;
+  height: 5px;
+  background: linear-gradient(to right, #10b981, #059669);
+  border-radius: 3px;
+}
+
+.faq-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.faq-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.faq-icon {
+  transition: transform 0.3s ease;
+}
+
+.faq-answer.active .faq-icon {
+  transform: rotate(180deg);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: #ecfdf5;
+  color: #059669;
+  border-radius: 9999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 6px;
+  transition: background 0.3s ease;
+}
+
+.chip:hover {
+  background: #d1fae5;
+}
+
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.animate-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.footer-bg {
+  background: linear-gradient(to bottom, #1f2937, #111827);
+  clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 100%);
+}
+
+.social-icon {
+  transition: transform 0.3s ease, color 0.3s ease;
+  font-size: 1.5rem;
+}
+
+.social-icon:hover {
+  transform: scale(1.4);
+  color: #10b981;
+}
+
+@media (max-width: 768px) {
+  .section-title {
+    font-size: 1.75rem;
+  }
+
+  .filter-card {
+    padding: 24px;
+  }
+
+  .tab-button {
+    padding: 10px 16px;
+    font-size: 0.875rem;
+  }
+}

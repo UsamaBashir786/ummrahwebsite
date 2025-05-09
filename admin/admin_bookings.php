@@ -25,7 +25,7 @@ $total_bookings = 0;
 // Build query with filters
 $query = "SELECT b.id, b.user_id, b.package_id, b.created_at, b.booking_status as status, 
          u.full_name, u.email, u.phone,
-         p.title AS package_title, p.package_type, p.price AS package_price
+         p.title AS package_title, p.star_rating as package_type, p.price AS package_price
          FROM package_bookings b
          LEFT JOIN users u ON b.user_id = u.id
          LEFT JOIN umrah_packages p ON b.package_id = p.id

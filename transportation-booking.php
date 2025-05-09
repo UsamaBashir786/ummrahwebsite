@@ -268,24 +268,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Book Transportation - UmrahFlights</title>
   <!-- Include Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+  <link rel="stylesheet" href="src/output.css">
   <!-- Include Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <?php include 'includes/css-links.php'; ?>
-  <style>
-    body {
-      margin-top: 65px !important;
-    }
 
-    .form-input {
-      transition: all 0.3s ease;
-    }
-
-    .form-input:focus {
-      border-color: #22c55e;
-      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
-    }
-  </style>
 </head>
 
 <body class="bg-gray-50">
@@ -507,7 +495,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($errors)) {
   <!-- Footer -->
   <?php include 'includes/footer.php'; ?>
   <?php include 'includes/js-links.php'; ?>
+  <style>
+    body {
+      margin-top: 65px !important;
+    }
 
+    .form-input {
+      transition: all 0.3s ease;
+    }
+
+    .form-input:focus {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+    }
+  </style>
   <script>
     // Client-side validation for pickup date
     document.getElementById('pickup_date').addEventListener('change', function() {

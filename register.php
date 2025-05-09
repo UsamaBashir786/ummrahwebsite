@@ -135,7 +135,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Register - UmrahFlights</title>
   <!-- Include Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+   <link rel="stylesheet" href="src/output.css">
   <?php include 'includes/css-links.php' ?>
 </head>
 

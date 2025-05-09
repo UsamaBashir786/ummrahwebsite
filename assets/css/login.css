@@ -1,0 +1,114 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+body {
+  font-family: 'Manrope', sans-serif;
+  background: #f9fafb;
+  color: #1f2937;
+  overflow-x: hidden;
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease, opacity 0.5s ease;
+}
+
+.login-card:hover {
+  transform: translateY(-8px);
+}
+
+.gradient-button {
+  background: linear-gradient(90deg, #10b981, #059669);
+  color: white;
+  border-radius: 16px;
+  padding: 12px 32px;
+  font-weight: 600;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.gradient-button:hover {
+  background: linear-gradient(90deg, #059669, #10b981);
+  transform: scale(1.05);
+}
+
+.input-field {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px 14px 14px 40px;
+  background: #ffffff;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.input-field:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+  outline: none;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+}
+
+.alert {
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.info-message {
+  background: #ecfdf5;
+  border-radius: 12px;
+  padding: 16px;
+  color: #059669;
+  font-size: 0.85rem;
+  border: 1px solid #d1fae5;
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+.input-field.border-red-500 {
+  border-color: #dc2626;
+}
+
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.animate-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.debug-message {
+  background: #fff3cd;
+  border: 1px solid #ffeeba;
+  color: #856404;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .login-card {
+    padding: 24px;
+  }
+
+  .gradient-button {
+    padding: 10px 24px;
+  }
+}

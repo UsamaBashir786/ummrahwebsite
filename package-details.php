@@ -54,36 +54,11 @@ function getStarRatingText($rating)
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?php echo $package['total_days']; ?> Nights <?php echo getStarRatingText($package['star_rating']); ?> Umrah Package - UmrahFlights</title>
   <!-- Include Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+  <link rel="stylesheet" href="src/output.css">
   <!-- Include Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    body {
-      font-family: 'Arial', sans-serif;
-    }
 
-    .blue-bg {
-      background-color: #1976d2;
-    }
-
-    .footer-bg {
-      background: linear-gradient(to bottom, #1f2937, #111827);
-      clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 100%);
-    }
-
-    .blue-text {
-      color: #1976d2;
-    }
-
-    .room-option {
-      transition: all 0.3s ease;
-    }
-
-    .room-option:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-  </style>
 </head>
 
 <body class="bg-gray-50">
@@ -309,7 +284,33 @@ function getStarRatingText($rating)
 
   <!-- Footer -->
   <?php include 'includes/footer.php'; ?>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+    }
 
+    .blue-bg {
+      background-color: #1976d2;
+    }
+
+    .footer-bg {
+      background: linear-gradient(to bottom, #1f2937, #111827);
+      clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 100%);
+    }
+
+    .blue-text {
+      color: #1976d2;
+    }
+
+    .room-option {
+      transition: all 0.3s ease;
+    }
+
+    .room-option:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+  </style>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       // Add any JavaScript functionality here

@@ -257,40 +257,6 @@ function displayStarRating($rating)
       },
     }
   </script>
-  <style>
-    .bg-primary {
-      background: #0d6efd;
-    }
-
-    body {
-      margin-top: 65px !important;
-    }
-
-    .form-loading .loading-spinner {
-      display: inline-block;
-    }
-
-    .form-loading button {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-
-    .loading-spinner {
-      display: none;
-    }
-
-    .inclusion-badge {
-      display: inline-block;
-      padding: 0.3rem 0.7rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      margin-right: 0.5rem;
-      margin-bottom: 0.5rem;
-      background-color: #E5F2F2;
-      color: #047857;
-      border: 1px solid #047857;
-    }
-  </style>
 </head>
 
 <body class="bg-gray-50">
@@ -483,7 +449,40 @@ function displayStarRating($rating)
   <!-- Footer -->
   <?php include 'includes/footer.php'; ?>
   <?php include 'includes/js-links.php'; ?>
+  <style>
+    .bg-primary {
+      background: #0d6efd;
+    }
 
+    body {
+      margin-top: 65px !important;
+    }
+
+    .form-loading .loading-spinner {
+      display: inline-block;
+    }
+
+    .form-loading button {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .loading-spinner {
+      display: none;
+    }
+
+    .inclusion-badge {
+      display: inline-block;
+      padding: 0.3rem 0.7rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+      background-color: #E5F2F2;
+      color: #047857;
+      border: 1px solid #047857;
+    }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>
     // Initialize date picker
