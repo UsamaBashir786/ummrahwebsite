@@ -651,68 +651,7 @@ $cabin_classes = ['economy', 'business', 'first_class'];
   </section>
 
   <!-- Footer -->
-  <footer class="footer-bg py-20 text-gray-200">
-    <div class="container mx-auto px-4">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-12">
-        <div class="animate-on-scroll">
-          <h3 class="text-2xl font-bold mb-6 text-white">About Us</h3>
-          <p class="text-gray-300 text-sm leading-relaxed">
-            We specialize in creating transformative Umrah experiences, blending premium services with spiritual fulfillment.
-          </p>
-          <div class="flex space-x-6 mt-6">
-            <a href="#" class="social-icon"><i class="fab fa-facebook"></i></a>
-            <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
-          </div>
-        </div>
-        <div class="animate-on-scroll">
-          <h3 class="text-2xl font-bold mb-6 text-white">Quick Links</h3>
-          <ul class="space-y-4">
-            <li><a href="index.php" class="text-gray-300 hover:text-white transition">Home</a></li>
-            <li><a href="about.php" class="text-gray-300 hover:text-white transition">About Us</a></li>
-            <li><a href="packages.php" class="text-gray-300 hover:text-white transition">Our Packages</a></li>
-            <li><a href="faqs.php" class="text-gray-300 hover:text-white transition">FAQs</a></li>
-            <li><a href="contact.php" class="text-gray-300 hover:text-white transition">Contact Us</a></li>
-          </ul>
-        </div>
-        <div class="animate-on-scroll">
-          <h3 class="text-2xl font-bold mb-6 text-white">Our Services</h3>
-          <ul class="space-y-4">
-            <li><a href="packages.php" class="text-gray-300 hover:text-white transition">Umrah Packages</a></li>
-            <li><a href="flight-booking.php" class="text-gray-300 hover:text-white transition">Flight Booking</a></li>
-            <li><a href="hotel.php" class="text-gray-300 hover:text-white transition">Hotel Reservation</a></li>
-            <li><a href="visa.php" class="text-gray-300 hover:text-white transition">Visa Processing</a></li>
-            <li><a href="transport.php" class="text-gray-300 hover:text-white transition">Transportation</a></li>
-          </ul>
-        </div>
-        <div class="animate-on-scroll">
-          <h3 class="text-2xl font-bold mb-6 text-white">Contact Us</h3>
-          <ul class="space-y-4 text-gray-300">
-            <li class="flex items-start">
-              <i class="fas fa-map-marker-alt mt-1 mr-3 text-emerald-400"></i>
-              <span>123 Main Street, City, Country</span>
-            </li>
-            <li class="flex items-center">
-              <i class="fas fa-phone mr-3 text-emerald-400"></i>
-              <span>+44 775 983691</span>
-            </li>
-            <li class="flex items-center">
-              <i class="fas fa-envelope mr-3 text-emerald-400"></i>
-              <span>info@umrahpartner.com</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-      <div class="border-t border-gray-700 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center animate-on-scroll">
-        <p class="text-gray-400 text-sm">© 2025 Umrah Partners. All rights reserved.</p>
-        <div class="flex space-x-8 mt-4 md:mt-0">
-          <a href="privacy.php" class="text-gray-400 hover:text-white text-sm transition">Privacy Policy</a>
-          <a href="terms.php" class="text-gray-400 hover:text-white text-sm transition">Terms of Service</a>
-          <a href="cookies.php" class="text-gray-400 hover:text-white text-sm transition">Cookie Policy</a>
-        </div>
-      </div>
-    </div>
-  </footer>
+   <?php include 'includes/footer.php' ?>
 
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script>

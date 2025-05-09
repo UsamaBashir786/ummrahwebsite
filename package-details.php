@@ -66,6 +66,11 @@ function getStarRatingText($rating)
       background-color: #1976d2;
     }
 
+    .footer-bg {
+      background: linear-gradient(to bottom, #1f2937, #111827);
+      clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 100%);
+    }
+
     .blue-text {
       color: #1976d2;
     }
