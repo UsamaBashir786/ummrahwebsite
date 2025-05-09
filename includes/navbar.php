@@ -23,13 +23,13 @@ if (session_status() == PHP_SESSION_NONE) {
         <a href="packages.php" class="text-gray-700 hover:text-emerald-600 px-4 py-2 rounded-lg text-base font-medium transition">Packages</a>
 
         <!-- Dropdown -->
-        <div class="relative group">
-          <button class="text-gray-700 group-hover:text-emerald-600 px-4 py-2 rounded-lg text-base font-medium inline-flex items-center transition">
+        <div class="relative group dropdown">
+          <button class="text-gray-700 group-hover:text-emerald-600 px-4 py-2 rounded-lg text-base font-medium inline-flex items-center transition dropdown-toggle">
             <span>More</span>
             <i class="fas fa-chevron-down ml-2 text-sm"></i>
           </button>
-          <div class="absolute right-0 w-56 mt-2 origin-top-right z-10">
-            <div class="bg-white rounded-xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out transform group-hover:scale-100 scale-95">
+          <div class="absolute right-0 w-56 mt-2 origin-top-right z-10 dropdown-menu">
+            <div class="bg-white rounded-xl shadow-xl border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible hover:opacity-100 hover:visible transition-all duration-200 ease-in-out transform group-hover:scale-100 scale-95">
               <div class="py-2">
                 <a href="transportation.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 transition">Transportation</a>
                 <a href="flights.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 transition">Flights</a>
@@ -113,6 +113,33 @@ if (session_status() == PHP_SESSION_NONE) {
       icon.classList.toggle('fa-chevron-down');
       icon.classList.toggle('fa-chevron-up');
     });
+
+    // Desktop dropdown click toggle
+    const dropdownToggle = document.querySelector('.dropdown-toggle');
+    const dropdownMenu = document.querySelector('.dropdown-menu');
+    dropdownToggle.addEventListener('click', function() {
+      const isVisible = dropdownMenu.querySelector('div').classList.contains('visible');
+      dropdownMenu.querySelector('div').classList.toggle('opacity-100', !isVisible);
+      dropdownMenu.querySelector('div').classList.toggle('visible', !isVisible);
+      dropdownMenu.querySelector('div').classList.toggle('invisible', isVisible);
+      dropdownMenu.querySelector('div').classList.toggle('scale-100', !isVisible);
+      dropdownMenu.querySelector('div').classList.toggle('scale-95', isVisible);
+      const icon = dropdownToggle.querySelector('i');
+      icon.classList.toggle('fa-chevron-down');
+      icon.classList.toggle('fa-chevron-up');
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      const isClickInside = dropdownToggle.contains(event.target) || dropdownMenu.contains(event.target);
+      if (!isClickInside && dropdownMenu.querySelector('div').classList.contains('visible')) {
+        dropdownMenu.querySelector('div').classList.remove('opacity-100', 'visible', 'scale-100');
+        dropdownMenu.querySelector('div').classList.add('opacity-0', 'invisible', 'scale-95');
+        const icon = dropdownToggle.querySelector('i');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
+      }
+    });
   });
 </script>
 
@@ -132,5 +159,20 @@ if (session_status() == PHP_SESSION_NONE) {
   .gradient-button:hover {
     background: linear-gradient(90deg, #059669, #10b981);
     transform: scale(1.05);
+  }
+
+  /* Ensure hover works alongside click for desktop dropdown */
+  .dropdown:hover .dropdown-menu>div,
+  .dropdown:focus-within .dropdown-menu>div {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: scale(1) !important;
+  }
+
+  /* Ensure the dropdown menu remains interactive on hover */
+  .dropdown-menu:hover>div {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: scale(1) !important;
   }
 </style>

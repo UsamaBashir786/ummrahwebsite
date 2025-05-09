@@ -40,329 +40,12 @@ if ($faqs_result && $faqs_result->num_rows > 0) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Home | UmrahFlights</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
+  <link rel="stylesheet" href="assets/css/index.css">
+  <link rel="stylesheet" href="src/output.css">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
-    body {
-      font-family: 'Manrope', sans-serif;
-      background: #f9fafb;
-      color: #1f2937;
-      overflow-x: hidden;
-    }
-
-    .gradient-button {
-      background: linear-gradient(90deg, #10b981, #059669);
-      color: white;
-      border-radius: 16px;
-      padding: 12px 32px;
-      font-weight: 600;
-      transition: transform 0.3s ease, background 0.3s ease;
-    }
-
-    .gradient-button:hover {
-      background: linear-gradient(90deg, #059669, #10b981);
-      transform: scale(1.05);
-    }
-
-    .outline-button {
-      border: 2px solid #10b981;
-      color: #10b981;
-      background: transparent;
-      border-radius: 16px;
-      padding: 12px 32px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-
-    .outline-button:hover {
-      background: #10b981;
-      color: white;
-      transform: scale(1.05);
-    }
-
-    .section-title {
-      position: relative;
-      font-size: 2.25rem;
-      font-weight: 800;
-      color: #1f2937;
-      padding-bottom: 16px;
-      margin-bottom: 32px;
-    }
-
-    .section-title::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 120px;
-      height: 5px;
-      background: linear-gradient(to right, #10b981, #059669);
-      border-radius: 3px;
-    }
-
-    .card {
-      background: linear-gradient(145deg, #ffffff, #f1f5f9);
-      border-radius: 24px;
-      padding: 24px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      transition: transform 0.4s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-8px);
-    }
-
-    .hero-section {
-      position: relative;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-    }
-
-    .hero-section::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: url('https://source.unsplash.com/random/1600x900?kaaba,mosque') no-repeat center center/cover;
-      opacity: 0.2;
-      z-index: 0;
-    }
-
-    .hero-content {
-      position: relative;
-      z-index: 10;
-      text-align: center;
-      color: white;
-      max-width: 800px;
-      padding: 2rem;
-    }
-
-    .package-img {
-      height: 240px;
-      position: relative;
-      overflow: hidden;
-      border-top-left-radius: 24px;
-      border-top-right-radius: 24px;
-    }
-
-    .package-img img {
-      transition: transform 0.7s ease;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .package-card:hover .package-img img {
-      transform: scale(1.05);
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      padding: 8px 16px;
-      background: #ecfdf5;
-      color: #059669;
-      border-radius: 9999px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      transition: background 0.3s ease;
-    }
-
-    .chip:hover {
-      background: #d1fae5;
-    }
-
-    .destination-card {
-      position: relative;
-      height: 350px;
-      border-radius: 24px;
-      overflow: hidden;
-    }
-
-    .destination-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.7s ease;
-    }
-
-    .destination-card:hover .destination-img {
-      transform: scale(1.05);
-    }
-
-    .destination-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.2));
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: 2rem;
-    }
-
-    .feature-icon {
-      width: 3rem;
-      height: 3rem;
-      background: #ecfdf5;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #059669;
-      font-size: 1.25rem;
-    }
-
-    .testimonial-card {
-      background: white;
-      border-radius: 24px;
-      padding: 24px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    }
-
-    .stats-section {
-      background: linear-gradient(to right, #10b981, #059669);
-      padding: 5rem 0;
-      color: white;
-      clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 100%);
-    }
-
-    .stat-card {
-      text-align: center;
-      padding: 1.5rem;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      backdrop-filter: blur(5px);
-    }
-
-    .cta-section {
-      position: relative;
-      background: url('https://source.unsplash.com/random/1600x600?mosque') center/cover no-repeat;
-      padding: 6rem 0;
-    }
-
-    .cta-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(17, 24, 39, 0.8);
-    }
-
-    .newsletter-form {
-      display: flex;
-      max-width: 500px;
-      margin: 2rem auto 0;
-      background: white;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .newsletter-input {
-      flex-grow: 1;
-      padding: 1rem 1.5rem;
-      border: none;
-      outline: none;
-      font-size: 1rem;
-    }
-
-    .newsletter-btn {
-      background: linear-gradient(90deg, #10b981, #059669);
-      color: white;
-      border: none;
-      padding: 1rem 1.5rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-
-    .newsletter-btn:hover {
-      background: linear-gradient(90deg, #059669, #10b981);
-    }
-
-    .animate-on-scroll {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-
-    .animate-on-scroll.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .footer-bg {
-      background: linear-gradient(to bottom, #1f2937, #111827);
-      clip-path: polygon(0 10%, 100% 0, 100% 100%, 0 100%);
-    }
-
-    .social-icon {
-      transition: transform 0.3s ease, color 0.3s ease;
-      font-size: 1.5rem;
-    }
-
-    .social-icon:hover {
-      transform: scale(1.4);
-      color: #10b981;
-    }
-
-    .swiper-button-next,
-    .swiper-button-prev {
-      color: #10b981 !important;
-    }
-
-    .swiper-pagination-bullet-active {
-      background-color: #10b981 !important;
-    }
-
-    .line-clamp-2 {
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    @media (max-width: 768px) {
-      .section-title {
-        font-size: 1.75rem;
-      }
-
-      .hero-title {
-        font-size: 2.5rem;
-      }
-
-      .newsletter-form {
-        flex-direction: column;
-      }
-
-      .newsletter-input {
-        border-radius: 16px;
-        margin-bottom: 1rem;
-      }
-
-      .newsletter-btn {
-        border-radius: 16px;
-        width: 100%;
-      }
-
-      .grid-cols-2 {
-        grid-template-columns: 1fr;
-      }
-    }
   </style>
 </head>
 
@@ -391,21 +74,21 @@ if ($faqs_result && $faqs_result->num_rows > 0) {
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div class="destination-card animate-on-scroll">
-          <img src="/assets/img/mecca.jpg" alt="Mecca" class="destination-img">
+          <img src="assets/images/mecca.jpg" alt="Mecca" class="destination-img">
           <div class="destination-overlay">
             <h3 class="text-white text-xl font-bold">Mecca</h3>
             <p class="text-gray-200">The holiest city in Islam and the birthplace of Prophet Muhammad</p>
           </div>
         </div>
         <div class="destination-card animate-on-scroll">
-          <img src="/assets/img/madinah.jpg" alt="Madinah" class="destination-img">
+          <img src="assets/images/Madinah.jpg" alt="Madinah" class="destination-img">
           <div class="destination-overlay">
             <h3 class="text-white text-xl font-bold">Madinah</h3>
             <p class="text-gray-200">The second holiest city in Islam and the burial place of Prophet Muhammad</p>
           </div>
         </div>
         <div class="destination-card animate-on-scroll">
-          <img src="/assets/img/jeddah.jpg" alt="Jeddah" class="destination-img">
+          <img src="assets/images/Jeddah.jpg" alt="Jeddah" class="destination-img">
           <div class="destination-overlay">
             <h3 class="text-white text-xl font-bold">Jeddah</h3>
             <p class="text-gray-200">The gateway to Mecca and a major urban center in western Saudi Arabia</p>
@@ -754,7 +437,7 @@ if ($faqs_result && $faqs_result->num_rows > 0) {
   </section>
 
   <!-- Footer -->
-  <footer class="footer-bg py-20 text-gray-200">
+  <!-- <footer class="footer-bg py-20 text-gray-200">
     <div class="container mx-auto px-4">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-12">
         <div class="animate-on-scroll">
@@ -815,8 +498,8 @@ if ($faqs_result && $faqs_result->num_rows > 0) {
         </div>
       </div>
     </div>
-  </footer>
-
+  </footer> -->
+  <?php include 'includes/footer.php' ?>                  
   <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {

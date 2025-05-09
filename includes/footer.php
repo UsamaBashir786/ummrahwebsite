@@ -64,24 +64,23 @@ $whatsapp = getPrimaryContact($conn, 'whatsapp');
 $social_links = getContactsByType($conn, 'social');
 ?>
 
-<!-- Footer Section -->
-<footer class="bg-gray-900 text-white py-12">
+<!-- Footer -->
+<footer class="footer-bg py-20 text-gray-200">
   <div class="container mx-auto px-4">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-12">
       <!-- About Us -->
-      <div>
-        <h4 class="text-xl font-semibold mb-4">About Us</h4>
-        <p class="text-gray-400 mb-4">
-          We specialize in providing comprehensive Umrah packages with premium services,
-          ensuring a comfortable and spiritual journey for all our clients.
+      <div class="animate-on-scroll">
+        <h3 class="한다는 text-2xl font-bold mb-6 text-white">About Us</h3>
+        <p class="text-gray-300 text-sm leading-relaxed">
+          We specialize in creating transformative Umrah experiences, blending premium services with spiritual fulfillment.
         </p>
-        <div class="flex space-x-4">
+        <div class="flex space-x-6 mt-6">
           <?php foreach ($social_links as $social): ?>
             <a href="<?php echo htmlspecialchars($social['value']); ?>"
-              class="text-gray-400 hover:text-white transition-colors"
+              class="social-icon"
               title="<?php echo htmlspecialchars($social['label']); ?>">
               <?php if (strpos(strtolower($social['label']), 'facebook') !== false): ?>
-                <i class="fab fa-facebook-f"></i>
+                <i class="fab fa-facebook"></i>
               <?php elseif (strpos(strtolower($social['label']), 'twitter') !== false): ?>
                 <i class="fab fa-twitter"></i>
               <?php elseif (strpos(strtolower($social['label']), 'instagram') !== false): ?>
@@ -97,97 +96,151 @@ $social_links = getContactsByType($conn, 'social');
       </div>
 
       <!-- Quick Links -->
-      <div>
-        <h4 class="text-xl font-semibold mb-4">Quick Links</h4>
-        <ul class="space-y-2">
-          <li><a href="index.php" class="text-gray-400 hover:text-white transition-colors">Home</a></li>
-          <li><a href="about.php" class="text-gray-400 hover:text-white transition-colors">About Us</a></li>
-          <li><a href="packages.php" class="text-gray-400 hover:text-white transition-colors">Our Packages</a></li>
-          <li><a href="faqs.php" class="text-gray-400 hover:text-white transition-colors">FAQs</a></li>
-          <li><a href="contact-us.php" class="text-gray-400 hover:text-white transition-colors">Contact Us</a></li>
+      <div class="animate-on-scroll">
+        <h3 class="text-2xl font-bold mb-6 text-white">Quick Links</h3>
+        <ul class="space-y-4">
+          <li><a href="index.php" class="text-gray-300 hover:text-white transition">Home</a></li>
+          <li><a href="about.php" class="text-gray-300 hover:text-white transition">About Us</a></li>
+          <li><a href="packages.php" class="text-gray-300 hover:text-white transition">Our Packages</a></li>
+          <li><a href="faqs.php" class="text-gray-300 hover:text-white transition">FAQs</a></li>
+          <li><a href="contact-us.php" class="text-gray-300 hover:text-white transition">Contact Us</a></li>
         </ul>
       </div>
 
       <!-- Our Services -->
-      <div>
-        <h4 class="text-xl font-semibold mb-4">Our Services</h4>
-        <ul class="space-y-2">
-          <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Umrah Packages</a></li>
-          <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Flight Booking</a></li>
-          <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Hotel Reservation</a></li>
-          <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Visa Processing</a></li>
-          <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Transportation</a></li>
+      <div class="animate-on-scroll">
+        <h3 class="text-2xl font-bold mb-6 text-white">Our Services</h3>
+        <ul class="space-y-4">
+          <li><a href="packages.php" class="text-gray-300 hover:text-white transition">Umrah Packages</a></li>
+          <li><a href="flight-booking.php" class="text-gray-300 hover:text-white transition">Flight Booking</a></li>
+          <li><a href="hotel-booking.php" class="text-gray-300 hover:text-white transition">Hotel Reservation</a></li>
+          <li><a href="visa.php" class="text-gray-300 hover:text-white transition">Visa Processing</a></li>
+          <li><a href="transport.php" class="text-gray-300 hover:text-white transition">Transportation</a></li>
         </ul>
       </div>
 
       <!-- Contact Info -->
-      <div>
-        <h4 class="text-xl font-semibold mb-4">Contact Us</h4>
-        <?php if ($address): ?>
-          <p class="text-gray-400 mb-3 flex items-start">
-            <i class="fas fa-map-marker-alt mr-3 mt-1 text-amber-500"></i>
-            <?php echo nl2br(htmlspecialchars($address['value'])); ?>
-          </p>
-        <?php endif; ?>
+      <div class="animate-on-scroll">
+        <h3 class="text-2xl font-bold mb-6 text-white">Contact Us</h3>
+        <ul class="space-y-4 text-gray-300">
+          <?php if ($address): ?>
+            <li class="flex items-start">
+              <i class="fas fa-map-marker-alt mt-1 mr-3 text-emerald-400"></i>
+              <span><?php echo nl2br(htmlspecialchars($address['value'])); ?></span>
+            </li>
+          <?php endif; ?>
 
-        <?php if ($primary_phone): ?>
-          <p class="text-gray-400 mb-3 flex items-center">
-            <i class="fas fa-phone-alt mr-3 text-amber-500"></i>
-            <a href="tel:<?php echo htmlspecialchars($primary_phone['value']); ?>"
-              class="hover:text-white transition-colors">
-              <?php echo htmlspecialchars($primary_phone['value']); ?>
-            </a>
-          </p>
-        <?php endif; ?>
+          <?php if ($primary_phone): ?>
+            <li class="flex items-center">
+              <i class="fas fa-phone mr-3 text-emerald-400"></i>
+              <a href="tel:<?php echo htmlspecialchars($primary_phone['value']); ?>"
+                class="hover:text-white transition">
+                <?php echo htmlspecialchars($primary_phone['value']); ?>
+              </a>
+            </li>
+          <?php endif; ?>
 
-        <?php if ($whatsapp): ?>
-          <p class="text-gray-400 mb-3 flex items-center">
-            <i class="fab fa-whatsapp mr-3 text-amber-500"></i>
-            <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp['value']); ?>"
-              class="hover:text-white transition-colors">
-              <?php echo htmlspecialchars($whatsapp['value']); ?>
-            </a>
-          </p>
-        <?php endif; ?>
+          <?php if ($whatsapp): ?>
+            <li class="flex items-center">
+              <i class="fab fa-whatsapp mr-3 text-emerald-400"></i>
+              <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', $whatsapp['value']); ?>"
+                class="hover:text-white transition">
+                <?php echo htmlspecialchars($whatsapp['value']); ?>
+              </a>
+            </li>
+          <?php endif; ?>
 
-        <?php if ($primary_email): ?>
-          <p class="text-gray-400 mb-3 flex items-center">
-            <i class="fas fa-envelope mr-3 text-amber-500"></i>
-            <a href="mailto:<?php echo htmlspecialchars($primary_email['value']); ?>"
-              class="hover:text-white transition-colors">
-              <?php echo htmlspecialchars($primary_email['value']); ?>
-            </a>
-          </p>
-        <?php endif; ?>
+          <?php if ($primary_email): ?>
+            <li class="flex items-center">
+              <i class="fas fa-envelope mr-3 text-emerald-400"></i>
+              <a href="mailto:<?php echo htmlspecialchars($primary_email['value']); ?>"
+                class="hover:text-white transition">
+                <?php echo htmlspecialchars($primary_email['value']); ?>
+              </a>
+            </li>
+          <?php endif; ?>
 
-        <?php if (count($all_emails) > 1): ?>
-          <?php foreach ($all_emails as $email): ?>
-            <?php if (!$email['is_primary']): ?>
-              <p class="text-gray-400 mb-3 flex items-center">
-                <i class="fas fa-envelope mr-3 text-amber-500"></i>
-                <a href="mailto:<?php echo htmlspecialchars($email['value']); ?>"
-                  class="hover:text-white transition-colors text-sm">
-                  <?php echo htmlspecialchars($email['label'] . ': ' . $email['value']); ?>
-                </a>
-              </p>
-            <?php endif; ?>
-          <?php endforeach; ?>
-        <?php endif; ?>
+          <?php if (count($all_emails) > 1): ?>
+            <?php foreach ($all_emails as $email): ?>
+              <?php if (!$email['is_primary']): ?>
+                <li class="flex items-center">
+                  <i class="fas fa-envelope mr-3 text-emerald-400"></i>
+                  <a href="mailto:<?php echo htmlspecialchars($email['value']); ?>"
+                    class="hover:text-white transition text-sm">
+                    <?php echo htmlspecialchars($email['label'] . ': ' . $email['value']); ?>
+                  </a>
+                </li>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </ul>
       </div>
     </div>
 
     <!-- Footer Bottom -->
-    <div class="border-t border-gray-800 mt-12 pt-8">
-      <div class="flex flex-col md:flex-row justify-between items-center">
-        <p class="text-gray-400 text-sm mb-4 md:mb-0">
-          © <?php echo date('Y'); ?> Umrah Partners. All rights reserved.
-        </p>
-        <div class="flex space-x-6">
-          <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Privacy Policy</a>
-          <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Terms of Service</a>
-          <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Cookie Policy</a>
-        </div>
+    <div class="border-t border-gray-700 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center animate-on-scroll">
+      <p class="text-gray-400 text-sm">© <?php echo date('Y'); ?> Umrah Partners. All rights reserved.</p>
+      <div class="flex space-x-8 mt-4 md:mt-0">
+        <a href="privacy.php" class="text-gray-400 hover:text-white text-sm transition">Privacy Policy</a>
+        <a href="terms.php" class="text-gray-400 hover:text-white text-sm transition">Terms of Service</a>
+        <a href="cookies.php" class="text-gray-400 hover:text-white text-sm transition">Cookie Policy</a>
       </div>
     </div>
   </div>
 </footer>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Scroll animation for footer elements
+    const elements = document.querySelectorAll('.animate-on-scroll');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-fade-in');
+        }
+      });
+    }, {
+      threshold: 0.1
+    });
+
+    elements.forEach(element => observer.observe(element));
+  });
+</script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+  .footer-bg {
+    background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+    font-family: 'Manrope', sans-serif;
+  }
+
+  .social-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+    transition: background 0.3s ease, color 0.3s ease, transform 0.3s ease;
+  }
+
+  .social-icon:hover {
+    background: #10b981;
+    color: #ffffff;
+    transform: scale(1.1);
+  }
+
+  .animate-on-scroll {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+
+  .animate-fade-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
